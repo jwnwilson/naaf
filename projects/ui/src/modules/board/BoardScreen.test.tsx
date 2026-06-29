@@ -21,6 +21,13 @@ describe("BoardScreen", () => {
   });
   it("shows the list at view=list", async () => {
     renderAt("/projects?view=list");
-    await waitFor(() => expect(screen.getAllByRole("link").length).toBeGreaterThan(0));
+    // Assert a ListView-specific element: a work-item row link to /items/ —
+    // sidebar nav links do not match, so this proves ListView actually rendered rows.
+    await waitFor(() => {
+      const itemLinks = screen
+        .getAllByRole("link")
+        .filter((a) => (a as HTMLAnchorElement).getAttribute("href")?.includes("/items/"));
+      expect(itemLinks.length).toBeGreaterThan(0);
+    });
   });
 });
