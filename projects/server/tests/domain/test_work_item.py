@@ -8,6 +8,12 @@ from domain.errors import (
     InvalidTransition,
     RecordNotFound,
 )
+from domain.work_item import (
+    AcceptanceCriterion,
+    WorkItem,
+    WorkItemKind,
+    WorkItemStatus,
+)
 
 
 def test_new_id_is_32_char_hex():
@@ -42,13 +48,6 @@ def test_invalid_transition_is_domain_error():
 def test_invalid_hierarchy_is_domain_error():
     assert issubclass(InvalidHierarchy, DomainError)
 
-
-from domain.work_item import (
-    AcceptanceCriterion,
-    WorkItem,
-    WorkItemKind,
-    WorkItemStatus,
-)
 
 
 def test_work_item_defaults():

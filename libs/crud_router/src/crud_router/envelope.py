@@ -5,7 +5,7 @@ from pydantic import BaseModel
 T = TypeVar("T")
 
 
-class Envelope(BaseModel, Generic[T]):
+class Envelope(BaseModel, Generic[T]):  # noqa: UP046
     success: bool = True
     data: T | None = None
     error: str | None = None

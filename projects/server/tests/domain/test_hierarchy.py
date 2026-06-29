@@ -1,8 +1,8 @@
 import pytest
-
 from domain.errors import InvalidHierarchy
 from domain.hierarchy import validate_hierarchy
-from domain.work_item import WorkItem, WorkItemKind as K
+from domain.work_item import WorkItem
+from domain.work_item import WorkItemKind as K
 
 
 def _item(kind: K) -> WorkItem:

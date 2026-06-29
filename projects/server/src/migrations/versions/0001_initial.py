@@ -3,9 +3,8 @@
 Revision ID: 0001_initial
 Revises: 
 """
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision = '0001_initial'
 down_revision = None
@@ -51,8 +50,8 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['team_id'], ['teams.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_agent_definitions_owner_id'), 'agent_definitions', ['owner_id'], unique=False)
-    op.create_index(op.f('ix_agent_definitions_team_id'), 'agent_definitions', ['team_id'], unique=False)
+    op.create_index(op.f('ix_agent_definitions_owner_id'), 'agent_definitions', ['owner_id'], unique=False)  # noqa: E501
+    op.create_index(op.f('ix_agent_definitions_team_id'), 'agent_definitions', ['team_id'], unique=False)  # noqa: E501
     op.create_table('work_items',
     sa.Column('project_id', sa.String(length=32), nullable=False),
     sa.Column('parent_id', sa.String(length=32), nullable=True),

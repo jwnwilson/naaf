@@ -1,9 +1,9 @@
-from enum import Enum
+from enum import StrEnum
 
 from domain.base import Entity
 
 
-class AutonomyLevel(str, Enum):
+class AutonomyLevel(StrEnum):
     GATED_ALL = "gated_all"
     GATED_MERGE = "gated_merge"
     FULL_AUTO = "full_auto"

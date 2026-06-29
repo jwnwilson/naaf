@@ -1,5 +1,4 @@
 from fastapi.testclient import TestClient
-
 from interactors.api.app import create_app
 from interactors.api.settings import Settings
 

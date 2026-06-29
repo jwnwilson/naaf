@@ -8,7 +8,7 @@ from pydantic import BaseModel
 DTO = TypeVar("DTO")
 
 
-class PaginatedResult(BaseModel, Generic[DTO]):
+class PaginatedResult(BaseModel, Generic[DTO]):  # noqa: UP046
     results: list[DTO]
     total: int
     page_size: int

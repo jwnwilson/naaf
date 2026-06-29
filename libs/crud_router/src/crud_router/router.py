@@ -1,6 +1,7 @@
 import json
+from collections.abc import Callable
 from enum import Enum
-from typing import Any, Callable
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response
@@ -69,18 +70,18 @@ class CrudRouter(APIRouter):
             )
 
     def _create(self) -> Callable:
-        def create_record(obj_in: self.create_schema, uow=Depends(self.db_dependency)):  # type: ignore[name-defined]
+        def create_record(obj_in: self.create_schema, uow=Depends(self.db_dependency)):  # type: ignore[name-defined]  # noqa: B008
             return ok(self._repo(uow).create(obj_in))
         return create_record
 
     def _read(self) -> Callable:
-        def read_record(id: UUID, uow=Depends(self.db_dependency)):
+        def read_record(id: UUID, uow=Depends(self.db_dependency)):  # noqa: B008
             return ok(self._repo(uow).read(id.hex))
         return read_record
 
     def _read_multi(self) -> Callable:
         def read_multiple(
-            uow=Depends(self.db_dependency),
+            uow=Depends(self.db_dependency),  # noqa: B008
             filters: str = "{}",
             page_size: int = 50,
             page_number: int = 1,
@@ -100,12 +101,12 @@ class CrudRouter(APIRouter):
         return read_multiple
 
     def _update(self) -> Callable:
-        def update_record(id: UUID, obj_in: self.update_schema, uow=Depends(self.db_dependency)):  # type: ignore[name-defined]
+        def update_record(id: UUID, obj_in: self.update_schema, uow=Depends(self.db_dependency)):  # type: ignore[name-defined]  # noqa: B008
             return ok(self._repo(uow).update(id.hex, obj_in))
         return update_record
 
     def _delete(self) -> Callable:
-        def delete_record(id: UUID, uow=Depends(self.db_dependency)):
+        def delete_record(id: UUID, uow=Depends(self.db_dependency)):  # noqa: B008
             self._repo(uow).delete(id.hex)
             return Response(status_code=204)
         return delete_record
@@ -116,18 +117,18 @@ class CrudRouter(APIRouter):
             if route.path == f"{self.prefix}{path}" and route.methods == methods_:  # type: ignore[attr-defined]
                 self.routes.remove(route)
 
-    def post(self, path: str, *args: Any, **kwargs: Any) -> Callable[[DecoratedCallable], DecoratedCallable]:
+    def post(self, path: str, *args: Any, **kwargs: Any) -> Callable[[DecoratedCallable], DecoratedCallable]:  # noqa: E501
         self.remove_api_route(path, ["POST"])
         return super().post(path, *args, **kwargs)
 
-    def get(self, path: str, *args: Any, **kwargs: Any) -> Callable[[DecoratedCallable], DecoratedCallable]:
+    def get(self, path: str, *args: Any, **kwargs: Any) -> Callable[[DecoratedCallable], DecoratedCallable]:  # noqa: E501
         self.remove_api_route(path, ["GET"])
         return super().get(path, *args, **kwargs)
 
-    def patch(self, path: str, *args: Any, **kwargs: Any) -> Callable[[DecoratedCallable], DecoratedCallable]:
+    def patch(self, path: str, *args: Any, **kwargs: Any) -> Callable[[DecoratedCallable], DecoratedCallable]:  # noqa: E501
         self.remove_api_route(path, ["PATCH"])
         return super().patch(path, *args, **kwargs)
 
-    def delete(self, path: str, *args: Any, **kwargs: Any) -> Callable[[DecoratedCallable], DecoratedCallable]:
+    def delete(self, path: str, *args: Any, **kwargs: Any) -> Callable[[DecoratedCallable], DecoratedCallable]:  # noqa: E501
         self.remove_api_route(path, ["DELETE"])
         return super().delete(path, *args, **kwargs)

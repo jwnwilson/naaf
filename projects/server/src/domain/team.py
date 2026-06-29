@@ -1,9 +1,9 @@
-from enum import Enum
+from enum import StrEnum
 
 from domain.base import Entity
 
 
-class AgentRole(str, Enum):
+class AgentRole(StrEnum):
     LEAD = "lead"
     ARCHITECT = "architect"
     BACKEND = "backend"

@@ -1,5 +1,6 @@
 from domain.errors import InvalidHierarchy
-from domain.work_item import WorkItem, WorkItemKind as K
+from domain.work_item import WorkItem
+from domain.work_item import WorkItemKind as K
 
 # Each kind's required parent kind. None means "must be a root".
 REQUIRED_PARENT_KIND: dict[K, K | None] = {

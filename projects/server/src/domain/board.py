@@ -7,7 +7,7 @@ from domain.work_item import WorkItem
 
 class BoardNode(BaseModel):
     item: WorkItem
-    children: list["BoardNode"] = Field(default_factory=list)
+    children: list[BoardNode] = Field(default_factory=list)
 
 
 def build_board_tree(items: list[WorkItem]) -> list[BoardNode]:

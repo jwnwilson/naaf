@@ -1,5 +1,6 @@
 from domain.board import build_board_tree
-from domain.work_item import WorkItem, WorkItemKind as K
+from domain.work_item import WorkItem
+from domain.work_item import WorkItemKind as K
 
 
 def _item(id_: str, kind: K, parent_id: str | None) -> WorkItem:

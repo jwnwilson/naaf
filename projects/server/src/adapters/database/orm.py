@@ -1,9 +1,8 @@
 from datetime import datetime
 
+from domain.base import new_id, utcnow
 from sqlalchemy import JSON, DateTime, ForeignKey, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-
-from domain.base import new_id, utcnow
 
 
 class Base(DeclarativeBase):

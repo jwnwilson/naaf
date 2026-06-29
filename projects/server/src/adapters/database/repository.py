@@ -1,5 +1,6 @@
 from typing import Any, Generic, TypeVar
 
+from domain.errors import IntegrityConflict, RecordNotFound
 from pydantic import BaseModel
 from sqlalchemy import Select, asc, desc, func, select
 from sqlalchemy.exc import IntegrityError as SqlIntegrityError
@@ -7,12 +8,11 @@ from sqlalchemy.orm import Session
 
 from adapters.database.orm import Base
 from adapters.database.ports import PaginatedResult
-from domain.errors import IntegrityConflict, RecordNotFound
 
 DTO = TypeVar("DTO", bound=BaseModel)
 
 
-class SqlRepository(Generic[DTO]):
+class SqlRepository(Generic[DTO]):  # noqa: UP046
     """Generic DTO-in/DTO-out repository. Subclass and set orm_model + dto."""
 
     orm_model: type[Base]

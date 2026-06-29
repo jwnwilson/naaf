@@ -1,10 +1,9 @@
 from dataclasses import dataclass, field
 
+from crud_router import CrudRouter, Envelope
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
-
-from crud_router import CrudRouter, Envelope
 
 
 class Thing(BaseModel):

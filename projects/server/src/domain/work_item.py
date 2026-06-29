@@ -1,17 +1,17 @@
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 from domain.base import Entity
 
 
-class WorkItemKind(str, Enum):
+class WorkItemKind(StrEnum):
     EPIC = "epic"
     FEATURE = "feature"
     TASK = "task"
 
 
-class WorkItemStatus(str, Enum):
+class WorkItemStatus(StrEnum):
     TO_DO = "to_do"
     IN_PROGRESS = "in_progress"
     IN_REVIEW = "in_review"
