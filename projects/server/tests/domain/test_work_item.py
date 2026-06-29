@@ -1,7 +1,5 @@
 from datetime import datetime
 
-import pytest
-
 from domain.base import Entity, new_id, utcnow
 from domain.errors import (
     DomainError,
@@ -30,24 +28,16 @@ def test_entity_gets_default_id():
 
 
 def test_record_not_found_is_domain_error():
-    with pytest.raises(RecordNotFound):
-        raise RecordNotFound("Record not found")
     assert issubclass(RecordNotFound, DomainError)
 
 
 def test_integrity_conflict_is_domain_error():
-    with pytest.raises(IntegrityConflict):
-        raise IntegrityConflict("Unique constraint violated")
     assert issubclass(IntegrityConflict, DomainError)
 
 
 def test_invalid_transition_is_domain_error():
-    with pytest.raises(InvalidTransition):
-        raise InvalidTransition("Invalid state transition")
     assert issubclass(InvalidTransition, DomainError)
 
 
 def test_invalid_hierarchy_is_domain_error():
-    with pytest.raises(InvalidHierarchy):
-        raise InvalidHierarchy("Invalid parent-child relationship")
     assert issubclass(InvalidHierarchy, DomainError)
