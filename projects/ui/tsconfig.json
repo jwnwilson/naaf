@@ -12,7 +12,7 @@
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["vitest/globals", "@testing-library/jest-dom", "node"]
+    "types": ["vitest/globals", "@testing-library/jest-dom", "node", "vite/client"]
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
