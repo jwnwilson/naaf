@@ -1,4 +1,5 @@
 import { Outlet, useSearchParams } from "react-router-dom";
+import { ChatPanel } from "./ChatPanel";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 
@@ -36,7 +37,7 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
-      <aside data-chat className="w-[320px] shrink-0 border-l border-border" />
+      <ChatPanel />
     </div>
   );
 }
