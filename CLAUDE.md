@@ -10,8 +10,15 @@ Local tool for running a **virtual dev team** — role-based AI agents (team lea
 
 **All work happens in a git worktree and ships via a reviewed PR. Never commit or push directly to `main`.**
 
-- Start every task in an isolated worktree off the latest `main`:
-  `git worktree add -b <type>/<slug> ../naaf-<slug> origin/main`. Do the work there, not in the primary checkout.
+- **Always use a git worktree — never a fresh clone or a copied/duplicate repo.** A worktree
+  shares the primary repo's `.git`; a duplicate clone clutters `~/projects` and drifts. If you
+  catch yourself running `git clone` or `cp -r` of this repo, stop — use `git worktree add`.
+- Start every task in an isolated worktree off the latest `main`, nested under `.worktrees/`:
+  `git worktree add -b <type>/<slug> .worktrees/<slug> origin/main`. Do the work there, not in
+  the primary checkout. (`.worktrees/` is git-ignored, so worktrees never show up as untracked
+  files in the primary checkout.)
+- When done, remove the worktree with `git worktree remove .worktrees/<slug>` (do not `rm -rf`
+  it, which leaves a prunable stub).
 - `main` only advances by merging a reviewed PR — no direct commits, no bundled auto-commits with junk titles.
 - One PR = one focused change: a clear `<type>: <description>` title, a summary, and a test plan. Keep unrelated edits out.
 - Before opening the PR, get `make coverage` (80% gate) and `make lint` green, then `git push -u origin <branch>` and open the PR with `gh pr create`.
