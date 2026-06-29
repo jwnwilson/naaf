@@ -11,6 +11,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
+    "noEmit": true,
     "types": ["vitest/globals", "@testing-library/jest-dom", "node"]
   },
   "include": ["src"],
