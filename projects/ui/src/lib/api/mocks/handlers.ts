@@ -4,6 +4,7 @@ import { db } from "./db";
 import { seed } from "./fixtures";
 
 type WorkItemStatus = components["schemas"]["WorkItem"]["status"];
+type InboxItem = components["schemas"]["InboxItem"];
 
 const BASE = "/api";
 
@@ -103,9 +104,11 @@ export const handlers = [
     const url = new URL(request.url);
     const status = url.searchParams.get("status") as WorkItemStatus | null;
     const project = url.searchParams.get("project");
+    const epic = url.searchParams.get("epic");
     let items = db.workItems;
     if (status) items = items.filter((w) => w.status === status);
     if (project) items = items.filter((w) => w.projectId === project);
+    if (epic) items = items.filter((w) => w.epicId === epic);
     return ok(items, pageMeta(items));
   }),
 
@@ -154,7 +157,7 @@ export const handlers = [
 
   // ── Runs ──────────────────────────────────────────────────────────────────────
 
-  http.get(`${BASE}/runs`, () => ok(seed.agentRuns, pageMeta(seed.agentRuns))),
+  http.get(`${BASE}/runs`, () => ok(db.agentRuns, pageMeta(db.agentRuns))),
 
   http.get(`${BASE}/runs/:id`, ({ params }) => {
     const run = db.findRun(params.id as string);
@@ -230,6 +233,3 @@ export const handlers = [
 
   http.get(`${BASE}/budget`, () => ok(seed.budget)),
 ];
-
-// ── Local type alias for the inbox filter (avoids a second import) ────────────
-type InboxItem = components["schemas"]["InboxItem"];

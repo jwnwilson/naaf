@@ -8,14 +8,17 @@ type InboxItem = components["schemas"]["InboxItem"];
 type Message = components["schemas"]["Message"];
 
 // ─── Mutable in-memory stores ─────────────────────────────────────────────────
-// Each store starts as a shallow copy of the seed so mutations don't affect the
-// original fixture arrays.  db.reset() restores everything to seed state.
+// Each store starts as a DEEP clone of the seed so mutations never alias the
+// original fixture objects.  db.reset() restores everything to seed state and
+// is called between tests (see src/test/setup.ts).
 
-let projects: Project[] = [...seed.projects];
-let workItems: WorkItem[] = [...seed.workItems];
-let agentRuns: AgentRun[] = [...seed.agentRuns];
-let inboxItems: InboxItem[] = [...seed.inboxItems];
-let messages: Message[] = [...seed.messages];
+const clone = <T>(items: T[]): T[] => structuredClone(items);
+
+let projects: Project[] = clone(seed.projects);
+let workItems: WorkItem[] = clone(seed.workItems);
+let agentRuns: AgentRun[] = clone(seed.agentRuns);
+let inboxItems: InboxItem[] = clone(seed.inboxItems);
+let messages: Message[] = clone(seed.messages);
 
 // ─── Public db interface ──────────────────────────────────────────────────────
 
@@ -89,10 +92,10 @@ export const db = {
   // ─── Reset (restore all stores to seed state) ─────────────────────────────
 
   reset: (): void => {
-    projects = [...seed.projects];
-    workItems = [...seed.workItems];
-    agentRuns = [...seed.agentRuns];
-    inboxItems = [...seed.inboxItems];
-    messages = [...seed.messages];
+    projects = clone(seed.projects);
+    workItems = clone(seed.workItems);
+    agentRuns = clone(seed.agentRuns);
+    inboxItems = clone(seed.inboxItems);
+    messages = clone(seed.messages);
   },
 };
