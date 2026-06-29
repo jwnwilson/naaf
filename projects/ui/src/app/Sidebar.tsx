@@ -1,0 +1,188 @@
+import { NavLink } from "react-router-dom";
+import { Avatar } from "../components/ui/Avatar";
+import { ProgressBar } from "../components/ui/ProgressBar";
+import {
+  AgentsIcon,
+  DashboardIcon,
+  GitRepoIcon,
+  InboxIcon,
+  ProjectsIcon,
+  SearchIcon,
+  SettingsIcon,
+} from "../components/ui/icons";
+import { useAgents } from "../lib/api/hooks/useAgents";
+import { useBudget } from "../lib/api/hooks/useBudget";
+import { useInbox } from "../lib/api/hooks/useInbox";
+import { useProjects } from "../lib/api/hooks/useProjects";
+import type { Project } from "../lib/api/hooks/useProjects";
+
+// ── NavItem ────────────────────────────────────────────────────────────────────
+
+interface NavItemProps {
+  to: string;
+  icon: React.ReactNode;
+  label: string;
+  badge?: React.ReactNode;
+}
+
+function NavItem({ to, icon, label, badge }: NavItemProps) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        [
+          "flex items-center gap-[7px] rounded-[5px] px-[7px] py-[5px] text-[11px] transition-colors",
+          isActive
+            ? "bg-accent-bg text-accent-text font-medium"
+            : "text-[#4a4d56] hover:text-[#8a8d96]",
+        ].join(" ")
+      }
+    >
+      {icon}
+      <span className="flex-1">{label}</span>
+      {badge}
+    </NavLink>
+  );
+}
+
+// ── Badge ──────────────────────────────────────────────────────────────────────
+
+function Badge({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-[8px] bg-[#181a22] px-[5px] py-[1px] font-mono text-[9px] text-[#52555e]">
+      {children}
+    </span>
+  );
+}
+
+// ── ProjectRow ─────────────────────────────────────────────────────────────────
+
+function ProjectRow({ project }: { project: Project }) {
+  return (
+    <NavLink
+      to={`/projects?project=${project.id}`}
+      className={({ isActive }) =>
+        [
+          "flex items-center gap-[6px] rounded-[5px] px-[7px] py-[5px] text-[11.5px] transition-colors",
+          isActive
+            ? "bg-[rgba(124,108,240,0.08)] text-accent-text"
+            : "text-[#42454e] hover:text-[#8a8d96]",
+        ].join(" ")
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <GitRepoIcon size={11} className="shrink-0" />
+          <span className="flex-1 truncate">{project.name}</span>
+          <span
+            className={`font-mono text-[9px] ${isActive ? "text-accent" : "text-[#4a4d56]"}`}
+          >
+            {project.itemCount}
+          </span>
+        </>
+      )}
+    </NavLink>
+  );
+}
+
+// ── Sidebar ────────────────────────────────────────────────────────────────────
+
+export function Sidebar() {
+  const projectsQuery = useProjects();
+  const inboxQuery = useInbox();
+  const agentsQuery = useAgents();
+  const budgetQuery = useBudget();
+
+  const projects = projectsQuery.data?.results ?? [];
+  const inboxItems = inboxQuery.data?.results ?? [];
+  const agents = agentsQuery.data ?? [];
+  const budget = budgetQuery.data;
+
+  const unreadCount = inboxItems.filter((i) => !i.read).length;
+  const runningCount = agents.filter((a) => a.status === "running").length;
+
+  return (
+    <nav className="flex h-full w-[214px] shrink-0 flex-col border-r border-[rgba(255,255,255,0.055)] bg-bg-sidebar">
+      {/* Workspace header */}
+      <div className="flex h-[48px] shrink-0 items-center gap-[8px] px-[9px]">
+        <Avatar initials="JW" size={24} />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[12.5px] font-semibold text-text-1">Noel Wilson</div>
+          <div className="font-mono text-[9px] text-[#30333c]">naaf workspace</div>
+        </div>
+      </div>
+
+      {/* Search bar */}
+      <div className="px-[9px] pb-[8px]">
+        <div className="flex h-[28px] items-center gap-[6px] rounded-[5px] border border-border bg-bg-input px-[8px]">
+          <SearchIcon size={11} className="shrink-0 text-[#30333c]" />
+          <span className="flex-1 text-[11.5px] text-[#30333c]">Search…</span>
+          <span className="font-mono text-[9px] text-[#20222a]">⌘K</span>
+        </div>
+      </div>
+
+      {/* Nav items */}
+      <div className="flex flex-col gap-[2px] px-[6px]">
+        <NavItem to="/dashboard" icon={<DashboardIcon size={13} />} label="Dashboard" />
+        <NavItem
+          to="/inbox"
+          icon={<InboxIcon size={13} />}
+          label="Inbox"
+          badge={unreadCount > 0 ? <Badge>{unreadCount}</Badge> : undefined}
+        />
+        <NavItem
+          to="/projects"
+          icon={<ProjectsIcon size={13} />}
+          label="Projects"
+        />
+        <NavItem
+          to="/agents"
+          icon={<AgentsIcon size={13} />}
+          label="Agents"
+          badge={
+            runningCount > 0 ? (
+              <Badge>
+                {runningCount} <span className="text-[#4a8c68]">●</span>
+              </Badge>
+            ) : undefined
+          }
+        />
+      </div>
+
+      {/* Projects section */}
+      <div className="mt-[14px] flex flex-col gap-[2px] px-[6px]">
+        <div className="px-[7px] pb-[4px] font-mono text-[9.5px] tracking-[0.08em] text-[#20222a]">
+          PROJECTS
+        </div>
+        {projects.map((project) => (
+          <ProjectRow key={project.id} project={project} />
+        ))}
+      </div>
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Settings + token budget footer */}
+      <div className="border-t border-[rgba(255,255,255,0.05)]">
+        <div className="px-[6px] pt-[4px]">
+          <NavItem
+            to="/settings/agents"
+            icon={<SettingsIcon size={13} />}
+            label="Settings"
+          />
+        </div>
+        {budget && (
+          <div className="px-[9px] pb-[10px] pt-[6px]">
+            <div className="mb-[4px] flex items-center justify-between">
+              <span className="font-mono text-[9.5px] text-[#30333c]">TOKEN BUDGET</span>
+              <span className="font-mono text-[9.5px] text-[#72757e]">
+                {(budget.used / 1000).toFixed(1)}k / {(budget.limit / 1000).toFixed(0)}k
+              </span>
+            </div>
+            <ProgressBar value={budget.limit > 0 ? budget.used / budget.limit : 0} />
+          </div>
+        )}
+      </div>
+    </nav>
+  );
+}
