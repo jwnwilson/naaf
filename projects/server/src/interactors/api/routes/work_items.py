@@ -51,6 +51,7 @@ def build_project_work_items_router(db_dependency: Callable) -> APIRouter:
         body: CreateWorkItem,
         uow: SqlUnitOfWork = Depends(db_dependency),  # noqa: B008
     ):
+        uow.projects.read(project_id)  # owner-scoped: missing or foreign project -> 404
         parent = uow.work_items.read(body.parent_id) if body.parent_id else None
         validate_hierarchy(body.kind, parent)
         if parent is not None and parent.project_id != project_id:

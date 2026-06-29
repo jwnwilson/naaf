@@ -44,6 +44,13 @@ def test_illegal_transition_is_409(client):
     assert resp.status_code == 409
 
 
+def test_create_work_item_under_missing_project_is_404(client):
+    resp = client.post("/projects/" + "0" * 32 + "/work-items",
+                       json={"kind": "epic", "title": "x"})
+    assert resp.status_code == 404
+    assert resp.json()["success"] is False
+
+
 def test_board_returns_nested_tree(client):
     pid = _project(client)
     epic = client.post(f"/projects/{pid}/work-items",
