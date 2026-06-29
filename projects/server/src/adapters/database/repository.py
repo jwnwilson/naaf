@@ -64,7 +64,7 @@ class SqlRepository(Generic[DTO]):  # noqa: UP046
         return query.order_by(direction(order_by.lstrip("-")))
 
     def _get_one_row(self, id: str) -> Base:
-        query = self._base_select().where(self.orm_model.id == id)
+        query = self._base_select().where(self.orm_model.id == id)  # type: ignore[attr-defined]
         row = self.session.execute(query).scalar_one_or_none()
         if row is None:
             raise RecordNotFound(f"{self.orm_model.__name__} {id} not found")
