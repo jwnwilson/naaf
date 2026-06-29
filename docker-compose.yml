@@ -1,0 +1,13 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: naaf
+      POSTGRES_PASSWORD: naaf
+      POSTGRES_DB: naaf
+    ports:
+      - "5432:5432"
+    volumes:
+      - naaf_pg:/var/lib/postgresql/data
+volumes:
+  naaf_pg:
