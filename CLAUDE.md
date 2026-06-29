@@ -52,7 +52,11 @@ projects/
       interactors/
         api/         # FastAPI wiring: app factory, routes, deps, auth, envelope, settings
         cli/         # seed
-  ui/                # React/Vite/Tailwind SPA — reserved for A2
+  ui/                # React/Vite/Tailwind SPA — reserved for A2 (planned layout below)
+    app/             # app shell: providers, router, layout, error boundary
+    modules/         # feature/domain slices (board, runs, manage, team, …); each owns its components + hooks + api
+    components/ui/   # design-system primitives (Button, Dialog, Card, …) + shared composed components
+    lib/api/         # typed envelope API client + per-domain modules + React Query key factories
 ```
 
 
