@@ -7,6 +7,7 @@ def test_create_team_and_agent_definition(client):
     }).json()["data"]
     assert agent["role"] == "lead"
     assert agent["runtime_adapter"] == "claude_code"
+    assert agent["capability_grants"] == []
 
 
 def test_list_agent_definitions_filtered_by_team(client):

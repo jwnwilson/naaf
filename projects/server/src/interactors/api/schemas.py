@@ -55,6 +55,7 @@ class CreateAgentDefinition(BaseModel):
     model_alias: str = ""
     runtime_adapter: str = "claude_code"
     memory_scope: str = "project"
+    capability_grants: list[str] = []
 
 
 class UpdateAgentDefinition(BaseModel):
@@ -63,3 +64,4 @@ class UpdateAgentDefinition(BaseModel):
     model_alias: str | None = None
     runtime_adapter: str | None = None
     memory_scope: str | None = None
+    capability_grants: list[str] | None = None

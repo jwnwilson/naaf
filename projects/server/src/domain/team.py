@@ -1,5 +1,7 @@
 from enum import StrEnum
 
+from pydantic import Field
+
 from domain.base import Entity
 
 
@@ -26,3 +28,4 @@ class AgentDefinition(Entity):
     model_alias: str = ""
     runtime_adapter: str = "claude_code"
     memory_scope: str = "project"
+    capability_grants: list[str] = Field(default_factory=list)

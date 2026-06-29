@@ -43,6 +43,7 @@ def upgrade() -> None:
     sa.Column('model_alias', sa.String(length=128), nullable=False),
     sa.Column('runtime_adapter', sa.String(length=64), nullable=False),
     sa.Column('memory_scope', sa.String(length=32), nullable=False),
+    sa.Column('capability_grants', sa.JSON(), nullable=False),
     sa.Column('id', sa.String(length=32), nullable=False),
     sa.Column('owner_id', sa.String(length=64), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),

@@ -57,3 +57,4 @@ class AgentDefinitionRow(_Timestamped, Base):
     model_alias: Mapped[str] = mapped_column(String(128), default="", nullable=False)
     runtime_adapter: Mapped[str] = mapped_column(String(64), default="claude_code", nullable=False)
     memory_scope: Mapped[str] = mapped_column(String(32), default="project", nullable=False)
+    capability_grants: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
