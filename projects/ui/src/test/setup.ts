@@ -18,11 +18,13 @@ const makeLocalStorage = () => {
 Object.defineProperty(globalThis, "localStorage", {
   value: makeLocalStorage(),
   writable: true,
+  configurable: true,
 });
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {
   server.resetHandlers();
   db.reset();
+  localStorage.clear();
 });
 afterAll(() => server.close());
