@@ -2,6 +2,7 @@ import { HttpResponse, http } from "msw";
 import type { components } from "../schema";
 import { db } from "./db";
 import { seed } from "./fixtures";
+import { buildRunStream } from "./sse";
 
 type WorkItemStatus = components["schemas"]["WorkItem"]["status"];
 type InboxItem = components["schemas"]["InboxItem"];
@@ -163,6 +164,12 @@ export const handlers = [
     const run = db.findRun(params.id as string);
     return run ? ok(run) : notFound();
   }),
+
+  http.get(`${BASE}/runs/:id/stream`, () =>
+    new HttpResponse(buildRunStream(), {
+      headers: { "content-type": "text/event-stream" },
+    }),
+  ),
 
   // ── Inbox — CRITICAL: literal path BEFORE parameterised siblings ──────────────
   // POST /inbox/mark-all-read must be registered before GET|POST /inbox/:id
