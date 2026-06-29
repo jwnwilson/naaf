@@ -7,19 +7,25 @@
 > For *where the project is* (what's shipped, what's dormant, what's missing), read
 > [project-history.md](project-history.md) first. This file is patterns; that file is status.
 
-## Layering (hexagonal — unchanged)
+## Layering (hexagonal)
+
+Layout as built in A1 (future phases add the commented folders):
 
 ```
-libs/              # Project agnositc code that can be shared across proejcts              
+libs/
+  crud_router/         # envelope-aware CrudRouter (workspace lib)
 projects/
-  ui/              # React/Vite/Tailwind SPA (features/ + ui/ primitives + lib/api)
-  server/          # Backend folder for API / Be services
-    domain/        # pure business logic, no I/O — each entity model lives with its logic
-    adapters/      # Ports + adapters logic for hexagonal approach.
-    interactors/.  # Interactors how code is initialised via API / worker / cli
-      api/         # FastAPI wiring: app factory, routes, deps, auth, envelope, settings
-      temporal/    # workflows, activities, worker, client, config
-      cli/         # seed, memory_apply (run through the same owner-scoped UoW)
+  server/              # Backend API service
+    src/
+      domain/          # pure business logic, no I/O — each entity model lives with its logic
+      adapters/        # ports + adapters for the hexagonal approach
+        database/      # ports.py (Repository/UnitOfWork + PaginatedResult), orm.py, repository.py, repositories.py, uow.py, engine.py
+        # storage/     # designed; not built — A4+
+      interactors/     # how code is initialised via API / worker / cli
+        api/           # FastAPI wiring: app factory, routes, deps, auth, envelope, settings
+        cli/           # seed
+        # temporal/    # designed; not built — A3+ (workflows, activities, worker, client, config)
+  ui/                  # React/Vite/Tailwind SPA — reserved for A2
 ```
 
 Placement rules: domain never imports adapters or interactors; routes contain wiring only;
@@ -130,7 +136,7 @@ directory via `storage.local_path(...)` and reclaim it on terminal states via
 
 ### CrudRouter
 
-`lib/crud_router.py` provides an envelope-aware port of hexrepo's
+`libs/crud_router` provides an envelope-aware port of hexrepo's
 `CrudRouter`: a factory that registers standard CRUD routes for a UoW repository name —
 
 ```python
