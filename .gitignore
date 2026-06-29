@@ -1,0 +1,17 @@
+# Git worktrees live here (see CLAUDE.md "Workflow"). Nested under the repo,
+# git-ignored so they never appear as untracked files in the primary checkout.
+.worktrees/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
