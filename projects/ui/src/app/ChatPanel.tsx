@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Avatar } from "../components/ui/Avatar";
+import { ChevronRightIcon } from "../components/ui";
 import { PulseDot } from "../components/ui/PulseDot";
 import { TypingIndicator } from "../components/ui/TypingIndicator";
 import { apiFetch } from "../lib/api/client";
@@ -25,8 +26,9 @@ function CollapsedStrip({ onExpand }: { onExpand: () => void }) {
     <button
       aria-label="expand chat"
       onClick={onExpand}
-      className="flex h-full w-[34px] shrink-0 cursor-pointer flex-col items-center justify-center border-l border-[rgba(255,255,255,0.055)] bg-[#080a0d]"
+      className="flex h-full w-[34px] shrink-0 cursor-pointer flex-col items-center justify-center gap-2 border-l border-[rgba(255,255,255,0.055)] bg-[#080a0d] text-[#52555e] hover:text-[#8a8d96]"
     >
+      <ChevronRightIcon />
       <span
         className="font-mono text-[8.5px] text-[#1e2028]"
         style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", letterSpacing: "0.09em" }}
@@ -119,7 +121,7 @@ export function ChatPanel() {
           onClick={() => setOpen(false)}
           className="flex w-[34px] items-center justify-center border-l border-[rgba(255,255,255,0.055)] text-[#52555e] hover:text-[#8a8d96]"
         >
-          ◂
+          <ChevronRightIcon className="rotate-180" />
         </button>
       </div>
 
