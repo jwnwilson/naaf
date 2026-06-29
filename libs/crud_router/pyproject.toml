@@ -1,0 +1,12 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "naaf-crud-router"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["fastapi>=0.115", "pydantic>=2.7"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/crud_router"]

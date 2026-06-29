@@ -1,8 +1,7 @@
 # naaf — Project History & Status
 
-> **Read this first.** A consolidated, concise record of what has been built, what is
-> dormant, and what is missing. Authored 2026-06-15 by consolidating every spec in
-> `docs/specs/` and plan in `docs/plans/` against the merged git history
+> **Read this first.** A concise record of what has been built, what is designed-only,
+> and what comes next.
 
 ## What naaf is
 
@@ -14,5 +13,17 @@ produce reviewable PRs; and update persistent memory as they work.
 
 - Master design: [specs/2026-06-12-naaf-design.md](specs/2026-06-12-naaf-design.md)
 - Architecture & patterns: [architecture.md](architecture.md)
-- ADRs: [adr/](adr/) 
+- ADRs: [adr/](adr/)
 
+## Status (2026-06-29)
+
+**A1 control plane — built.** Backend spine: Project + unified WorkItem (epic/feature/task)
+with domain-enforced hierarchy and a status transition machine; owner-scoped
+Repository/UnitOfWork (ported from hexrepo); envelope-aware CrudRouter; nested-create,
+transition, and board APIs; config-only Team + AgentDefinition with a seed; Postgres + Alembic,
+SQLite in tests; dev auth. See [superpowers/plans/2026-06-29-a1-control-plane.md](superpowers/plans/2026-06-29-a1-control-plane.md).
+
+**Not yet built (designed only):** A2 board UI · A3 Temporal pipeline + runs · A4 sandbox /
+egress / GitHub App · A5 Claude Code runtime + LiteLLM · B/C management plane. The
+agent/Temporal/sandbox/secrets content in the master design and architecture doc is the
+*target*, not current code.
