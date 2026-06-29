@@ -91,8 +91,7 @@ with uow.transaction():
   in-memory keeps `StaticPool` + `check_same_thread=False` for tests.
 - **Alembic owns the schema** (`migrations/versions/`). `Base.metadata.create_all(engine)`
   remains for SQLite in-memory tests and ephemeral dev; Postgres is migrated. `make db-reset`
-  clears both Postgres *and* the Temporal `temporaldata` volume, then re-seeds via
-  `cli/seed.py` (see ADR-0001).
+  clears the Postgres volume, runs `alembic upgrade head`, and re-seeds via `cli/seed.py`.
 
 ### Owner scoping via required filters
 
@@ -108,23 +107,24 @@ access uniformly surfaces as `RecordNotFound` → 404.
 
 ## Storage port (blobs / run workspaces)
 
+> **Designed; not built — A3+/A4+.** This section describes the target pattern for blob storage.
+> No `adapters/storage/` code exists yet.
+
 Non-relational blob storage (run workspaces, stage artifacts like `plan.md`/`progress.md`)
-uses a **port co-located with its adapter**, the same convention as the database ports:
+will use a **port co-located with its adapter**, the same convention as the database ports:
 
 - `adapters/storage/ports.py` — `StoragePort` (a `typing.Protocol`):
   `write_bytes` / `read_text` / `exists` / `delete` / `delete_directory` / `local_path`.
   Keys are relative paths (`runs/{run_id}/plan.md`).
 - `adapters/storage/local.py` — `LocalStorageAdapter(base_dir)` resolves keys under a base
-  directory on the local filesystem (current backend).
+  directory on the local filesystem (A3 backend).
 - `adapters/storage/s3.py` — `S3StorageAdapter` (boto3) is the planned A4 backend; because
-  callers depend only on `StoragePort`, swapping it in needs no code changes elsewhere
-  (pattern adapted from `llm_api` `adapters/storage` and `hexrepo` `libs/cloud`).
+  callers depend only on `StoragePort`, swapping it in needs no code changes elsewhere.
 
-A run's workspace is just the prefix `runs/{run_id}/`: Temporal activities derive the working
+A run's workspace will be the prefix `runs/{run_id}/`: Temporal activities derive the working
 directory via `storage.local_path(...)` and reclaim it on terminal states via
-`storage.delete_directory(...)`. There is **no separate workspace port** — workspace logic is
-"just use the storage adapter (and the DB adapter) as normal." Placement rule: like the
-database port, the storage port lives in `adapters/storage/ports.py`, not in `domain/`.
+`storage.delete_directory(...)`. Placement rule: the storage port will live in
+`adapters/storage/ports.py`, not in `domain/`.
 
 ## API layer (from hexrepo libs/api)
 
@@ -175,7 +175,10 @@ meta-inconsistency deferral).
 
 ## Agent execution & orchestration
 
-Run execution is a **Temporal orchestrator-worker** system. Domain stays pure: the
+> **Designed; not built — A3+/A4+.** This section describes the target orchestration
+> architecture. No Temporal workflows, agent runtimes, or capability code exist yet.
+
+Run execution will be a **Temporal orchestrator-worker** system. Domain stays pure: the
 non-deterministic decisions live in `domain/`, and Temporal workflows/activities are the
 durable executor that carries them out.
 

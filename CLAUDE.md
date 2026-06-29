@@ -41,22 +41,18 @@ Local tool for running a **virtual dev team** — role-based AI agents (team lea
 Hexagonal, three layers — domain logic never touches I/O:
 
 ```
-libs/              # Project agnositc code that can be shared across proejcts              
+libs/
+  crud_router/       # envelope-aware CrudRouter (workspace lib)
 projects/
-  ui/              # React/Vite/Tailwind SPA (features/ + ui/ primitives + lib/api)
-    app/             # app shell: providers, router, layout, error boundary
-    modules/         # feature/domain slices (board, runs, manage, team, …); each owns its components + hooks + api
-    components/ui/    # design-system primitives (Button, Dialog, Card, …) + shared composed components
-    lib/api/         # typed envelope API client + per-domain modules + React Query key factories
-  server/          # Backend folder for API / Be services
-    domain/        # pure business logic, no I/O — each entity model lives with its logic
-    adapters/      # Ports + adapters logic for hexagonal approach.
-      database/    # ports.py (Repository/UnitOfWork protocols + PaginatedResult), orm.py, repository.py, repositories.py, uow.py, engine.py
-      storage/     # ports.py storage abstraction to work locally or in the cloud e.g. AWS S3
-    interactors/.  # Interactors how code is initialised via API / worker / cli
-      api/         # FastAPI wiring: app factory, routes, deps, auth, envelope, settings
-      temporal/    # workflows, activities, worker, client, config
-      cli/         # seed, memory_apply (run through the same owner-scoped UoW)
+  server/            # Backend API service
+    src/
+      domain/        # pure business logic — Project, WorkItem, Team, AgentDefinition, transitions, hierarchy, board
+      adapters/
+        database/    # ports.py (Repository/UnitOfWork + PaginatedResult), orm.py, repository.py, repositories.py, uow.py, engine.py
+      interactors/
+        api/         # FastAPI wiring: app factory, routes, deps, auth, envelope, settings
+        cli/         # seed
+  ui/                # React/Vite/Tailwind SPA — reserved for A2
 ```
 
 
@@ -75,29 +71,19 @@ projects/
 ## Dev commands
 
 ```bash
-uv sync                      # install
+uv sync
 docker compose up -d postgres
-uv run pytest                # all tests
-make coverage                # tests + 80% gate
-uv run uvicorn --app-dir src interactors.api.app:create_app --factory --reload
-docker compose up -d temporal     # Temporal dev server (UI on :8233)
-make worker                       # run the Temporal worker (pipeline executor)
-ANTHROPIC_API_KEY=... docker compose up -d --build worker   # real agent worker (auto-selects claude)
-docker compose up -d litellm   # LiteLLM gateway on :4000 (set naaf_LITELLM_BASE_URL=http://localhost:4000)
-# Deploy: push to main -> GitHub Actions (see docs/deployment.md). Manual: gh workflow run "Deploy Backend"
-
-# UI (run from ui/; pnpm is the package manager — never npm)
-cd ui && pnpm install        # install UI deps
-pnpm dev                     # Vite dev server on :5173 (proxies /api -> :8000)
-pnpm lint                    # eslint + tsc --noEmit
-pnpm test                    # vitest unit tests
-pnpm build                   # production build (tsc -b && vite build)
+make db-upgrade            # alembic upgrade head
+uv run python -m interactors.cli.seed
+make test                  # uv run pytest
+make coverage              # 80% gate
+make run                   # uvicorn interactors.api.app:create_app --factory --reload
 ```
+
+## Status
+
+**A1 control plane is built.** See [docs/project-history.md](docs/project-history.md) for what shipped, what is designed-only, and what comes next.
 
 ## Roadmap (phase A spine → C management plane → B full team)
 
-A1 control-plane foundation (this plan) → A2 board UI → A3 Temporal pipeline + FakeAgentRuntime → A4 sandbox/egress proxy/GitHub App → A5 Claude Code runtime adapter + LiteLLM → A5d token/usage tracking → A5e notification system → A6 refinement chat + memory. Then C (secrets/capabilities/model/budget UIs — budget builds on A5d usage data), then B (full team roles, parallel engineers, RAG).
-
-> **Orchestration direction (see [ADR-0002](docs/adr/0002-lead-driven-orchestration.md), implemented 2026-06-15):** the team lead **is** the **orchestrator agent** — it dispatches other agents and triggers a completion monitor — and `OrchestratorWorkflow`/`AgentWorkflow` is now the **sole run path** (the fixed `PLAN→IMPLEMENT→VERIFY` `RunWorkflow` was removed). Agents run as **Temporal child-workflow actors** with signal-fed mailboxes; **Temporal stays the durable executor** (orchestrator-worker pattern). Current shape is one actor per role per wave; true concurrent waves + live inter-agent messaging are the **parallel-engineers** spec (Phase B). This supersedes the original "workflow is the sole supervisor" stance in the design spec. ADRs live in `docs/adr/`.
-
-> **A5 status (single-user local):** A4a (GitHub App + workspaces + real PR), A5a/b (Claude Code runtime in a containerized worker), and A5c (agent capability model — C1 grants, C2 runtime composition, C3a encrypted secret values + scoped injection, C3b-1 LiteLLM routing, C3d-1/2 capability + tool audit) are merged. **C3c (egress proxy / credential broker) is descoped:** for single-user local, secret access is controlled by per-agent grants + per-stage scoped injection, and open egress is acceptable; the network chokepoint / zero-secret-container work returns only if/when multi-tenant or remote hardening is needed.
+A1 control-plane foundation ✓ → A2 board UI → A3 Temporal pipeline + FakeAgentRuntime → A4 sandbox/egress proxy/GitHub App → A5 Claude Code runtime adapter + LiteLLM → A5d token/usage tracking → A5e notification system → A6 refinement chat + memory. Then C (secrets/capabilities/model/budget UIs — budget builds on A5d usage data), then B (full team roles, parallel engineers, RAG).
