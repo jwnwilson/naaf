@@ -1,0 +1,30 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ApiError, apiFetch, apiList } from "./client";
+
+function mockFetch(body: unknown, ok = true, status = 200) {
+  return vi.fn().mockResolvedValue({
+    ok, status, json: () => Promise.resolve(body),
+  } as unknown as Response);
+}
+
+afterEach(() => vi.restoreAllMocks());
+
+describe("apiFetch", () => {
+  it("unwraps the envelope data on success", async () => {
+    vi.stubGlobal("fetch", mockFetch({ success: true, data: { id: "p1" }, error: null }));
+    await expect(apiFetch("/projects/p1")).resolves.toEqual({ id: "p1" });
+  });
+
+  it("throws ApiError with the message on success:false", async () => {
+    vi.stubGlobal("fetch", mockFetch({ success: false, data: null, error: "not found" }, false, 404));
+    await expect(apiFetch("/projects/x")).rejects.toMatchObject({ message: "not found", status: 404 });
+    await expect(apiFetch("/projects/x")).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it("apiList returns results + meta", async () => {
+    vi.stubGlobal("fetch", mockFetch({ success: true, data: [{ id: "a" }], error: null, meta: { total: 1, page_size: 50, page_number: 1 } }));
+    const page = await apiList("/projects");
+    expect(page.results).toHaveLength(1);
+    expect(page.meta.total).toBe(1);
+  });
+});
