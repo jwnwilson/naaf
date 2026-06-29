@@ -13,7 +13,7 @@ describe("AppShell", () => {
         <RouterProvider router={router} />
       </QueryClientProvider>,
     );
-    await waitFor(() => expect(screen.getByRole("heading", { name: /board/i })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/In Progress/i)).toBeInTheDocument());
     // "Projects" appears in both sidebar nav + topbar title — getAllByText tolerates both
     expect(screen.getAllByText(/Projects/)[0]).toBeInTheDocument();           // sidebar nav
     expect(screen.getByRole("button", { name: /new/i })).toBeInTheDocument(); // topbar
