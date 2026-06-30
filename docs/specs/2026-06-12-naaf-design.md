@@ -111,7 +111,7 @@ Four UI registries, enforced at PROVISION via the capability manifest:
 ## 12. Testing
 
 - **Unit**: domain logic — pipeline state machine, budget math, permission rules, capability manifest assembly.
-- **Integration**: API endpoints; Temporal workflows via its test framework (time-skipping for signals/timeouts/heartbeats).
+- **Integration**: API endpoints; the run executor / agent message pipeline driven by fakes (scripted agents + a fake message bus, no LLM).
 - **Adapter tests with fakes**: `FakeAgentRuntime` scripting agent behavior — full pipeline tests without LLM calls; fake workspace/git fixtures.
 - **E2E**: one real ticket against a fixture repo with a stub model through board → run → PR.
 - 80% coverage gate in CI (llm_api standard).

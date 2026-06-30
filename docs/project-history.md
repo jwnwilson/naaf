@@ -15,7 +15,7 @@ produce reviewable PRs; and update persistent memory as they work.
 - Architecture & patterns: [architecture.md](architecture.md)
 - ADRs: [adr/](adr/)
 
-## Status (2026-06-29)
+## Status (2026-06-30)
 
 **A1 control plane — built.** Backend spine: Project + unified WorkItem (epic/feature/task)
 with domain-enforced hierarchy and a status transition machine; owner-scoped
@@ -23,9 +23,9 @@ Repository/UnitOfWork (ported from hexrepo); envelope-aware CrudRouter; nested-c
 transition, and board APIs; config-only Team + AgentDefinition with a seed; Postgres + Alembic,
 SQLite in tests; dev auth. See [superpowers/plans/2026-06-29-a1-control-plane.md](superpowers/plans/2026-06-29-a1-control-plane.md).
 
-**A2 UI (mock-data SPA) — built on `feat/a2-ui`.** All 7 screens (Dashboard/Inbox/Board/List/Detail/Agent-Monitor/Settings) render from an OpenAPI-typed MSW mock layer; live-API swap deferred (A2-4).
+**A2 UI (mock-data SPA) — built (merged to `main`).** All 7 screens (Dashboard/Inbox/Board/List/Detail/Agent-Monitor/Settings) render from an OpenAPI-typed MSW mock layer; live-API swap deferred (A2-4). See [superpowers/plans/2026-06-29-a2-foundation.md](superpowers/plans/2026-06-29-a2-foundation.md) (+ the other `a2-*` plans).
 
-**Not yet built (designed only):** A3 Temporal pipeline + runs · A4 sandbox /
+**Not yet built (designed only):** A3 agent run pipeline (**local pub/sub orchestration**) + runs · A4 sandbox /
 egress / GitHub App · A5 Claude Code runtime + LiteLLM · B/C management plane. The
-agent/Temporal/sandbox/secrets content in the master design and architecture doc is the
-*target*, not current code.
+agent/sandbox/secrets content in the master design and architecture doc is the
+*target*, not current code. **Orchestration is Local-First** (master design spec §2/§3): agents run locally in docker containers, exchanging messages via pub/sub onto per-agent queues, processed sequentially.
