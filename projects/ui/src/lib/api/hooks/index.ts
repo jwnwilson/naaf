@@ -12,8 +12,8 @@ export type { InboxItem } from "./useInbox";
 export { useThreads } from "./useThreads";
 export type { Thread } from "./useThreads";
 
-export { useDashboard, useTokenUsage } from "./useDashboard";
-export type { DashboardMetrics, TokenUsagePoint } from "./useDashboard";
+export { useDashboard, useTokenUsage, useActivity } from "./useDashboard";
+export type { DashboardMetrics, TokenUsagePoint, ActivityEvent } from "./useDashboard";
 
 export { useAgents } from "./useAgents";
 export type { Agent } from "./useAgents";
