@@ -1,11 +1,20 @@
+from datetime import UTC, datetime
+
 from domain.team import AgentDefinition, AgentRole
 from domain.work_item import Priority, WorkItem, WorkItemKind, WorkItemStatus
-from interactors.api.mappers import agent_definition_out, work_item_out
+from interactors.api.contract import WorkItemCreateIn
+from interactors.api.mappers import (
+    agent_definition_out,
+    work_item_create_to_domain,
+    work_item_out,
+)
 
 
 def test_work_item_out_renames_and_camelcases():
+    now = datetime.now(UTC)
     item = WorkItem(owner_id="u1", project_id="p1", kind=WorkItemKind.TASK, title="Auth",
-                    body="# spec", status=WorkItemStatus.IN_PROGRESS, priority=Priority.HIGH)
+                    body="# spec", status=WorkItemStatus.IN_PROGRESS, priority=Priority.HIGH,
+                    created_at=now, updated_at=now)
     out = work_item_out(item).model_dump(by_alias=True)
     assert out["type"] == "task"
     assert out["spec"] == "# spec"
@@ -14,6 +23,12 @@ def test_work_item_out_renames_and_camelcases():
     assert out["priority"] == "high"
     assert out["assignedAgent"] is None
     assert "kind" not in out and "owner_id" not in out
+
+
+def test_work_item_create_forwards_posted_status():
+    body = WorkItemCreateIn(type="task", title="x", status="backlog")
+    create = work_item_create_to_domain(body)
+    assert create.status == WorkItemStatus.BACKLOG
 
 
 def test_agent_definition_out_renames_model_and_prompt():

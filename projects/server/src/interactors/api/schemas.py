@@ -27,6 +27,7 @@ class CreateWorkItem(BaseModel):
     acceptance_criteria: list[AcceptanceCriterion] = []
     parent_id: str | None = None
     priority: Priority = Priority.MEDIUM
+    status: WorkItemStatus = WorkItemStatus.TODO
 
 
 class UpdateWorkItem(BaseModel):

@@ -37,8 +37,15 @@ from interactors.api.schemas import (
 
 
 def _iso(dt: datetime | None) -> str:
-    """Render a datetime as ISO-8601 string, or empty string if absent."""
-    return dt.isoformat() if dt else ""
+    """Render a datetime as an ISO-8601 string.
+
+    Persisted entities always carry timestamps; a None here means an unsaved
+    entity reached the contract layer, which is a bug we surface rather than
+    paper over with an empty string.
+    """
+    if dt is None:
+        raise ValueError("timestamp is required for the contract")
+    return dt.isoformat()
 
 
 # ---------------------------------------------------------------------------
@@ -87,6 +94,7 @@ def work_item_create_to_domain(body: WorkItemCreateIn) -> CreateWorkItem:
         title=body.title,
         body=body.spec or "",
         priority=body.priority,
+        status=body.status,
     )
 
 
@@ -107,6 +115,9 @@ def project_out(p: Project, *, item_count: int) -> ProjectOut:
     return ProjectOut(
         id=p.id,
         name=p.name,
+        # The contract's repoUrl is required non-null, so a domain None (a
+        # repo-less project) maps to "". Revisit if the contract is made
+        # nullable (see Task 7/8).
         repoUrl=p.repo_url or "",
         itemCount=item_count,
         createdAt=_iso(p.created_at),
