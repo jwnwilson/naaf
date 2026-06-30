@@ -35,7 +35,7 @@ export function InboxList({ selectedId, onSelect }: InboxListProps) {
         style={{ height: 44, borderBottom: "1px solid rgba(255,255,255,0.06)" }}
       >
         <div className="flex items-center gap-2">
-          <span className="text-[13px] font-semibold text-[#c4c5cb]">Inbox</span>
+          <h2 className="text-[13px] font-semibold text-[#c4c5cb]">Inbox</h2>
           {unreadCount > 0 && (
             <span
               className="font-mono text-[10px] text-[#bab7f6] px-[6px] py-[2px]"

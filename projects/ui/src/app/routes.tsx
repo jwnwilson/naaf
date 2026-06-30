@@ -14,6 +14,7 @@ export const routes: RouteObject[] = [
       { index: true, element: <Navigate to="/projects?view=board" replace /> },
       { path: "dashboard", element: <DashboardScreen /> },
       { path: "inbox", element: <InboxScreen /> },
+      { path: "inbox/:id", element: <InboxScreen /> },
       { path: "projects", element: <BoardScreen /> },
       { path: "projects/:projectId/items/:itemId", element: <DetailScreen /> },
       { path: "settings/agents", element: <SettingsScreen /> },
