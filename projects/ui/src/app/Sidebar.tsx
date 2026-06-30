@@ -10,6 +10,7 @@ import {
   SettingsIcon,
 } from "../components/ui/icons";
 import { useBudget } from "../lib/api/hooks/useBudget";
+import { useDashboard } from "../lib/api/hooks/useDashboard";
 import { useInbox } from "../lib/api/hooks/useInbox";
 import { useProjects } from "../lib/api/hooks/useProjects";
 import type { Project } from "../lib/api/hooks/useProjects";
@@ -89,10 +90,12 @@ export function Sidebar() {
   const projectsQuery = useProjects();
   const inboxQuery = useInbox();
   const budgetQuery = useBudget();
+  const dashboardQuery = useDashboard();
 
   const projects = projectsQuery.data?.results ?? [];
   const inboxItems = inboxQuery.data?.results ?? [];
   const budget = budgetQuery.data;
+  const activeAgents = dashboardQuery.data?.activeAgents ?? 0;
 
   const unreadCount = inboxItems.filter((i) => !i.read).length;
 
@@ -118,7 +121,20 @@ export function Sidebar() {
 
       {/* Nav items */}
       <div className="flex flex-col gap-[2px] px-[6px]">
-        <NavItem to="/dashboard" icon={<DashboardIcon size={13} />} label="Dashboard" />
+        <NavItem
+          to="/dashboard"
+          icon={<DashboardIcon size={13} />}
+          label="Dashboard"
+          badge={
+            activeAgents > 0 ? (
+              <span
+                data-testid="dashboard-running-dot"
+                className="inline-block rounded-full bg-[#4a8c68]"
+                style={{ width: 6, height: 6 }}
+              />
+            ) : undefined
+          }
+        />
         <NavItem
           to="/inbox"
           icon={<InboxIcon size={13} />}
