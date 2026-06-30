@@ -27,7 +27,7 @@ def test_feature_without_epic_parent_is_409(client):
     assert resp.json()["success"] is False
 
 
-def test_transition_to_do_to_in_progress(client):
+def test_transition_todo_to_in_progress(client):
     pid = _project(client)
     wid = client.post(f"/projects/{pid}/work-items",
                       json={"kind": "epic", "title": "x"}).json()["data"]["id"]

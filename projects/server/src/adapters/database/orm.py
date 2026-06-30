@@ -39,7 +39,7 @@ class WorkItemRow(_Timestamped, Base):
     title: Mapped[str] = mapped_column(String(512), nullable=False)
     body: Mapped[str] = mapped_column(String, default="", nullable=False)
     acceptance_criteria: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
-    status: Mapped[str] = mapped_column(String(16), default="to_do", nullable=False)
+    status: Mapped[str] = mapped_column(String(16), default="todo", nullable=False)
 
 
 class TeamRow(_Timestamped, Base):

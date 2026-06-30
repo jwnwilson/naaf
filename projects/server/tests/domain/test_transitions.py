@@ -1,5 +1,4 @@
 import pytest
-
 from domain.errors import InvalidTransition
 from domain.transitions import validate_transition
 from domain.work_item import WorkItemStatus as S
