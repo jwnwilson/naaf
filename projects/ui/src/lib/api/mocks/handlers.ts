@@ -58,13 +58,6 @@ export const liveHandlers = [
     );
   }),
 
-  // Literal sub-paths before parameterised :id
-  http.get(`${BASE}/projects/:id/board`, ({ params }) => {
-    const p = db.findProject(params.id as string);
-    if (!p) return notFound();
-    return ok(db.boardFor(params.id as string));
-  }),
-
   http.post(`${BASE}/projects/:id/work-items`, async ({ params, request }) => {
     const p = db.findProject(params.id as string);
     if (!p) return notFound();
@@ -122,11 +115,6 @@ export const liveHandlers = [
     return ok(updated);
   }),
 
-  http.get(`${BASE}/work-items/:id/run`, ({ params }) => {
-    const run = seed.agentRuns.find((r) => r.workItemId === params.id) ?? null;
-    return ok(run);
-  }),
-
   http.get(`${BASE}/work-items/:id`, ({ params }) => {
     const w = db.findWorkItem(params.id as string);
     return w ? ok(w) : notFound();
@@ -160,6 +148,21 @@ export const liveHandlers = [
 // GET|POST /inbox/:id to prevent MSW matching "mark-all-read" as an :id value.
 
 export const mockOnlyHandlers = [
+  // ── Mocked work-item and project endpoints ──────────────────────────────────
+  // These have no real backend implementation (phase A2); always mocked.
+  // Literal sub-paths before parameterised :id.
+
+  http.get(`${BASE}/projects/:id/board`, ({ params }) => {
+    const p = db.findProject(params.id as string);
+    if (!p) return notFound();
+    return ok(db.boardFor(params.id as string));
+  }),
+
+  http.get(`${BASE}/work-items/:id/run`, ({ params }) => {
+    const run = seed.agentRuns.find((r) => r.workItemId === params.id) ?? null;
+    return ok(run);
+  }),
+
   // ── Agents ───────────────────────────────────────────────────────────────────
 
   http.get(`${BASE}/agents`, () => ok(seed.agents)),

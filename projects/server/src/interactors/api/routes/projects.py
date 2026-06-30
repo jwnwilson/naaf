@@ -11,7 +11,7 @@ from interactors.api.mappers import project_create_to_domain, project_out, proje
 
 def _item_count(project_id: str, uow: SqlUnitOfWork) -> int:
     return uow.work_items.read_multi(
-        filters={"project_id": project_id}, page_size=1
+        filters={"project_id": project_id}, page_size=0
     ).total
 
 

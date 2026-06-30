@@ -57,7 +57,11 @@ describe("handler split", () => {
     expect(live).toMatch(/\/api\/work-items/);
     expect(live).toMatch(/\/api\/teams/);
     expect(mock).toMatch(/\/api\/runs|\/api\/inbox|\/api\/dashboard/);
-    // the live groups must NOT also be in the mock-only set
-    expect(mock).not.toMatch(/\/api\/work-items|\/api\/projects\b/);
+    // board and run endpoints have no backend — always mocked
+    expect(mock).toMatch(/\/api\/projects\/:id\/board/);
+    expect(mock).toMatch(/\/api\/work-items\/:id\/run/);
+    // these endpoints must NOT be in live (board tree and work-item runs are A2-mocked)
+    expect(live).not.toMatch(/board/);
+    expect(live).not.toMatch(/\/run/);
   });
 });
