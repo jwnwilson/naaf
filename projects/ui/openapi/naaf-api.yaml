@@ -601,9 +601,10 @@ components:
 
     Agent:
       type: object
-      required: [id, type, model, status, tokenLimit]
+      required: [id, name, type, model, status, tokenLimit]
       properties:
         id: { type: string }
+        name: { type: string }
         type: { type: string, enum: [lead, sub] }
         model: { type: string }
         status: { type: string, enum: [running, idle, paused] }
@@ -770,7 +771,7 @@ components:
 
     AgentRun:
       type: object
-      required: [id, agentId, workItemId, status, steps, logLines, tokenUsage, cost, startedAt]
+      required: [id, agentId, workItemId, status, steps, logLines, tokenUsage, cost, startedAt, tokenLimit]
       properties:
         id: { type: string }
         agentId: { type: string }
@@ -783,6 +784,7 @@ components:
           type: array
           items: { $ref: "#/components/schemas/LogLine" }
         tokenUsage: { type: integer }
+        tokenLimit: { type: integer }
         cost: { type: number }
         startedAt: { type: string, format: date-time }
 

@@ -1,10 +1,10 @@
 import { Avatar, ProgressBar, PulseDot, StatusBadge } from "../../components/ui";
+import { useAgents } from "../../lib/api/hooks";
 import { useRun } from "../../lib/api/hooks/useRun";
 import { LogStream } from "./LogStream";
 import { StepTimeline } from "./StepTimeline";
 
-/** Display cap used in the token meter (matches design: "X.Xk / 200k tok"). */
-const TOKEN_LIMIT_DISPLAY = 200_000;
+const FALLBACK_TOKEN_LIMIT = 200_000;
 
 function formatTokens(n: number): string {
   return n >= 1_000 ? `${(n / 1_000).toFixed(1)}k` : String(n);
@@ -20,6 +20,7 @@ function agentInitials(agentId: string): string {
 
 export function AgentMonitor({ runId }: { runId: string }) {
   const { run, logLines, isStreaming } = useRun(runId);
+  const { data: agents } = useAgents();
 
   if (!run) {
     return (
@@ -29,7 +30,10 @@ export function AgentMonitor({ runId }: { runId: string }) {
     );
   }
 
-  const tokenFraction = Math.min(run.tokenUsage / TOKEN_LIMIT_DISPLAY, 1);
+  const agent = agents?.find((a) => a.id === run.agentId);
+  const agentLabel = agent?.name ?? run.agentId;
+  const tokenLimit = run.tokenLimit ?? FALLBACK_TOKEN_LIMIT;
+  const tokenFraction = Math.min(run.tokenUsage / tokenLimit, 1);
 
   return (
     <div className="flex flex-col h-full">
@@ -41,7 +45,7 @@ export function AgentMonitor({ runId }: { runId: string }) {
         <Avatar initials={agentInitials(run.agentId)} variant="agent" size={22} />
 
         <div className="flex flex-col" style={{ gap: 2 }}>
-          <span className="text-[11px] font-semibold text-text-1">{run.agentId}</span>
+          <span className="text-[11px] font-semibold text-text-1">{agentLabel}</span>
           <span className="font-mono text-[9.5px]" style={{ color: "#42454e" }}>
             {run.status}
           </span>
@@ -99,7 +103,7 @@ export function AgentMonitor({ runId }: { runId: string }) {
         style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
       >
         <span className="font-mono text-[10.5px] flex-shrink-0" style={{ color: "#3a3d44" }}>
-          {formatTokens(run.tokenUsage)} / {formatTokens(TOKEN_LIMIT_DISPLAY)} tok
+          {formatTokens(run.tokenUsage)} / {formatTokens(tokenLimit)} tok
         </span>
         <div className="flex-1">
           <ProgressBar value={tokenFraction} />

@@ -12,7 +12,7 @@ function RunningChip({ agent }: { agent: Agent }) {
       <div className="flex items-center gap-[6px]">
         <PulseDot size={6} className="shrink-0" />
         <span className="flex-1 truncate text-[11px] font-semibold text-[#c4c5cb]">
-          {agent.id}
+          {agent.name}
         </span>
         <span className="shrink-0 font-mono text-[8.5px] text-[#7c6cf0]">RUN</span>
       </div>
@@ -36,7 +36,7 @@ function IdleChip({ agent }: { agent: Agent }) {
           style={{ width: 6, height: 6 }}
         />
         <span className="flex-1 truncate text-[11px] text-[#30333c]">
-          {agent.id}
+          {agent.name}
         </span>
         <span className="shrink-0 font-mono text-[8.5px] text-[#22252c]">IDLE</span>
       </div>

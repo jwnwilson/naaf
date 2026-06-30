@@ -500,6 +500,7 @@ export interface components {
         };
         Agent: {
             id: string;
+            name: string;
             /** @enum {string} */
             type: "lead" | "sub";
             model: string;
@@ -648,6 +649,7 @@ export interface components {
             steps: components["schemas"]["RunStep"][];
             logLines: components["schemas"]["LogLine"][];
             tokenUsage: number;
+            tokenLimit: number;
             cost: number;
             /** Format: date-time */
             startedAt: string;
