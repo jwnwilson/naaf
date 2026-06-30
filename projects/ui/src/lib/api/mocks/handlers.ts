@@ -28,11 +28,14 @@ const pageMeta = (items: unknown[], pageSize = 50): Meta => ({
   page_number: 1,
 });
 
-// ─── Handlers ─────────────────────────────────────────────────────────────────
+// ─── Live handlers ─────────────────────────────────────────────────────────────
+// These paths are backed by the real backend when VITE_LIVE_API=true.
+// In live mode only mockOnlyHandlers are registered in MSW so these routes
+// pass through the Vite proxy to http://localhost:8000.
 // Registration order matters: literal paths MUST come before parameterised
-// siblings (e.g. /inbox/mark-all-read before /inbox/:id).
+// siblings (e.g. /projects/:id/board before /projects/:id).
 
-export const handlers = [
+export const liveHandlers = [
   // ── Projects ────────────────────────────────────────────────────────────────
 
   http.get(`${BASE}/projects`, () =>
@@ -48,6 +51,23 @@ export const handlers = [
       itemCount: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+    };
+    return HttpResponse.json(
+      { success: true, data: created, error: null, meta: null },
+      { status: 201 },
+    );
+  }),
+
+  http.post(`${BASE}/projects/:id/work-items`, async ({ params, request }) => {
+    const p = db.findProject(params.id as string);
+    if (!p) return notFound();
+    const body = (await request.json()) as Record<string, unknown>;
+    const created = {
+      id: `wi-${Date.now()}`,
+      projectId: params.id as string,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      ...body,
     };
     return HttpResponse.json(
       { success: true, data: created, error: null, meta: null },
@@ -72,33 +92,6 @@ export const handlers = [
     return p ? ok(null) : notFound();
   }),
 
-  // ── Board ───────────────────────────────────────────────────────────────────
-
-  http.get(`${BASE}/projects/:id/board`, ({ params }) => {
-    const p = db.findProject(params.id as string);
-    if (!p) return notFound();
-    return ok(db.boardFor(params.id as string));
-  }),
-
-  // ── Work items (project-scoped create) ───────────────────────────────────────
-
-  http.post(`${BASE}/projects/:id/work-items`, async ({ params, request }) => {
-    const p = db.findProject(params.id as string);
-    if (!p) return notFound();
-    const body = (await request.json()) as Record<string, unknown>;
-    const created = {
-      id: `wi-${Date.now()}`,
-      projectId: params.id as string,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ...body,
-    };
-    return HttpResponse.json(
-      { success: true, data: created, error: null, meta: null },
-      { status: 201 },
-    );
-  }),
-
   // ── Work items (global) ──────────────────────────────────────────────────────
 
   http.get(`${BASE}/work-items`, ({ request }) => {
@@ -113,6 +106,15 @@ export const handlers = [
     return ok(items, pageMeta(items));
   }),
 
+  // Literal sub-paths before parameterised :id
+  http.post(`${BASE}/work-items/:id/transition`, async ({ params, request }) => {
+    const w = db.findWorkItem(params.id as string);
+    if (!w) return notFound();
+    const body = (await request.json()) as { status: WorkItemStatus };
+    const updated = db.updateWorkItem(params.id as string, { status: body.status });
+    return ok(updated);
+  }),
+
   http.get(`${BASE}/work-items/:id`, ({ params }) => {
     const w = db.findWorkItem(params.id as string);
     return w ? ok(w) : notFound();
@@ -124,22 +126,9 @@ export const handlers = [
     return updated ? ok(updated) : notFound();
   }),
 
-  http.post(`${BASE}/work-items/:id/transition`, async ({ params, request }) => {
-    const w = db.findWorkItem(params.id as string);
-    if (!w) return notFound();
-    const body = (await request.json()) as { status: WorkItemStatus };
-    const updated = db.updateWorkItem(params.id as string, { status: body.status });
-    return ok(updated);
-  }),
+  // ── Teams ─────────────────────────────────────────────────────────────────────
 
-  http.get(`${BASE}/work-items/:id/run`, ({ params }) => {
-    const run = seed.agentRuns.find((r) => r.workItemId === params.id) ?? null;
-    return ok(run);
-  }),
-
-  // ── Agents ───────────────────────────────────────────────────────────────────
-
-  http.get(`${BASE}/agents`, () => ok(seed.agents)),
+  http.get(`${BASE}/teams`, () => ok(seed.teams)),
 
   // ── Agent definitions ─────────────────────────────────────────────────────────
 
@@ -151,10 +140,32 @@ export const handlers = [
     const body = (await request.json()) as Partial<components["schemas"]["AgentDefinition"]>;
     return ok({ ...def, ...body });
   }),
+];
 
-  // ── Teams ─────────────────────────────────────────────────────────────────────
+// ─── Mock-only handlers ────────────────────────────────────────────────────────
+// These paths have NO real backend — always served by MSW regardless of mode.
+// Registration order matters: POST /inbox/mark-all-read MUST come before
+// GET|POST /inbox/:id to prevent MSW matching "mark-all-read" as an :id value.
 
-  http.get(`${BASE}/teams`, () => ok(seed.teams)),
+export const mockOnlyHandlers = [
+  // ── Mocked work-item and project endpoints ──────────────────────────────────
+  // These have no real backend implementation (phase A2); always mocked.
+  // Literal sub-paths before parameterised :id.
+
+  http.get(`${BASE}/projects/:id/board`, ({ params }) => {
+    const p = db.findProject(params.id as string);
+    if (!p) return notFound();
+    return ok(db.boardFor(params.id as string));
+  }),
+
+  http.get(`${BASE}/work-items/:id/run`, ({ params }) => {
+    const run = seed.agentRuns.find((r) => r.workItemId === params.id) ?? null;
+    return ok(run);
+  }),
+
+  // ── Agents ───────────────────────────────────────────────────────────────────
+
+  http.get(`${BASE}/agents`, () => ok(seed.agents)),
 
   // ── Runs ──────────────────────────────────────────────────────────────────────
 
@@ -171,9 +182,7 @@ export const handlers = [
     }),
   ),
 
-  // ── Inbox — CRITICAL: literal path BEFORE parameterised siblings ──────────────
-  // POST /inbox/mark-all-read must be registered before GET|POST /inbox/:id
-  // to prevent MSW matching "mark-all-read" as an :id value.
+  // ── Inbox ─────────────────────────────────────────────────────────────────────
 
   http.post(`${BASE}/inbox/mark-all-read`, () => {
     db.markAllInboxRead();
@@ -240,3 +249,8 @@ export const handlers = [
 
   http.get(`${BASE}/budget`, () => ok(seed.budget)),
 ];
+
+// ─── Combined (default — fully mocked) ────────────────────────────────────────
+// Used by server.ts (node test setup) and browser.ts when VITE_LIVE_API != "true".
+
+export const handlers = [...mockOnlyHandlers, ...liveHandlers];

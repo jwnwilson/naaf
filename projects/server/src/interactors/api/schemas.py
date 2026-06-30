@@ -1,6 +1,6 @@
 from domain.project import AutonomyLevel
 from domain.team import AgentRole
-from domain.work_item import AcceptanceCriterion, WorkItemKind, WorkItemStatus
+from domain.work_item import AcceptanceCriterion, Priority, WorkItemStatus
 from pydantic import BaseModel
 
 
@@ -20,18 +20,11 @@ class UpdateProject(BaseModel):
     autonomy_level: AutonomyLevel | None = None
 
 
-class CreateWorkItem(BaseModel):
-    kind: WorkItemKind
-    title: str
-    body: str = ""
-    acceptance_criteria: list[AcceptanceCriterion] = []
-    parent_id: str | None = None
-
-
 class UpdateWorkItem(BaseModel):
     title: str | None = None
     body: str | None = None
     acceptance_criteria: list[AcceptanceCriterion] | None = None
+    priority: Priority | None = None
     # NOTE: status is intentionally absent — status changes go through the
     # transition route so the state machine is always enforced.
 
@@ -65,3 +58,5 @@ class UpdateAgentDefinition(BaseModel):
     runtime_adapter: str | None = None
     memory_scope: str | None = None
     capability_grants: list[str] | None = None
+    token_limit: int | None = None
+    enabled: bool | None = None

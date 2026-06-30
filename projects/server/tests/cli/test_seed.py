@@ -20,3 +20,25 @@ def test_seed_is_idempotent(session_factory):
     uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
     with uow.transaction():
         assert uow.teams.read_multi().total == 1
+
+
+def test_seed_demo_creates_project_and_items(session_factory):
+    from adapters.database.uow import SqlUnitOfWork
+    from interactors.cli.seed import seed_demo
+    seed_demo(session_factory, owner_id="u1")
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
+    with uow.transaction():
+        projects = uow.projects.read_multi().results
+        items = uow.work_items.read_multi().results
+    assert len(projects) >= 1
+    assert {i.status.value for i in items} >= {"backlog", "todo", "in_progress", "done"}
+
+
+def test_seed_demo_is_idempotent(session_factory):
+    from adapters.database.uow import SqlUnitOfWork
+    from interactors.cli.seed import seed_demo
+    seed_demo(session_factory, owner_id="u1")
+    seed_demo(session_factory, owner_id="u1")
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
+    with uow.transaction():
+        assert uow.projects.read_multi(filters={"name": "Demo Project"}).total == 1

@@ -12,13 +12,18 @@ class WorkItemKind(StrEnum):
 
 
 class WorkItemStatus(StrEnum):
-    TO_DO = "to_do"
+    BACKLOG = "backlog"
+    TODO = "todo"
     IN_PROGRESS = "in_progress"
     IN_REVIEW = "in_review"
-    APPROVED = "approved"
     DONE = "done"
-    BLOCKED = "blocked"
-    FAILED = "failed"
+
+
+class Priority(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    URGENT = "urgent"
 
 
 class AcceptanceCriterion(BaseModel):
@@ -34,4 +39,5 @@ class WorkItem(Entity):
     title: str
     body: str = ""
     acceptance_criteria: list[AcceptanceCriterion] = Field(default_factory=list)
-    status: WorkItemStatus = WorkItemStatus.TO_DO
+    status: WorkItemStatus = WorkItemStatus.TODO
+    priority: Priority = Priority.MEDIUM

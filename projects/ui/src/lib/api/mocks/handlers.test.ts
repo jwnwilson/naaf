@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import type { HttpHandler } from "msw";
 import type { components } from "../schema";
 import { apiFetch, apiList, apiPost } from "../client";
+import { mockOnlyHandlers, liveHandlers } from "./handlers";
 
 type InboxItem = components["schemas"]["InboxItem"];
 
@@ -43,5 +45,23 @@ describe("mock handlers", () => {
   it("starts from a clean seeded db on the next test (reset wiring works)", async () => {
     const page = await apiList<InboxItem>("/inbox");
     expect(page.results.some((i) => !i.read)).toBe(true);
+  });
+});
+
+describe("handler split", () => {
+  it("keeps the unbacked resources mocked and the live groups separate", () => {
+    const path = (h: HttpHandler) => String(h.info.path);
+    const live = liveHandlers.map(path).join(" ");
+    const mock = mockOnlyHandlers.map(path).join(" ");
+    expect(live).toMatch(/\/api\/projects/);
+    expect(live).toMatch(/\/api\/work-items/);
+    expect(live).toMatch(/\/api\/teams/);
+    expect(mock).toMatch(/\/api\/runs|\/api\/inbox|\/api\/dashboard/);
+    // board and run endpoints have no backend — always mocked
+    expect(mock).toMatch(/\/api\/projects\/:id\/board/);
+    expect(mock).toMatch(/\/api\/work-items\/:id\/run/);
+    // these endpoints must NOT be in live (board tree and work-item runs are A2-mocked)
+    expect(live).not.toMatch(/board/);
+    expect(live).not.toMatch(/\/run/);
   });
 });

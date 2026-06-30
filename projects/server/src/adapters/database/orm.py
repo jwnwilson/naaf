@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from domain.base import new_id, utcnow
-from sqlalchemy import JSON, DateTime, ForeignKey, String
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -39,7 +39,8 @@ class WorkItemRow(_Timestamped, Base):
     title: Mapped[str] = mapped_column(String(512), nullable=False)
     body: Mapped[str] = mapped_column(String, default="", nullable=False)
     acceptance_criteria: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
-    status: Mapped[str] = mapped_column(String(16), default="to_do", nullable=False)
+    status: Mapped[str] = mapped_column(String(16), default="todo", nullable=False)
+    priority: Mapped[str] = mapped_column(String(16), default="medium", nullable=False)
 
 
 class TeamRow(_Timestamped, Base):
@@ -58,3 +59,5 @@ class AgentDefinitionRow(_Timestamped, Base):
     runtime_adapter: Mapped[str] = mapped_column(String(64), default="claude_code", nullable=False)
     memory_scope: Mapped[str] = mapped_column(String(32), default="project", nullable=False)
     capability_grants: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    token_limit: Mapped[int] = mapped_column(Integer, default=200000, nullable=False)

@@ -46,7 +46,7 @@ class CrudRouter(APIRouter):
     def _setup_routes(self) -> None:
         if "CREATE" in self.methods:
             self.add_api_route(
-                "/", self._create(), methods=["POST"], status_code=201,
+                "", self._create(), methods=["POST"], status_code=201,
                 response_model=Envelope[self.response_dto],  # type: ignore[name-defined]
             )
         if "READ" in self.methods:
@@ -55,7 +55,7 @@ class CrudRouter(APIRouter):
                 response_model=Envelope[self.response_dto],  # type: ignore[name-defined]
             )
             self.add_api_route(
-                "/", self._read_multi(), methods=["GET"],
+                "", self._read_multi(), methods=["GET"],
                 response_model=Envelope[list[self.response_dto]],  # type: ignore[name-defined]
             )
         if "UPDATE" in self.methods:
