@@ -84,6 +84,24 @@ def test_list_by_epic_filter_has_correct_total(client):
     assert all(item["epicId"] == epic["id"] for item in body["data"])
 
 
+def test_nested_create_task_with_both_ids_uses_feature_as_parent(client):
+    """When both epicId and featureId are sent, featureId wins (most specific)."""
+    pid = _project(client)
+    epic = client.post(f"/projects/{pid}/work-items",
+                       json={"type": "epic", "title": "E"}).json()["data"]
+    feat = client.post(f"/projects/{pid}/work-items",
+                       json={"type": "feature", "title": "F", "epicId": epic["id"]}).json()["data"]
+
+    # Send BOTH ids — task should be parented to the feature, not the epic
+    resp = client.post(f"/projects/{pid}/work-items",
+                       json={"type": "task", "title": "T",
+                             "epicId": epic["id"], "featureId": feat["id"]})
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["featureId"] == feat["id"]   # parent is the feature (most specific)
+    assert data["epicId"] == epic["id"]      # grandparent is the epic
+
+
 def test_board_returns_nested_tree(client):
     pid = _project(client)
     epic = client.post(f"/projects/{pid}/work-items",

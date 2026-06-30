@@ -1,7 +1,7 @@
 """camelCase Pydantic models matching the UI OpenAPI contract.
 
-*Out models: serialise with model_dump(by_alias=True) — field names ARE the
-JSON keys (already camelCase), so by_alias=True works without explicit aliases.
+*Out models: field names are already camelCase, so no Field(alias=...) is
+needed and by_alias has no effect — the field names ARE the JSON keys.
 
 *In models: received from the UI in camelCase; field names match JSON keys.
 """
