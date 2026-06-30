@@ -22,7 +22,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<Envelope<T>
   } catch (e) {
     throw new ApiError((e as Error).message || "network error", 0);
   }
-  const body = (await res.json()) as Envelope<T>;
+  const rawText = await res.text().catch(() => "");
+  let body: Envelope<T>;
+  try {
+    body = JSON.parse(rawText) as Envelope<T>;
+  } catch {
+    throw new ApiError(
+      rawText || `request failed (${res.status})`,
+      res.status,
+    );
+  }
   if (!res.ok || !body.success) {
     throw new ApiError(body.error ?? `request failed (${res.status})`, res.status);
   }

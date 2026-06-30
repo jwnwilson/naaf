@@ -3,7 +3,10 @@ import { ApiError, apiFetch, apiList } from "./client";
 
 function mockFetch(body: unknown, ok = true, status = 200) {
   return vi.fn().mockResolvedValue({
-    ok, status, json: () => Promise.resolve(body),
+    ok,
+    status,
+    text: () => Promise.resolve(JSON.stringify(body)),
+    json: () => Promise.resolve(body),
   } as unknown as Response);
 }
 
@@ -18,6 +21,19 @@ describe("apiFetch", () => {
   it("throws ApiError with the message on success:false", async () => {
     vi.stubGlobal("fetch", mockFetch({ success: false, data: null, error: "not found" }, false, 404));
     await expect(apiFetch("/projects/x")).rejects.toMatchObject({ message: "not found", status: 404 });
+    await expect(apiFetch("/projects/x")).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it("throws ApiError when the response body is not valid JSON", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 502,
+      text: () => Promise.resolve("Bad Gateway"),
+    } as unknown as Response));
+    await expect(apiFetch("/projects/x")).rejects.toMatchObject({
+      message: "Bad Gateway",
+      status: 502,
+    });
     await expect(apiFetch("/projects/x")).rejects.toBeInstanceOf(ApiError);
   });
 
