@@ -29,3 +29,5 @@ SQLite in tests; dev auth. See [superpowers/plans/2026-06-29-a1-control-plane.md
 egress / GitHub App · A5 Claude Code runtime + LiteLLM · B/C management plane. The
 agent/sandbox/secrets content in the master design and architecture doc is the
 *target*, not current code. **Orchestration is Local-First** (master design spec §2/§3): agents run locally in docker containers, exchanging messages via pub/sub onto per-agent queues, processed sequentially.
+
+**`Run` is a defined domain entity but has no code yet.** A run = one execution of a task through the agent pipeline (`PLAN → … → LEARN`); it is specified in design spec §4 (Domain model) and §6 (Execution flow), but there is no `Run` model, persistence, API, or status machine in `projects/server/src` — it arrives with A3. Today only Project + WorkItem + Team/AgentDefinition exist in code.
