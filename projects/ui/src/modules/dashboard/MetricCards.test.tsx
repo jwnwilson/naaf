@@ -62,4 +62,16 @@ describe("MetricCards", () => {
       expect(screen.getByText("1")).toBeInTheDocument(),
     );
   });
+
+  it("shows the green running indicator dot when agents are active", async () => {
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MetricCards />
+      </QueryClientProvider>,
+    );
+    // seed.metrics.activeAgents = 1 (> 0) so the live dot renders
+    await waitFor(() =>
+      expect(screen.getByTestId("active-agents-dot")).toBeInTheDocument(),
+    );
+  });
 });

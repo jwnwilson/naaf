@@ -2,7 +2,6 @@ import { NavLink } from "react-router-dom";
 import { Avatar } from "../components/ui/Avatar";
 import { ProgressBar } from "../components/ui/ProgressBar";
 import {
-  AgentsIcon,
   DashboardIcon,
   GitRepoIcon,
   InboxIcon,
@@ -10,8 +9,8 @@ import {
   SearchIcon,
   SettingsIcon,
 } from "../components/ui/icons";
-import { useAgents } from "../lib/api/hooks/useAgents";
 import { useBudget } from "../lib/api/hooks/useBudget";
+import { useDashboard } from "../lib/api/hooks/useDashboard";
 import { useInbox } from "../lib/api/hooks/useInbox";
 import { useProjects } from "../lib/api/hooks/useProjects";
 import type { Project } from "../lib/api/hooks/useProjects";
@@ -90,16 +89,15 @@ function ProjectRow({ project }: { project: Project }) {
 export function Sidebar() {
   const projectsQuery = useProjects();
   const inboxQuery = useInbox();
-  const agentsQuery = useAgents();
   const budgetQuery = useBudget();
+  const dashboardQuery = useDashboard();
 
   const projects = projectsQuery.data?.results ?? [];
   const inboxItems = inboxQuery.data?.results ?? [];
-  const agents = agentsQuery.data ?? [];
   const budget = budgetQuery.data;
+  const activeAgents = dashboardQuery.data?.activeAgents ?? 0;
 
   const unreadCount = inboxItems.filter((i) => !i.read).length;
-  const runningCount = agents.filter((a) => a.status === "running").length;
 
   return (
     <nav className="flex h-full w-[214px] shrink-0 flex-col border-r border-[rgba(255,255,255,0.055)] bg-bg-sidebar">
@@ -123,7 +121,23 @@ export function Sidebar() {
 
       {/* Nav items */}
       <div className="flex flex-col gap-[2px] px-[6px]">
-        <NavItem to="/dashboard" icon={<DashboardIcon size={13} />} label="Dashboard" />
+        <NavItem
+          to="/dashboard"
+          icon={<DashboardIcon size={13} />}
+          label="Dashboard"
+          badge={
+            activeAgents > 0 ? (
+              <span className="flex items-center gap-[5px] font-mono text-[9.5px] text-[#4a8c68]">
+                <span
+                  data-testid="dashboard-running-dot"
+                  className="inline-block rounded-full bg-[#4a8c68]"
+                  style={{ width: 6, height: 6 }}
+                />
+                {activeAgents}
+              </span>
+            ) : undefined
+          }
+        />
         <NavItem
           to="/inbox"
           icon={<InboxIcon size={13} />}
@@ -134,18 +148,6 @@ export function Sidebar() {
           to="/projects"
           icon={<ProjectsIcon size={13} />}
           label="Projects"
-        />
-        <NavItem
-          to="/agents"
-          icon={<AgentsIcon size={13} />}
-          label="Agents"
-          badge={
-            runningCount > 0 ? (
-              <Badge>
-                {runningCount} <span className="text-[#4a8c68]">●</span>
-              </Badge>
-            ) : undefined
-          }
         />
       </div>
 

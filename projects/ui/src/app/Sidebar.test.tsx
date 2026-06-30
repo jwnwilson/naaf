@@ -20,4 +20,19 @@ describe("Sidebar", () => {
     expect(screen.getByText(/Projects/)).toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByRole("link").length).toBeGreaterThan(3));
   });
+
+  it("does not render an Agents nav item", () => {
+    renderSidebar();
+    expect(screen.queryByText("Agents")).not.toBeInTheDocument();
+  });
+
+  it("shows the green running indicator dot and active-agent count next to Dashboard", async () => {
+    renderSidebar();
+    // mock dashboard metrics report activeAgents = 1 (> 0)
+    await waitFor(() =>
+      expect(screen.getByTestId("dashboard-running-dot")).toBeInTheDocument(),
+    );
+    const dot = screen.getByTestId("dashboard-running-dot");
+    expect(dot.parentElement).toHaveTextContent("1");
+  });
 });
