@@ -42,10 +42,11 @@ def build_work_items_router(db_dependency: Callable) -> CrudRouter:
         repository="work_items",
         response_dto=WorkItemOut,
         create_schema=WorkItemCreateIn,  # unused — no CREATE in methods
-        update_schema=WorkItemUpdateIn,
-        to_response=work_item_out,
-        to_domain_update=work_item_update_to_domain,  # type: ignore[arg-type]
-        methods=["UPDATE", "DELETE"],
+        update_schema=WorkItemUpdateIn,  # unused — PATCH is hand-written below
+        # READ + UPDATE are hand-written below so lineage (epicId/featureId)
+        # can be resolved via the request uow; the generic CrudRouter to_response
+        # has no uow, so it would always emit null lineage.
+        methods=["DELETE"],
         prefix="/work-items",
         tags=["work-items"],
     )
@@ -58,6 +59,16 @@ def build_work_items_router(db_dependency: Callable) -> CrudRouter:
         item = uow.work_items.read(id.hex)
         epic_id, feature_id = _resolve_lineage(item, uow)
         return ok(work_item_out(item, epic_id=epic_id, feature_id=feature_id))
+
+    @router.patch("/{id}", response_model=Envelope[WorkItemOut])
+    def update_work_item(
+        id: UUID,
+        body: WorkItemUpdateIn,
+        uow: SqlUnitOfWork = Depends(db_dependency),  # noqa: B008
+    ):
+        updated = uow.work_items.update(id.hex, work_item_update_to_domain(body))
+        epic_id, feature_id = _resolve_lineage(updated, uow)
+        return ok(work_item_out(updated, epic_id=epic_id, feature_id=feature_id))
 
     @router.get("/", response_model=Envelope[list[WorkItemOut]])
     def list_work_items(
@@ -82,8 +93,12 @@ def build_work_items_router(db_dependency: Callable) -> CrudRouter:
             if epic and epic_id != epic:
                 continue
             results.append(work_item_out(item, epic_id=epic_id, feature_id=feature_id))
+        # epicId is computed (not a DB column), so the ?epic= filter is applied
+        # in Python after the query. The DB-level page.total would over-count, so
+        # report the filtered length as a single-page truth.
+        total = len(results) if epic else page.total
         return ok(results, meta={
-            "total": page.total,
+            "total": total,
             "page_size": page.page_size,
             "page_number": page.page_number,
         })

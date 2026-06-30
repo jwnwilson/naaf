@@ -25,12 +25,19 @@ def test_transition_uses_5_set(client):
     assert out["data"]["status"] == "in_progress"
 
 
-def test_agent_definition_contract_shape(client):
+def test_agent_definition_contract_shape(client, session_factory):
+    from adapters.database.uow import SqlUnitOfWork
+    from domain.team import AgentDefinition, AgentRole
+
     t = client.post("/teams/", json={"name": "T"}).json()["data"]["id"]
-    resp = client.post(
-        "/agent-definitions/",
-        json={"teamId": t, "role": "lead", "model": "claude-opus-4"},
-    )
-    a = resp.json()["data"]
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "dev-user"})
+    with uow.transaction():
+        aid = uow.agent_definitions.create(
+            AgentDefinition(
+                owner_id="dev-user", team_id=t, role=AgentRole.LEAD,
+                model_alias="claude-opus-4",
+            )
+        ).id
+    a = client.get(f"/agent-definitions/{aid}").json()["data"]
     assert a["model"] == "claude-opus-4" and a["enabled"] is True and a["tokenLimit"] == 200000
     assert "model_alias" not in a

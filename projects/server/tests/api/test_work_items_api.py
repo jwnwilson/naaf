@@ -50,6 +50,40 @@ def test_create_work_item_under_missing_project_is_404(client):
     assert resp.json()["success"] is False
 
 
+def test_patch_task_returns_lineage(client):
+    pid = _project(client)
+    epic = client.post(f"/projects/{pid}/work-items",
+                       json={"type": "epic", "title": "E"}).json()["data"]
+    feat = client.post(f"/projects/{pid}/work-items",
+                       json={"type": "feature", "title": "F", "epicId": epic["id"]}).json()["data"]
+    task = client.post(f"/projects/{pid}/work-items",
+                       json={"type": "task", "title": "T", "featureId": feat["id"]}).json()["data"]
+
+    patched = client.patch(f"/work-items/{task['id']}",
+                           json={"title": "T2"}).json()["data"]
+    assert patched["title"] == "T2"
+    assert patched["epicId"] == epic["id"]  # grandparent
+    assert patched["featureId"] == feat["id"]  # parent
+
+
+def test_list_by_epic_filter_has_correct_total(client):
+    pid = _project(client)
+    epic = client.post(f"/projects/{pid}/work-items",
+                       json={"type": "epic", "title": "E"}).json()["data"]
+    other = client.post(f"/projects/{pid}/work-items",
+                        json={"type": "epic", "title": "Other"}).json()["data"]
+    client.post(f"/projects/{pid}/work-items",
+                json={"type": "feature", "title": "F1", "epicId": epic["id"]})
+    client.post(f"/projects/{pid}/work-items",
+                json={"type": "feature", "title": "F2", "epicId": epic["id"]})
+    client.post(f"/projects/{pid}/work-items",
+                json={"type": "feature", "title": "F3", "epicId": other["id"]})
+
+    body = client.get(f"/work-items?epic={epic['id']}").json()
+    assert body["meta"]["total"] == len(body["data"]) == 2
+    assert all(item["epicId"] == epic["id"] for item in body["data"])
+
+
 def test_board_returns_nested_tree(client):
     pid = _project(client)
     epic = client.post(f"/projects/{pid}/work-items",

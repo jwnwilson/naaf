@@ -9,11 +9,10 @@ from __future__ import annotations
 from datetime import datetime
 
 from domain.project import Project
-from domain.team import AgentDefinition, AgentRole, Team
+from domain.team import AgentDefinition, Team
 from domain.work_item import WorkItem
 
 from interactors.api.contract import (
-    AgentDefinitionCreateIn,
     AgentDefinitionOut,
     AgentDefinitionUpdateIn,
     ProjectCreateIn,
@@ -27,7 +26,6 @@ from interactors.api.contract import (
     WorkItemUpdateIn,
 )
 from interactors.api.schemas import (
-    CreateAgentDefinition,
     CreateProject,
     CreateTeam,
     CreateWorkItem,
@@ -101,11 +99,21 @@ def work_item_create_to_domain(body: WorkItemCreateIn) -> CreateWorkItem:
 
 
 def work_item_update_to_domain(body: WorkItemUpdateIn) -> UpdateWorkItem:
-    return UpdateWorkItem(
-        title=body.title,
-        body=body.spec,
-        priority=body.priority,
-    )
+    """Forward only the fields the client actually sent.
+
+    The repository updates via model_dump(exclude_unset=True), so an absent
+    `spec` must NOT become a domain `body=None` (which would null a NOT NULL
+    column). We carry the contract's set-fields through to the domain schema.
+    """
+    sent = body.model_fields_set
+    data: dict[str, object] = {}
+    if "title" in sent:
+        data["title"] = body.title
+    if "priority" in sent:
+        data["priority"] = body.priority
+    if "spec" in sent:
+        data["body"] = body.spec
+    return UpdateWorkItem(**data)  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------------------
@@ -172,15 +180,6 @@ def agent_definition_out(a: AgentDefinition) -> AgentDefinitionOut:
         tokenLimit=a.token_limit,
         systemPrompt=a.persona_prompt or None,
         enabled=a.enabled,
-    )
-
-
-def agent_definition_create_to_domain(body: AgentDefinitionCreateIn) -> CreateAgentDefinition:
-    return CreateAgentDefinition(
-        team_id=body.teamId,
-        role=AgentRole(body.role),
-        model_alias=body.model,
-        persona_prompt=body.systemPrompt or "",
     )
 
 
