@@ -127,11 +127,14 @@ export function Sidebar() {
           label="Dashboard"
           badge={
             activeAgents > 0 ? (
-              <span
-                data-testid="dashboard-running-dot"
-                className="inline-block rounded-full bg-[#4a8c68]"
-                style={{ width: 6, height: 6 }}
-              />
+              <span className="flex items-center gap-[5px] font-mono text-[9.5px] text-[#4a8c68]">
+                <span
+                  data-testid="dashboard-running-dot"
+                  className="inline-block rounded-full bg-[#4a8c68]"
+                  style={{ width: 6, height: 6 }}
+                />
+                {activeAgents}
+              </span>
             ) : undefined
           }
         />

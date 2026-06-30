@@ -26,11 +26,13 @@ describe("Sidebar", () => {
     expect(screen.queryByText("Agents")).not.toBeInTheDocument();
   });
 
-  it("shows the green running indicator dot next to Dashboard when agents are active", async () => {
+  it("shows the green running indicator dot and active-agent count next to Dashboard", async () => {
     renderSidebar();
     // mock dashboard metrics report activeAgents = 1 (> 0)
     await waitFor(() =>
       expect(screen.getByTestId("dashboard-running-dot")).toBeInTheDocument(),
     );
+    const dot = screen.getByTestId("dashboard-running-dot");
+    expect(dot.parentElement).toHaveTextContent("1");
   });
 });
