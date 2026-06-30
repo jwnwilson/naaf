@@ -28,4 +28,4 @@ SQLite in tests; dev auth. See [superpowers/plans/2026-06-29-a1-control-plane.md
 **Not yet built (designed only):** A3 agent run pipeline (**local pub/sub orchestration**) + runs · A4 sandbox /
 egress / GitHub App · A5 Claude Code runtime + LiteLLM · B/C management plane. The
 agent/sandbox/secrets content in the master design and architecture doc is the
-*target*, not current code. **Orchestration is Local-First (master design spec §2/§3), not Temporal** — earlier Temporal references were a stale-doc artifact and have been removed.
+*target*, not current code. **Orchestration is Local-First** (master design spec §2/§3): agents run locally in docker containers, exchanging messages via pub/sub onto per-agent queues, processed sequentially.

@@ -189,10 +189,9 @@ own docker container with its own context, secrets, MCP servers, tools, and mode
 exchange messages via a **pub/sub** pattern onto a **per-agent queue**; an agent drains its
 queue **sequentially**, then either converses (with a user or another agent) or works on the
 repository. The team lead acts as the orchestrator agent — it dispatches other agents and
-reacts to their messages. The run executor is a **local message-bus / queue process — not a
-Temporal (or other external workflow-engine) deployment**. Domain stays pure: the
-non-deterministic decisions live in `domain/`; the executor adapter carries them out and
-persists run state.
+reacts to their messages. The run executor is a **local message-bus / queue process** that
+runs in-cluster alongside the agents. Domain stays pure: the non-deterministic decisions live
+in `domain/`; the executor adapter carries them out and persists run state.
 
 ### Ports & adapters (deny-by-default execution)
 
