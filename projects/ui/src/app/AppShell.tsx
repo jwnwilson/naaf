@@ -39,7 +39,7 @@ export function AppShell() {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden">
+    <div className="flex h-screen w-screen overflow-hidden bg-bg-base text-text-1">
       {/* Sidebar: 214px fixed, flex:none via shrink-0 */}
       <Sidebar />
 

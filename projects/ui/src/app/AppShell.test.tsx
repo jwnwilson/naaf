@@ -19,4 +19,16 @@ describe("AppShell", () => {
     expect(screen.getByRole("button", { name: /new/i })).toBeInTheDocument(); // topbar
     expect(screen.getByRole("button", { name: /collapse|chat/i })).toBeInTheDocument(); // chat
   });
+
+  it("applies the dark base background to the shell root (no white bleed-through)", async () => {
+    const router = createMemoryRouter(routes, { initialEntries: ["/projects?view=board"] });
+    const { container } = render(
+      <QueryClientProvider client={createQueryClient()}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+    const root = container.querySelector("div.flex.h-screen") as HTMLElement;
+    expect(root).not.toBeNull();
+    expect(root.className).toContain("bg-bg-base");
+  });
 });
