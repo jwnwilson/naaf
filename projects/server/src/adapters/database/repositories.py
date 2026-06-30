@@ -46,9 +46,10 @@ class RunEventRepository(SqlRepository[RunEvent]):
     dto = RunEvent
 
     def create(self, dto: RunEvent) -> RunEvent:  # type: ignore[override]
-        next_seq = self.session.execute(
-            select(func.coalesce(func.max(RunEventRow.seq), 0) + 1).where(
-                RunEventRow.run_id == dto.run_id
-            )
-        ).scalar_one()
+        q = select(func.coalesce(func.max(RunEventRow.seq), 0) + 1).where(
+            RunEventRow.run_id == dto.run_id
+        )
+        for key, value in self.required_filters.items():
+            q = q.where(getattr(RunEventRow, key) == value)
+        next_seq = self.session.execute(q).scalar_one()
         return super().create(dto.model_copy(update={"seq": next_seq}))

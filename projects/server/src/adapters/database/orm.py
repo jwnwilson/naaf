@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from domain.base import new_id, utcnow
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -83,6 +83,7 @@ class RunRow(_Timestamped, Base):
 
 class RunEventRow(_Timestamped, Base):
     __tablename__ = "run_events"
+    __table_args__ = (UniqueConstraint("run_id", "seq"),)
     run_id: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
     seq: Mapped[int] = mapped_column(Integer, nullable=False)
     stage: Mapped[str | None] = mapped_column(String(16), nullable=True)
@@ -91,6 +92,7 @@ class RunEventRow(_Timestamped, Base):
     payload: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
 
 
+# accessed directly by the SqlMessageBus adapter, not via a UoW repository
 class BusMessageRow(_Timestamped, Base):
     __tablename__ = "bus_messages"
     run_id: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
