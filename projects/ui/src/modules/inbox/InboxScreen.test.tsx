@@ -13,7 +13,7 @@ describe("InboxScreen", () => {
         <RouterProvider router={router} />
       </QueryClientProvider>,
     );
-    await waitFor(() => expect(screen.getByText(/Action needed/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Action needed")).toBeInTheDocument());
     // at least one notification badge renders
     await waitFor(() => expect(screen.getAllByText(/ACTION NEEDED|INFO|RESOLVED|REVIEW NEEDED/).length).toBeGreaterThan(0));
   });

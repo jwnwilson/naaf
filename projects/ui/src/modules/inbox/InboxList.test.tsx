@@ -11,7 +11,7 @@ describe("InboxList", () => {
         <InboxList onSelect={() => {}} />
       </QueryClientProvider>,
     );
-    expect(screen.getByText(/Action needed/i)).toBeInTheDocument();
+    expect(screen.getByText("Action needed")).toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByText(/ACTION NEEDED|INFO|RESOLVED|REVIEW NEEDED/).length).toBeGreaterThan(0));
   });
 });

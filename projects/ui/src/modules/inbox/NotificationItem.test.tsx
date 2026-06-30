@@ -14,7 +14,7 @@ describe("NotificationItem", () => {
     const onSelect = vi.fn();
     render(<NotificationItem item={item} selected={false} onSelect={onSelect} />);
     expect(screen.getByText("Approve the PR")).toBeInTheDocument();
-    expect(screen.getByText(/ACTION REQUIRED/i)).toBeInTheDocument();
+    expect(screen.getByText(/ACTION NEEDED/i)).toBeInTheDocument();
     await userEvent.click(screen.getByText("Approve the PR"));
     expect(onSelect).toHaveBeenCalledWith("n1");
   });
