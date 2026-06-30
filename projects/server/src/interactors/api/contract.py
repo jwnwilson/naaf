@@ -7,10 +7,22 @@ needed and by_alias has no effect — the field names ARE the JSON keys.
 """
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from domain.work_item import Priority, WorkItemKind, WorkItemStatus
 from pydantic import BaseModel, ConfigDict
+
+
+def iso(dt: datetime | None) -> str:
+    """Render a persisted entity's timestamp as ISO-8601.
+
+    Persisted rows always carry timestamps; a None here means an unsaved entity
+    reached the contract layer, which we surface rather than emit "".
+    """
+    if dt is None:
+        raise ValueError("timestamp is required for the contract")
+    return dt.isoformat()
 
 # ---------------------------------------------------------------------------
 # WorkItem

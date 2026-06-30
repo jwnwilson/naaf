@@ -99,23 +99,3 @@ def test_envelope_model_defaults():
     env = Envelope[str](data="x")
     assert env.success is True
     assert env.error is None
-
-
-class ThingOut(BaseModel):
-    id: str
-    label: str  # renamed from name
-
-
-def test_to_response_maps_each_result():
-    uow = FakeUow()
-    app = FastAPI()
-    app.include_router(CrudRouter(
-        db_dependency=lambda: uow, repository="things",
-        response_dto=ThingOut, create_schema=CreateThing, update_schema=UpdateThing,
-        methods=["CREATE", "READ"], prefix="/things",
-        to_response=lambda t: ThingOut(id=t.id, label=t.name),
-    ))
-    client = TestClient(app)
-    body = client.post("/things/", json={"name": "a"}).json()
-    assert body["data"]["label"] == "a"
-    assert "name" not in body["data"]

@@ -1,6 +1,6 @@
 from domain.project import AutonomyLevel
 from domain.team import AgentRole
-from domain.work_item import AcceptanceCriterion, Priority, WorkItemKind, WorkItemStatus
+from domain.work_item import AcceptanceCriterion, Priority, WorkItemStatus
 from pydantic import BaseModel
 
 
@@ -18,16 +18,6 @@ class UpdateProject(BaseModel):
     repo_path: str | None = None
     team_id: str | None = None
     autonomy_level: AutonomyLevel | None = None
-
-
-class CreateWorkItem(BaseModel):
-    kind: WorkItemKind
-    title: str
-    body: str = ""
-    acceptance_criteria: list[AcceptanceCriterion] = []
-    parent_id: str | None = None
-    priority: Priority = Priority.MEDIUM
-    status: WorkItemStatus = WorkItemStatus.TODO
 
 
 class UpdateWorkItem(BaseModel):

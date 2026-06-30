@@ -29,9 +29,6 @@ class CrudRouter(APIRouter):
         methods: list[str],
         prefix: str | None = None,
         tags: list[str | Enum] | None = None,
-        to_response: Callable[[Any], BaseModel] | None = None,
-        to_domain_create: Callable[[BaseModel], BaseModel] | None = None,
-        to_domain_update: Callable[[BaseModel], BaseModel] | None = None,
         **kwargs: Any,
     ):
         self.db_dependency = db_dependency
@@ -40,17 +37,11 @@ class CrudRouter(APIRouter):
         self.create_schema = create_schema
         self.update_schema = update_schema
         self.methods = methods or ["READ"]
-        self.to_response = to_response
-        self.to_domain_create = to_domain_create
-        self.to_domain_update = to_domain_update
         super().__init__(prefix=prefix or "", tags=tags, redirect_slashes=True, **kwargs)
         self._setup_routes()
 
     def _repo(self, uow: Any) -> Any:
         return getattr(uow, self.repository)
-
-    def _respond(self, x: Any) -> Any:
-        return self.to_response(x) if self.to_response else x
 
     def _setup_routes(self) -> None:
         if "CREATE" in self.methods:
@@ -80,13 +71,12 @@ class CrudRouter(APIRouter):
 
     def _create(self) -> Callable:
         def create_record(obj_in: self.create_schema, uow=Depends(self.db_dependency)):  # type: ignore[name-defined]  # noqa: B008
-            domain_in = self.to_domain_create(obj_in) if self.to_domain_create else obj_in
-            return ok(self._respond(self._repo(uow).create(domain_in)))
+            return ok(self._repo(uow).create(obj_in))
         return create_record
 
     def _read(self) -> Callable:
         def read_record(id: UUID, uow=Depends(self.db_dependency)):  # noqa: B008
-            return ok(self._respond(self._repo(uow).read(id.hex)))
+            return ok(self._repo(uow).read(id.hex))
         return read_record
 
     def _read_multi(self) -> Callable:
@@ -103,7 +93,7 @@ class CrudRouter(APIRouter):
                 page_number=page_number,
                 order_by=order_by,
             )
-            return ok([self._respond(r) for r in page.results], meta={
+            return ok(page.results, meta={
                 "total": page.total,
                 "page_size": page.page_size,
                 "page_number": page.page_number,
@@ -112,8 +102,7 @@ class CrudRouter(APIRouter):
 
     def _update(self) -> Callable:
         def update_record(id: UUID, obj_in: self.update_schema, uow=Depends(self.db_dependency)):  # type: ignore[name-defined]  # noqa: B008
-            domain_in = self.to_domain_update(obj_in) if self.to_domain_update else obj_in
-            return ok(self._respond(self._repo(uow).update(id.hex, domain_in)))
+            return ok(self._repo(uow).update(id.hex, obj_in))
         return update_record
 
     def _delete(self) -> Callable:
