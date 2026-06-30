@@ -5,7 +5,19 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  server: { port: 5173, proxy: { "/api": "http://localhost:8000" } },
+  // The client prefixes requests with `/api` (the dev-proxy marker); the backend
+  // implements the contract paths at root (`/projects`, `/work-items`), so strip
+  // `/api` when proxying to it in live mode (VITE_LIVE_API=true).
+  server: {
+    port: 5173,
+    proxy: {
+      "/api": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+    },
+  },
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],

@@ -18,7 +18,7 @@ def _item_count(project_id: str, uow: SqlUnitOfWork) -> int:
 def build_projects_router(db_dependency: Callable) -> APIRouter:
     router = APIRouter(prefix="/projects", tags=["projects"])
 
-    @router.post("/", status_code=201, response_model=Envelope[ProjectOut])
+    @router.post("", status_code=201, response_model=Envelope[ProjectOut])
     def create_project(
         body: ProjectCreateIn,
         uow: SqlUnitOfWork = Depends(db_dependency),  # noqa: B008
@@ -34,7 +34,7 @@ def build_projects_router(db_dependency: Callable) -> APIRouter:
         p = uow.projects.read(id.hex)
         return ok(project_out(p, item_count=_item_count(p.id, uow)))
 
-    @router.get("/", response_model=Envelope[list[ProjectOut]])
+    @router.get("", response_model=Envelope[list[ProjectOut]])
     def list_projects(
         uow: SqlUnitOfWork = Depends(db_dependency),  # noqa: B008
         page_size: int = 50,

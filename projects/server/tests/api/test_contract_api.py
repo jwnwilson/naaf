@@ -1,3 +1,38 @@
+def test_collection_get_projects_returns_200_without_redirect(session_factory):
+    from fastapi.testclient import TestClient
+    from interactors.api.app import create_app
+    from interactors.api.settings import Settings
+
+    # Arrange
+    app = create_app(settings=Settings(), session_factory=session_factory)
+    no_redirect_client = TestClient(app, follow_redirects=False)
+
+    # Act
+    response = no_redirect_client.get("/projects")
+
+    # Assert — must be 200, not a 307 redirect that breaks browser CORS
+    assert response.status_code == 200
+
+
+def test_collection_get_work_items_returns_200_without_redirect(session_factory):
+    import uuid
+
+    from fastapi.testclient import TestClient
+    from interactors.api.app import create_app
+    from interactors.api.settings import Settings
+
+    # Arrange
+    app = create_app(settings=Settings(), session_factory=session_factory)
+    no_redirect_client = TestClient(app, follow_redirects=False)
+
+    # Act
+    project_id = str(uuid.uuid4())
+    response = no_redirect_client.get(f"/work-items?project={project_id}")
+
+    # Assert — must be 200, not a 307 redirect that breaks browser CORS
+    assert response.status_code == 200
+
+
 def test_project_create_emits_camelcase_contract(client):
     body = client.post("/projects/", json={"name": "naaf", "repoUrl": "git@x/y"}).json()
     assert body["success"] is True

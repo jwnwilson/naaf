@@ -70,7 +70,7 @@ def build_work_items_router(db_dependency: Callable) -> CrudRouter:
         epic_id, feature_id = _resolve_lineage(updated, uow)
         return ok(work_item_out(updated, epic_id=epic_id, feature_id=feature_id))
 
-    @router.get("/", response_model=Envelope[list[WorkItemOut]])
+    @router.get("", response_model=Envelope[list[WorkItemOut]])
     def list_work_items(
         uow: SqlUnitOfWork = Depends(db_dependency),  # noqa: B008
         project: str | None = None,
