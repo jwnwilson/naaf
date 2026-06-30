@@ -29,3 +29,5 @@ class AgentDefinition(Entity):
     runtime_adapter: str = "claude_code"
     memory_scope: str = "project"
     capability_grants: list[str] = Field(default_factory=list)
+    enabled: bool = True
+    token_limit: int = 200000

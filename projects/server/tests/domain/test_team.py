@@ -11,3 +11,10 @@ def test_agent_definition_defaults():
     assert a.runtime_adapter == "claude_code"
     assert a.memory_scope == "project"
     assert a.role is AgentRole.LEAD
+
+
+def test_agent_definition_config_defaults():
+    from domain.team import AgentDefinition, AgentRole
+    a = AgentDefinition(owner_id="u1", team_id="t1", role=AgentRole.LEAD)
+    assert a.enabled is True
+    assert a.token_limit == 200000

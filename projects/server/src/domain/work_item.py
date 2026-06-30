@@ -19,6 +19,13 @@ class WorkItemStatus(StrEnum):
     DONE = "done"
 
 
+class Priority(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    URGENT = "urgent"
+
+
 class AcceptanceCriterion(BaseModel):
     text: str
     done: bool = False
@@ -33,3 +40,4 @@ class WorkItem(Entity):
     body: str = ""
     acceptance_criteria: list[AcceptanceCriterion] = Field(default_factory=list)
     status: WorkItemStatus = WorkItemStatus.TODO
+    priority: Priority = Priority.MEDIUM

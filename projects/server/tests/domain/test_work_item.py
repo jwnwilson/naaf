@@ -68,3 +68,9 @@ def test_work_item_is_immutable_via_model_copy():
 def test_acceptance_criterion_defaults_not_done():
     crit = AcceptanceCriterion(text="returns 200")
     assert crit.done is False
+
+
+def test_work_item_priority_defaults_to_medium():
+    from domain.work_item import Priority, WorkItem, WorkItemKind
+    item = WorkItem(owner_id="u1", project_id="p1", kind=WorkItemKind.TASK, title="x")
+    assert item.priority is Priority.MEDIUM
