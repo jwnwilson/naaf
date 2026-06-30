@@ -84,6 +84,28 @@ make coverage              # 80% gate
 make run                   # uvicorn interactors.api.app:create_app --factory --reload
 ```
 
+### UI (fully mocked — no backend needed)
+
+```bash
+cd projects/ui && pnpm dev   # VITE_USE_MOCKS=true is the default (.env)
+```
+
+### UI hybrid live-API mode (real backend for projects/work-items/teams/agent-definitions)
+
+```bash
+# terminal 1 — backend
+cd projects/server
+docker compose -f ../../docker-compose.yml up -d postgres
+make db-upgrade && uv run python -m interactors.cli.seed
+make run                   # listens on :8000
+
+# terminal 2 — UI with live API flag
+cd projects/ui
+VITE_LIVE_API=true pnpm dev
+# Vite proxies /api → http://localhost:8000; MSW still handles
+# runs/agents/inbox/threads/dashboard/budget with mock data.
+```
+
 ## Status
 
 **A1 control plane is built.** See [docs/project-history.md](docs/project-history.md) for what shipped, what is designed-only, and what comes next.

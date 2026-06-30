@@ -1,4 +1,6 @@
 import { setupWorker } from "msw/browser";
-import { handlers } from "./handlers";
+import { handlers, mockOnlyHandlers } from "./handlers";
 
-export const worker = setupWorker(...handlers);
+const live = import.meta.env.VITE_LIVE_API === "true";
+
+export const worker = setupWorker(...(live ? mockOnlyHandlers : handlers));
