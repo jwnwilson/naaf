@@ -18,6 +18,7 @@ from interactors.worker.processor import process_next
 
 def _seed(session_factory, autonomy):
     uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
+    # owner_id is overridden to "u1" by required_filters at repo-create time
     with uow.transaction():
         p = uow.projects.create(Project(owner_id="", name="P", autonomy_level=autonomy))
         wi = uow.work_items.create(WorkItem(owner_id="", project_id=p.id, kind=WorkItemKind.TASK,

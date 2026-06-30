@@ -29,6 +29,11 @@ def test_done_is_terminal():
         validate_transition(S.DONE, S.IN_PROGRESS)
 
 
+def test_in_progress_can_move_directly_to_done():
+    # Covers the in_progress -> done edge added for full_auto runs
+    assert validate_transition(S.IN_PROGRESS, S.DONE) is S.DONE
+
+
 def test_same_status_is_rejected():
     with pytest.raises(InvalidTransition):
         validate_transition(S.TODO, S.TODO)
