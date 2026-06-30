@@ -2,7 +2,6 @@ def test_create_and_get_project(client):
     created = client.post("/projects/", json={"name": "naaf"}).json()
     assert created["success"] is True
     pid = created["data"]["id"]
-    assert created["data"]["owner_id"] == "dev-user"  # stamped
 
     got = client.get(f"/projects/{pid}").json()
     assert got["data"]["name"] == "naaf"

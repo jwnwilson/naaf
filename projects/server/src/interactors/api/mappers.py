@@ -9,10 +9,11 @@ from __future__ import annotations
 from datetime import datetime
 
 from domain.project import Project
-from domain.team import AgentDefinition, Team
+from domain.team import AgentDefinition, AgentRole, Team
 from domain.work_item import WorkItem
 
 from interactors.api.contract import (
+    AgentDefinitionCreateIn,
     AgentDefinitionOut,
     AgentDefinitionUpdateIn,
     ProjectCreateIn,
@@ -26,6 +27,7 @@ from interactors.api.contract import (
     WorkItemUpdateIn,
 )
 from interactors.api.schemas import (
+    CreateAgentDefinition,
     CreateProject,
     CreateTeam,
     CreateWorkItem,
@@ -170,6 +172,15 @@ def agent_definition_out(a: AgentDefinition) -> AgentDefinitionOut:
         tokenLimit=a.token_limit,
         systemPrompt=a.persona_prompt or None,
         enabled=a.enabled,
+    )
+
+
+def agent_definition_create_to_domain(body: AgentDefinitionCreateIn) -> CreateAgentDefinition:
+    return CreateAgentDefinition(
+        team_id=body.teamId,
+        role=AgentRole(body.role),
+        model_alias=body.model,
+        persona_prompt=body.systemPrompt or "",
     )
 
 

@@ -82,7 +82,7 @@ class ProjectCreateIn(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     name: str
-    repoUrl: str
+    repoUrl: str = ""
 
 
 class ProjectUpdateIn(BaseModel):
@@ -140,3 +140,13 @@ class AgentDefinitionUpdateIn(BaseModel):
     tokenLimit: int | None = None
     systemPrompt: str | None = None
     enabled: bool | None = None
+
+
+class AgentDefinitionCreateIn(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    teamId: str
+    role: str  # AgentRole value
+    model: str = ""
+    tokenLimit: int = 200000
+    systemPrompt: str | None = None
