@@ -1,16 +1,19 @@
 """Run API routes: start, list, get, events, gate."""
+import asyncio
+import time
 from uuid import UUID
 
 from adapters.bus.sql import SqlMessageBus
 from adapters.database.uow import SqlUnitOfWork
 from crud_router import Envelope, ok
 from domain.errors import InvalidTransition
-from domain.runs.events import RunEvent
+from domain.runs.events import EventType, RunEvent
 from domain.runs.messages import AgentMessage, MessageType, recipient_key
 from domain.runs.run import Run, StageState
 from domain.transitions import validate_transition
 from domain.work_item import WorkItemStatus
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
+from sse_starlette.sse import EventSourceResponse
 
 from interactors.api.auth import get_owner_id
 from interactors.api.contract import (
@@ -22,6 +25,9 @@ from interactors.api.contract import (
     iso,
 )
 from interactors.api.deps import get_uow
+
+_SSE_POLL_SECONDS = 0.25
+_SSE_MAX_SECONDS = 600
 
 # /runs collection endpoints (owner-unscoped path, still owner-filtered by UoW)
 router = APIRouter(prefix="/runs", tags=["runs"])
@@ -165,6 +171,50 @@ def list_run_events(
         order_by="seq",
     )
     return ok([_run_event_out(e) for e in page.results])
+
+
+@router.get("/{id}/events/stream")
+def stream_run_events(
+    id: UUID,
+    request: Request,
+    after: int = 0,
+    owner_id: str = Depends(get_owner_id),  # noqa: B008
+) -> EventSourceResponse:
+    """Stream run events as SSE.
+
+    Polls run_events with seq > after on a short interval, yielding each row as
+    a data: JSON line (RunEventOut shape). Closes after emitting a run_finished
+    event or after _SSE_MAX_SECONDS. Does NOT hold a long-lived DB transaction —
+    a fresh SqlUnitOfWork is opened and closed on every poll iteration.
+    """
+
+    async def gen():
+        cursor = after
+        deadline = time.monotonic() + _SSE_MAX_SECONDS
+        while time.monotonic() < deadline:
+            uow = SqlUnitOfWork(
+                request.app.state.session_factory,
+                required_filters={"owner_id": owner_id},
+            )
+            with uow.transaction():
+                rows = uow.run_events.read_multi(
+                    filters={"run_id": id.hex, "seq__gt": cursor},
+                    order_by="seq",
+                    page_size=0,
+                ).results
+
+            finished = False
+            for ev in rows:
+                cursor = ev.seq
+                yield {"data": _run_event_out(ev).model_dump_json()}
+                if ev.type == EventType.RUN_FINISHED:
+                    finished = True
+                    break
+            if finished:
+                return
+            await asyncio.sleep(_SSE_POLL_SECONDS)
+
+    return EventSourceResponse(gen())
 
 
 @router.post("/{id}/gate", response_model=Envelope[RunOut])

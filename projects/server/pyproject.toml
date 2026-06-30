@@ -15,6 +15,7 @@ dependencies = [
     "alembic>=1.13",
     "psycopg[binary]>=3.2",
     "naaf-crud-router",
+    "sse-starlette>=2.1",
 ]
 
 [tool.uv.sources]
