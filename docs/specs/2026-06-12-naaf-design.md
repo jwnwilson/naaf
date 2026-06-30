@@ -32,6 +32,7 @@ Hierarchy: **Project → Epic → Feature → Task** (task = executable unit).
 
 - **Project**: repo (GitHub URL or local path), team assignment, autonomy level, secrets, capability grants, budgets.
 - **Work items**: markdown body, **structured acceptance criteria**, status (`To Do → In Progress → In Review → Approved → Done`, plus `Blocked`/`Failed`), activity feed.
+- **Run**: one execution of a task through the agent pipeline (`PLAN → PROVISION → IMPLEMENT → VERIFY → PR → LEARN`, see §6). A task can have multiple runs (retries). Each run owns a stage timeline, per-agent logs and cost roll-up, the per-run git token and LiteLLM budget key, and an append-only audit trail; it ends with the sandbox destroyed and tokens revoked. Runs surface on the card panel (run timeline) and on the cross-project **Runs** screen (§5). Budgets and guardrails apply per run (§6, §9).
 - **Team**: named, reusable group of **AgentDefinitions**. Each: role (lead/architect/backend/frontend/qa/devops/custom), persona prompt, **model alias**, runtime adapter, capability grants (deny-by-default), memory scope.
 - **Refinement chat**: session with the team-lead agent attached to a project/epic; lead drafts epics/features/tasks onto the board live; nothing becomes `Ready` without the user in gated modes.
 - **Governance**: `Secret` (encrypted, write-only), `SkillRegistryEntry`, `McpServer`, `ModelAlias`, `AuditEvent` (append-only).
