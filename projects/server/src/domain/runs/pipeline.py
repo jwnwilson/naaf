@@ -46,6 +46,8 @@ def next_step(run: Run, result) -> Step:
     """Pure transition: given the just-completed stage's result, what's next?
 
     `result` only needs a `.passed: bool` attribute.
+    Note: only VERIFY failures branch to retry/fail; non-passing results on
+    other stages advance normally.
     """
     current = run.current_stage
     if current is None:

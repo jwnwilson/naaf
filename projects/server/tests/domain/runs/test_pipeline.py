@@ -51,3 +51,14 @@ def test_merge_gate_resolved_then_pr_learn_finish():
     assert next_step(r, R(True)) == Advance(Stage.PR)
     assert next_step(_run(Stage.PR), R(True)) == Advance(Stage.LEARN)
     assert next_step(_run(Stage.LEARN), R(True)) == Finish(RunStatus.SUCCEEDED)
+
+
+def test_pending_gate_blocks_re_requesting_a_gate():
+    from domain.runs.run import Gate
+    r = _run(Stage.PLAN, pending_gate=Gate(kind=GateKind.PLAN, stage=Stage.PLAN))
+    # a gate is in-flight (pending, not yet resolved) → next_step must NOT re-issue it
+    assert next_step(r, R(True)) == Advance(Stage.PROVISION)
+
+
+def test_full_auto_plan_advances_without_gate():
+    assert next_step(_run(Stage.PLAN, "full_auto"), R(True)) == Advance(Stage.PROVISION)
