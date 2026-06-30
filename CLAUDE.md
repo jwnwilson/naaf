@@ -28,7 +28,7 @@ Local tool for running a **virtual dev team** — role-based AI agents (team lea
 - Python ≥ 3.12, package manager: `uv`
 - FastAPI + uvicorn (API), Pydantic v2, pydantic-settings (env prefix `naaf_`)
 - SQLAlchemy 2.0 (sync) + Postgres 16 (SQLite in-memory for tests)
-- Temporal (run orchestration — one workflow per ticket run; phase A3+)
+- Local-first run executor — agents run in docker containers and exchange messages via a pub/sub bus onto per-agent queues, processed sequentially (phase A3+). **Not** Temporal / no external workflow engine.
 - React + Vite + Tailwind (board UI in `ui/`; phase A2+)
 - pytest + httpx; 80% coverage gate
 
@@ -90,4 +90,6 @@ make run                   # uvicorn interactors.api.app:create_app --factory --
 
 ## Roadmap (phase A spine → C management plane → B full team)
 
-A1 control-plane foundation ✓ → A2 board UI (built on `feat/a2-ui`, pending merge) → A3 Temporal pipeline + FakeAgentRuntime → A4 sandbox/egress proxy/GitHub App → A5 Claude Code runtime adapter + LiteLLM → A5d token/usage tracking → A5e notification system → A6 refinement chat + memory. Then C (secrets/capabilities/model/budget UIs — budget builds on A5d usage data), then B (full team roles, parallel engineers, RAG).
+A1 control-plane foundation ✓ → A2 UI (mock-data SPA, all 7 screens) ✓ → A3 agent run pipeline (**local pub/sub orchestration**) + FakeAgentRuntime → A4 sandbox/egress proxy/GitHub App → A5 Claude Code runtime adapter + LiteLLM → A5d token/usage tracking → A5e notification system → A6 refinement chat + memory. Then C (secrets/capabilities/model/budget UIs — budget builds on A5d usage data), then B (full team roles, parallel engineers, RAG).
+
+> Orchestration is **Local-First** (master design spec §2/§3), **not** Temporal — agents run locally in docker containers and exchange messages via a pub/sub bus onto per-agent queues, processed sequentially. (Temporal appeared in earlier stale docs and has been removed.)

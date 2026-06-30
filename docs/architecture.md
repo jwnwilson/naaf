@@ -24,7 +24,7 @@ projects/
       interactors/     # how code is initialised via API / worker / cli
         api/           # FastAPI wiring: app factory, routes, deps, auth, envelope, settings
         cli/           # seed
-        # temporal/    # designed; not built — A3+ (workflows, activities, worker, client, config)
+        # runs/        # designed; not built — A3+ (local run executor: agent message bus, per-agent queues, worker, run-state store)
   ui/                  # React/Vite/Tailwind SPA — reserved for A2
 ```
 
@@ -127,8 +127,8 @@ will use a **port co-located with its adapter**, the same convention as the data
 - `adapters/storage/s3.py` — `S3StorageAdapter` (boto3) is the planned A4 backend; because
   callers depend only on `StoragePort`, swapping it in needs no code changes elsewhere.
 
-A run's workspace will be the prefix `runs/{run_id}/`: Temporal activities derive the working
-directory via `storage.local_path(...)` and reclaim it on terminal states via
+A run's workspace will be the prefix `runs/{run_id}/`: the run executor derives the working
+directory via `storage.local_path(...)` and reclaims it on terminal states via
 `storage.delete_directory(...)`. Placement rule: the storage port will live in
 `adapters/storage/ports.py`, not in `domain/`.
 
@@ -182,11 +182,17 @@ meta-inconsistency deferral).
 ## Agent execution & orchestration
 
 > **Designed; not built — A3+/A4+.** This section describes the target orchestration
-> architecture. No Temporal workflows, agent runtimes, or capability code exist yet.
+> architecture. No run executor, agent runtimes, or capability code exist yet.
 
-Run execution will be a **Temporal orchestrator-worker** system. Domain stays pure: the
-non-deterministic decisions live in `domain/`, and Temporal workflows/activities are the
-durable executor that carries them out.
+Orchestration is **Local-First** (master design spec §2/§3): each agent runs locally in its
+own docker container with its own context, secrets, MCP servers, tools, and model. Agents
+exchange messages via a **pub/sub** pattern onto a **per-agent queue**; an agent drains its
+queue **sequentially**, then either converses (with a user or another agent) or works on the
+repository. The team lead acts as the orchestrator agent — it dispatches other agents and
+reacts to their messages. The run executor is a **local message-bus / queue process — not a
+Temporal (or other external workflow-engine) deployment**. Domain stays pure: the
+non-deterministic decisions live in `domain/`; the executor adapter carries them out and
+persists run state.
 
 ### Ports & adapters (deny-by-default execution)
 
@@ -204,7 +210,7 @@ durable executor that carries them out.
   skills, write files, spawn, parse. **Deny-by-default** is enforced twice — static
   `--allowedTools` and an active **PreToolUse hook** (`domain/permissions.py` decides;
   `adapters/agent/runtime/pretooluse_hook.py` enforces and logs to `audit.jsonl`).
-- **Secrets** are Fernet-encrypted, write-only, and decrypted *inside the activity* into
+- **Secrets** are Fernet-encrypted, write-only, and decrypted *inside the executor adapter* into
   `manifest.secret_env` — injected into the subprocess + per-MCP `env`, never serialized into
-  Temporal inputs/history, run events, or logs.
+  run inputs, run events, or logs.
 

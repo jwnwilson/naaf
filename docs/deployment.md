@@ -36,10 +36,10 @@ automatically. Manual re-deploy: run either workflow via `workflow_dispatch`.
 ## Rollback
 
 - Backend: re-run `Deploy Backend` against an earlier commit, or
-  `kubectl rollout undo deployment/naaf-api` (and `.../naaf-temporal-worker`).
+  `kubectl rollout undo deployment/naaf-api`.
 - UI: re-run `Deploy UI` from an earlier commit (S3 sync + invalidation).
 
 ## Known follow-ups (out of scope here)
 
-Auth0 wiring (API ships in `dev` auth mode = single shared owner), Temporal Web
-UI exposure, managed Postgres (RDS), staging environment.
+Auth0 wiring (API ships in `dev` auth mode = single shared owner), managed
+Postgres (RDS), staging environment.
