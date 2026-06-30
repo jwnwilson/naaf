@@ -2,7 +2,6 @@ import { NavLink } from "react-router-dom";
 import { Avatar } from "../components/ui/Avatar";
 import { ProgressBar } from "../components/ui/ProgressBar";
 import {
-  AgentsIcon,
   DashboardIcon,
   GitRepoIcon,
   InboxIcon,
@@ -10,7 +9,6 @@ import {
   SearchIcon,
   SettingsIcon,
 } from "../components/ui/icons";
-import { useAgents } from "../lib/api/hooks/useAgents";
 import { useBudget } from "../lib/api/hooks/useBudget";
 import { useInbox } from "../lib/api/hooks/useInbox";
 import { useProjects } from "../lib/api/hooks/useProjects";
@@ -90,16 +88,13 @@ function ProjectRow({ project }: { project: Project }) {
 export function Sidebar() {
   const projectsQuery = useProjects();
   const inboxQuery = useInbox();
-  const agentsQuery = useAgents();
   const budgetQuery = useBudget();
 
   const projects = projectsQuery.data?.results ?? [];
   const inboxItems = inboxQuery.data?.results ?? [];
-  const agents = agentsQuery.data ?? [];
   const budget = budgetQuery.data;
 
   const unreadCount = inboxItems.filter((i) => !i.read).length;
-  const runningCount = agents.filter((a) => a.status === "running").length;
 
   return (
     <nav className="flex h-full w-[214px] shrink-0 flex-col border-r border-[rgba(255,255,255,0.055)] bg-bg-sidebar">
@@ -134,18 +129,6 @@ export function Sidebar() {
           to="/projects"
           icon={<ProjectsIcon size={13} />}
           label="Projects"
-        />
-        <NavItem
-          to="/agents"
-          icon={<AgentsIcon size={13} />}
-          label="Agents"
-          badge={
-            runningCount > 0 ? (
-              <Badge>
-                {runningCount} <span className="text-[#4a8c68]">●</span>
-              </Badge>
-            ) : undefined
-          }
         />
       </div>
 

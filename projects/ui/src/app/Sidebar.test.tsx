@@ -20,4 +20,9 @@ describe("Sidebar", () => {
     expect(screen.getByText(/Projects/)).toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByRole("link").length).toBeGreaterThan(3));
   });
+
+  it("does not render an Agents nav item", () => {
+    renderSidebar();
+    expect(screen.queryByText("Agents")).not.toBeInTheDocument();
+  });
 });

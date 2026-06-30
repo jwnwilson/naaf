@@ -45,7 +45,14 @@ export function MetricCards() {
         label="ACTIVE AGENTS"
         value={metrics.activeAgents}
         sub={
-          <span className="text-[#4a8c68]">
+          <span className="flex items-center gap-[5px] text-[#4a8c68]">
+            {metrics.activeAgents > 0 && (
+              <span
+                data-testid="active-agents-dot"
+                className="inline-block rounded-full bg-[#4a8c68]"
+                style={{ width: 6, height: 6 }}
+              />
+            )}
             {metrics.activeAgents} running now
           </span>
         }
