@@ -1,10 +1,15 @@
 from domain.project import Project
+from domain.runs.events import RunEvent
+from domain.runs.run import Run
 from domain.team import AgentDefinition, Team
 from domain.work_item import WorkItem
+from sqlalchemy import func, select
 
 from adapters.database.orm import (
     AgentDefinitionRow,
     ProjectRow,
+    RunEventRow,
+    RunRow,
     TeamRow,
     WorkItemRow,
 )
@@ -29,3 +34,21 @@ class TeamRepository(SqlRepository[Team]):
 class AgentDefinitionRepository(SqlRepository[AgentDefinition]):
     orm_model = AgentDefinitionRow
     dto = AgentDefinition
+
+
+class RunRepository(SqlRepository[Run]):
+    orm_model = RunRow
+    dto = Run
+
+
+class RunEventRepository(SqlRepository[RunEvent]):
+    orm_model = RunEventRow
+    dto = RunEvent
+
+    def create(self, dto: RunEvent) -> RunEvent:  # type: ignore[override]
+        next_seq = self.session.execute(
+            select(func.coalesce(func.max(RunEventRow.seq), 0) + 1).where(
+                RunEventRow.run_id == dto.run_id
+            )
+        ).scalar_one()
+        return super().create(dto.model_copy(update={"seq": next_seq}))
