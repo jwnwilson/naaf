@@ -3,6 +3,7 @@ from typing import Any
 
 from domain.agent.runtime import AgentRuntime, StageResult
 from domain.base import utcnow
+from domain.errors import RecordNotFound
 from domain.runs.coupling import work_item_status_for
 from domain.runs.events import EventType, RunEvent
 from domain.runs.messages import AgentMessage, MessageType, recipient_key
@@ -44,7 +45,7 @@ def couple(ctx: HandlerContext, run: Run) -> None:
         return
     try:
         wi = ctx.work_items.read(run.work_item_id)
-    except (KeyError, Exception):
+    except RecordNotFound:
         return
     target = WorkItemStatus(target_value)
     if wi.status == target:
@@ -113,8 +114,12 @@ def advance(ctx: HandlerContext, run: Run, result: StageResult) -> None:
             return
 
         # Stub stages (PROVISION, PR, LEARN): run inline then keep looping
-        result = _run_stage_inline(ctx, run, "lead", stage)
-        run = ctx.runs.read(run.id)
+        if stage in _STUB_STAGES:
+            result = _run_stage_inline(ctx, run, "lead", stage)
+            run = ctx.runs.read(run.id)
+            continue
+
+        raise ValueError(f"unexpected advance stage: {stage}")
 
 
 def _handoff(ctx: HandlerContext, run: Run, role: str, stage: Stage) -> None:
@@ -175,12 +180,16 @@ def handle_lead(msg: AgentMessage, ctx: HandlerContext) -> None:
 
 
 def handle_engineer(msg: AgentMessage, ctx: HandlerContext) -> None:
+    if msg.type is not MessageType.RUN_STAGE:
+        return
     run = ctx.runs.read(msg.run_id)
     result = _run_stage_inline(ctx, run, "engineer", Stage.IMPLEMENT)
     _report(ctx, run, result)
 
 
 def handle_qa(msg: AgentMessage, ctx: HandlerContext) -> None:
+    if msg.type is not MessageType.RUN_STAGE:
+        return
     run = ctx.runs.read(msg.run_id)
     result = _run_stage_inline(ctx, run, "qa", Stage.VERIFY)
     _report(ctx, run, result)
@@ -200,6 +209,11 @@ def _report(ctx: HandlerContext, run: Run, result: StageResult) -> None:
     )
 
 
+_HANDLERS = {"lead": handle_lead, "engineer": handle_engineer, "qa": handle_qa}
+
+
 def dispatch(msg: AgentMessage, ctx: HandlerContext) -> None:
-    _HANDLERS = {"lead": handle_lead, "engineer": handle_engineer, "qa": handle_qa}
-    _HANDLERS[msg.role](msg, ctx)
+    handler = _HANDLERS.get(msg.role)
+    if handler is None:
+        raise ValueError(f"unknown role: {msg.role!r}")
+    handler(msg, ctx)
