@@ -54,6 +54,8 @@ def next_step(run: Run, result) -> Step:
         return Finish(RunStatus.SUCCEEDED)
 
     if current is Stage.VERIFY and not result.passed:
+        # max_verify_loops is the retry cap — VERIFY runs up to max_verify_loops + 1 times
+        # (initial attempt + that many retries) before returning Finish(FAILED).
         if run.verify_attempts < run.max_verify_loops:
             return Retry(Stage.IMPLEMENT)
         return Finish(RunStatus.FAILED)

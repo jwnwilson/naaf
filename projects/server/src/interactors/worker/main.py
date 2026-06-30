@@ -1,3 +1,4 @@
+import logging
 import time
 
 from adapters.agent.runtime.fake import FakeAgentRuntime
@@ -15,8 +16,11 @@ def run_forever() -> None:
     session_factory = build_session_factory(build_engine(settings.db_url))
     bus, runtime = SqlMessageBus(), FakeAgentRuntime()
     while True:
-        if not process_next(session_factory, bus, runtime):
-            time.sleep(_IDLE_SLEEP_SECONDS)
+        try:
+            if not process_next(session_factory, bus, runtime):
+                time.sleep(_IDLE_SLEEP_SECONDS)
+        except Exception:
+            logging.exception("worker: unhandled error in process_next loop")
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ from domain.runs.coupling import work_item_status_for
 from domain.runs.events import EventType, RunEvent
 from domain.runs.messages import AgentMessage, MessageType, recipient_key
 from domain.runs.pipeline import Finish, GateStep, Retry, next_step
-from domain.runs.run import Gate, Run, RunStatus, Stage
+from domain.runs.run import Gate, Run, RunStatus, Stage, StageState, StageStatus
 from domain.transitions import validate_transition
 from domain.work_item import WorkItemStatus
 
@@ -22,7 +22,7 @@ class HandlerContext:
     work_items: Any
     bus: Any
     session: Any
-    runtime: AgentRuntime
+    runtime: AgentRuntime | None  # None only in dead-letter cleanup (couple path — no stage runs)
 
 
 def emit(ctx: HandlerContext, run: Run, type_: EventType, *, stage: Stage | None = None,
@@ -60,11 +60,19 @@ def _save(ctx: HandlerContext, run: Run) -> Run:
 
 
 def _run_stage_inline(ctx: HandlerContext, run: Run, role: str, stage: Stage) -> StageResult:
-    run = _save(ctx, run.model_copy(update={"current_stage": stage}))
+    # Append a RUNNING entry for this stage (immutable — build a new list)
+    new_entry = StageState(stage=stage, status=StageStatus.RUNNING, role=role, started_at=utcnow())
+    new_stages = [*run.stages, new_entry]
+    run = _save(ctx, run.model_copy(update={"current_stage": stage, "stages": new_stages}))
     emit(ctx, run, EventType.STAGE_STARTED, stage=stage, role=role)
+    assert ctx.runtime is not None, "_run_stage_inline requires a non-None runtime"
     outcome = ctx.runtime.run_stage(role, stage, {"verify_attempts": run.verify_attempts})
     for ev in outcome.events:
         emit(ctx, run, EventType.LOG, stage=stage, role=role, payload={"message": ev.message})
+    # Update the last entry with PASSED/FAILED + ended_at (immutable — replace tail)
+    final_status = StageStatus.PASSED if outcome.result.passed else StageStatus.FAILED
+    updated_entry = run.stages[-1].model_copy(update={"status": final_status, "ended_at": utcnow()})
+    run = _save(ctx, run.model_copy(update={"stages": [*run.stages[:-1], updated_entry]}))
     event_type = EventType.STAGE_PASSED if outcome.result.passed else EventType.STAGE_FAILED
     emit(ctx, run, event_type, stage=stage, role=role, payload={"summary": outcome.result.summary})
     return outcome.result
@@ -157,6 +165,8 @@ def handle_lead(msg: AgentMessage, ctx: HandlerContext) -> None:
         advance(ctx, run, result)
 
     elif msg.type is MessageType.GATE_RESOLVED:
+        if run.pending_gate is None:  # duplicate message — gate already resolved; ack and drop
+            return
         if msg.payload.get("decision") == "approve":
             kind = run.pending_gate.kind
             run = _save(ctx, run.model_copy(update={

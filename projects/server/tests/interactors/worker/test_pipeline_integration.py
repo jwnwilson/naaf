@@ -63,6 +63,19 @@ def test_full_auto_run_succeeds_without_gates(session_factory):
     uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
     with uow.transaction():
         assert uow.work_items.read(wi_id).status.value == "done"
+    # Fix 3: stages timeline must be populated with plan/implement/verify entries
+    assert run.stages, "run.stages must be non-empty after a completed run"
+    by_stage = {s.stage.value: s for s in run.stages}
+    expected_stages = (("plan", "lead"), ("implement", "engineer"), ("verify", "qa"))
+    for stage_name, expected_role in expected_stages:
+        assert stage_name in by_stage, f"stage {stage_name!r} missing from run.stages"
+        entry = by_stage[stage_name]
+        assert entry.status.value == "passed", (
+            f"stage {stage_name} expected passed, got {entry.status}"
+        )
+        assert entry.role == expected_role, (
+            f"stage {stage_name} expected role {expected_role!r}, got {entry.role!r}"
+        )
 
 
 def test_gated_all_pauses_at_plan_gate_then_resumes(session_factory):
@@ -85,6 +98,39 @@ def test_gated_all_pauses_at_plan_gate_then_resumes(session_factory):
     run, _ = _read_run(session_factory, run_id)
     # next pause is the merge gate
     assert run.status.value == "awaiting_gate" and run.pending_gate.kind.value == "merge"
+
+
+def test_duplicate_gate_resolved_is_a_harmless_noop(session_factory):
+    """Publishing GATE_RESOLVED twice (double-click) must not crash the worker.
+
+    The first message resolves the plan gate and advances the run; the second
+    hits pending_gate=None and is silently dropped. The run ends at the merge gate.
+    """
+    bus, rt = SqlMessageBus(), FakeAgentRuntime()
+    _, run_id = _seed(session_factory, "gated_all")
+    _start(bus, session_factory, run_id)
+    _drain(session_factory, bus, rt)
+    run, _ = _read_run(session_factory, run_id)
+    assert run.status.value == "awaiting_gate" and run.pending_gate.kind.value == "plan"
+
+    # Publish GATE_RESOLVED/approve TWICE — simulating a double-click
+    for _ in range(2):
+        s = session_factory()
+        bus.publish(
+            AgentMessage(owner_id="u1", run_id=run_id, recipient=recipient_key(run_id, "lead"),
+                         role="lead", type=MessageType.GATE_RESOLVED,
+                         payload={"decision": "approve"}),
+            s,
+        )
+        s.commit()
+
+    # Drain — worker must not raise; duplicate is a no-op
+    _drain(session_factory, bus, rt)
+
+    run, _ = _read_run(session_factory, run_id)
+    # Run advanced past the plan gate and is now paused at the merge gate
+    assert run.status.value == "awaiting_gate", f"expected awaiting_gate, got {run.status}"
+    assert run.pending_gate.kind.value == "merge"
 
 
 def test_verify_retry_then_success(session_factory):
