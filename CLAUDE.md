@@ -90,4 +90,4 @@ make run                   # uvicorn interactors.api.app:create_app --factory --
 
 ## Roadmap (phase A spine → C management plane → B full team)
 
-A1 control-plane foundation ✓ → A2 board UI → A3 Temporal pipeline + FakeAgentRuntime → A4 sandbox/egress proxy/GitHub App → A5 Claude Code runtime adapter + LiteLLM → A5d token/usage tracking → A5e notification system → A6 refinement chat + memory. Then C (secrets/capabilities/model/budget UIs — budget builds on A5d usage data), then B (full team roles, parallel engineers, RAG).
+A1 control-plane foundation ✓ → A2 board UI (built on `feat/a2-ui`, pending merge) → A3 Temporal pipeline + FakeAgentRuntime → A4 sandbox/egress proxy/GitHub App → A5 Claude Code runtime adapter + LiteLLM → A5d token/usage tracking → A5e notification system → A6 refinement chat + memory. Then C (secrets/capabilities/model/budget UIs — budget builds on A5d usage data), then B (full team roles, parallel engineers, RAG).
