@@ -188,6 +188,14 @@ def stream_run_events(
     a fresh SqlUnitOfWork is opened and closed on every poll iteration.
     """
 
+    # Upfront owner-scoped lookup: raises RecordNotFound -> 404 if missing/foreign
+    uow = SqlUnitOfWork(
+        request.app.state.session_factory,
+        required_filters={"owner_id": owner_id},
+    )
+    with uow.transaction():
+        uow.runs.read(id.hex)
+
     async def gen():
         cursor = after
         deadline = time.monotonic() + _SSE_MAX_SECONDS
@@ -203,15 +211,11 @@ def stream_run_events(
                     page_size=0,
                 ).results
 
-            finished = False
             for ev in rows:
                 cursor = ev.seq
                 yield {"data": _run_event_out(ev).model_dump_json()}
                 if ev.type == EventType.RUN_FINISHED:
-                    finished = True
-                    break
-            if finished:
-                return
+                    return
             await asyncio.sleep(_SSE_POLL_SECONDS)
 
     return EventSourceResponse(gen())

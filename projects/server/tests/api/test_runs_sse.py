@@ -61,3 +61,17 @@ def test_sse_respects_after_cursor(client, session_factory):
 
     assert "skip-me" not in body
     assert "run_finished" in body
+
+
+def test_sse_denies_foreign_run(client, session_factory):
+    """Accessing a run owned by another user returns 404."""
+    # Seed a run under "other-user"
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "other-user"})
+    with uow.transaction():
+        run = uow.runs.create(
+            Run(owner_id="", work_item_id="w", project_id="p", autonomy_level="full_auto")
+        )
+
+    # Access as default client (dev-user)
+    with client.stream("GET", f"/runs/{run.id}/events/stream") as resp:
+        assert resp.status_code == 404
