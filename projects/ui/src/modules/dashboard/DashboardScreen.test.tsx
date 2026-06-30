@@ -13,6 +13,10 @@ describe("DashboardScreen", () => {
         <RouterProvider router={router} />
       </QueryClientProvider>,
     );
-    await waitFor(() => expect(screen.getByText(/AGENTS/i)).toBeInTheDocument());
+    // Dashboard-specific content the sidebar can't satisfy: the TokenChart and
+    // ActivityFeed headings + a metric-card label only DashboardScreen renders.
+    await waitFor(() => expect(screen.getByText("Token Usage")).toBeInTheDocument());
+    expect(screen.getByText("Activity")).toBeInTheDocument();
+    expect(screen.getByText("TOTAL SPEND")).toBeInTheDocument();
   });
 });
