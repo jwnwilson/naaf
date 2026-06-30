@@ -384,7 +384,7 @@ const inboxItems: InboxItem[] = [
       "Agent-1 has submitted a PR for the Docker sandbox. Please review changes to docker/sandbox/Dockerfile.",
     agentId: "agent-1",
     workItemId: "wi-task-3",
-    conversationId: "conv-1",
+    conversationId: "thread-1",
     createdAt: "2026-06-29T14:00:00Z",
     read: false,
   },
