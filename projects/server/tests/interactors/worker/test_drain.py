@@ -113,6 +113,7 @@ def test_celery_app_import_is_db_and_broker_free():
     # celery_app is already imported at the top of this module — if the import
     # triggered DB/broker connections it would have failed during collection.
     assert celery_app.main == "naaf"
+    assert celery_app.conf.worker_concurrency == 1
 
 
 def test_celery_beat_schedule_contains_drain_bus_task():

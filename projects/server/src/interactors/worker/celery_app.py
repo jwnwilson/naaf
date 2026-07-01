@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 settings = Settings()
 celery_app = Celery("naaf", broker=settings.celery_broker_url)
 celery_app.conf.task_ignore_result = True
+celery_app.conf.worker_concurrency = 1  # single dispatcher: preserves one-in-flight-per-recipient
 celery_app.conf.beat_schedule = {
     "drain-bus": {
         "task": "naaf.drain_bus",

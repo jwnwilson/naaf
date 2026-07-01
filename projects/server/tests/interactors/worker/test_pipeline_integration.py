@@ -7,7 +7,7 @@ and FakeAgentRuntime, proving three scenarios:
 3. FakeAgentRuntime(fail_verify_times=1) retries IMPLEMENT then succeeds.
 """
 from adapters.agent.runtime.fake import FakeAgentRuntime
-from adapters.bus.sql import SqlMessageBus
+from adapters.bus.factory import build_message_bus
 from adapters.database.uow import SqlUnitOfWork
 from domain.project import Project
 from domain.runs.messages import AgentMessage, MessageType, recipient_key
@@ -36,7 +36,7 @@ def _drain(session_factory, runtime):
 
 def _start(session_factory, run_id):
     s = session_factory()
-    SqlMessageBus(s).publish(
+    build_message_bus(s).publish(
         AgentMessage(owner_id="u1", run_id=run_id, recipient=recipient_key(run_id, "lead"),
                      role="lead", type=MessageType.START),
     )
@@ -86,7 +86,7 @@ def test_gated_all_pauses_at_plan_gate_then_resumes(session_factory):
     assert run.status.value == "awaiting_gate" and run.pending_gate.kind.value == "plan"
     # approve the plan gate
     s = session_factory()
-    SqlMessageBus(s).publish(
+    build_message_bus(s).publish(
         AgentMessage(owner_id="u1", run_id=run_id, recipient=recipient_key(run_id, "lead"),
                      role="lead", type=MessageType.GATE_RESOLVED,
                      payload={"decision": "approve"}),
@@ -114,7 +114,7 @@ def test_duplicate_gate_resolved_is_a_harmless_noop(session_factory):
     # Publish GATE_RESOLVED/approve TWICE — simulating a double-click
     for _ in range(2):
         s = session_factory()
-        SqlMessageBus(s).publish(
+        build_message_bus(s).publish(
             AgentMessage(owner_id="u1", run_id=run_id, recipient=recipient_key(run_id, "lead"),
                          role="lead", type=MessageType.GATE_RESOLVED,
                          payload={"decision": "approve"}),
