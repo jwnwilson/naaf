@@ -8,7 +8,7 @@ needed and by_alias has no effect — the field names ARE the JSON keys.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from domain.work_item import Priority, WorkItemKind, WorkItemStatus
 from pydantic import BaseModel, ConfigDict
@@ -152,3 +152,61 @@ class AgentDefinitionUpdateIn(BaseModel):
     tokenLimit: int | None = None
     systemPrompt: str | None = None
     enabled: bool | None = None
+
+
+# ---------------------------------------------------------------------------
+# Run
+# ---------------------------------------------------------------------------
+
+
+class StageStateOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    stage: str
+    status: str
+    role: str | None = None
+    startedAt: str | None = None
+    endedAt: str | None = None
+
+
+class GateOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    kind: str
+    stage: str
+
+
+class RunOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str
+    workItemId: str
+    projectId: str
+    autonomyLevel: str
+    status: str
+    currentStage: str | None = None
+    stages: list[StageStateOut]
+    pendingGate: GateOut | None = None
+    createdAt: str
+    updatedAt: str
+    startedAt: str | None = None
+    endedAt: str | None = None
+
+
+class RunEventOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str
+    runId: str
+    seq: int
+    stage: str | None = None
+    role: str | None = None
+    type: str
+    payload: dict[str, Any]
+    createdAt: str
+
+
+class GateDecisionIn(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    decision: Literal["approve", "reject"]

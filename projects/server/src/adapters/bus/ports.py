@@ -1,0 +1,9 @@
+from typing import Protocol
+
+from domain.runs.messages import AgentMessage
+
+
+class MessageBus(Protocol):
+    def publish(self, msg: AgentMessage) -> None: ...
+    def claim_next(self) -> AgentMessage | None: ...
+    def ack(self, msg: AgentMessage) -> None: ...

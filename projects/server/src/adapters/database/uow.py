@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session, sessionmaker
 from adapters.database.repositories import (
     AgentDefinitionRepository,
     ProjectRepository,
+    RunEventRepository,
+    RunRepository,
     TeamRepository,
     WorkItemRepository,
 )
@@ -66,3 +68,11 @@ class SqlUnitOfWork:
     @property
     def agent_definitions(self) -> AgentDefinitionRepository:
         return self._repo("agent_definitions", AgentDefinitionRepository)
+
+    @property
+    def runs(self) -> RunRepository:
+        return self._repo("runs", RunRepository)
+
+    @property
+    def run_events(self) -> RunEventRepository:
+        return self._repo("run_events", RunEventRepository)

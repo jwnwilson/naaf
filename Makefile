@@ -1,4 +1,4 @@
-.PHONY: install test coverage lint run db-upgrade db-reset
+.PHONY: install test coverage lint run db-upgrade db-reset worker
 
 install:
 	uv sync
@@ -24,3 +24,6 @@ db-reset:
 	sleep 3
 	cd projects/server && uv run alembic upgrade head
 	uv run python -m interactors.cli.seed
+
+worker:
+	cd projects/server && uv run celery -A interactors.worker.celery_app:celery_app worker --beat --loglevel=info

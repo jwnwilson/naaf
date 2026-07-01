@@ -76,12 +76,13 @@ projects/
 
 ```bash
 uv sync
-docker compose up -d postgres
+docker compose up -d postgres redis
 make db-upgrade            # alembic upgrade head
 uv run python -m interactors.cli.seed
 make test                  # uv run pytest
 make coverage              # 80% gate
 make run                   # uvicorn interactors.api.app:create_app --factory --reload
+make worker                # Celery worker+beat; agent queue stays Postgres, Celery broker is Redis (scheduling only)
 ```
 
 ### UI (fully mocked — no backend needed)
@@ -93,18 +94,30 @@ cd projects/ui && pnpm dev   # VITE_USE_MOCKS=true is the default (.env)
 ### UI hybrid live-API mode (real backend for projects/work-items/teams/agent-definitions)
 
 ```bash
-# terminal 1 — backend
+# terminal 1 — backend API
 cd projects/server
 docker compose -f ../../docker-compose.yml up -d postgres
 make db-upgrade && uv run python -m interactors.cli.seed
 make run                   # listens on :8000
 
-# terminal 2 — UI with live API flag
+# terminal 2 — run worker (A3+: drains the durable message bus, drives runs)
+make worker                # naaf_db_url must point at the same Postgres as the API
+
+# terminal 3 — UI with live API flag
 cd projects/ui
 VITE_LIVE_API=true pnpm dev
 # Vite proxies /api → http://localhost:8000; MSW still handles
 # runs/agents/inbox/threads/dashboard/budget with mock data.
 ```
+
+> **A3 run pipeline (backend, live):** `POST /work-items/{id}/runs` starts a run; the
+> worker drives `plan → [✋plan gate] → implement → verify → [✋merge gate] → pr → learn`
+> with `FakeAgentRuntime` (no LLM yet). Observe via `GET /runs/{id}`, `GET /runs/{id}/events`,
+> the SSE stream `GET /runs/{id}/events/stream`, and resolve gates via
+> `POST /runs/{id}/gate {"decision":"approve"|"reject"}`. The UI run/agent/inbox screens stay
+> **mocked** for now — wiring them live needs a contract reconciliation (the mock-era
+> `schema.d.ts` run/agent shapes diverge from the A3 `RunOut`/`RunEventOut`); tracked as an
+> A3 follow-up.
 
 ## Status
 

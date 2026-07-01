@@ -5,7 +5,7 @@ from domain.work_item import WorkItemStatus as S
 ALLOWED_TRANSITIONS: dict[S, set[S]] = {
     S.BACKLOG: {S.TODO},
     S.TODO: {S.BACKLOG, S.IN_PROGRESS},
-    S.IN_PROGRESS: {S.IN_REVIEW, S.TODO},
+    S.IN_PROGRESS: {S.IN_REVIEW, S.TODO, S.DONE},
     S.IN_REVIEW: {S.IN_PROGRESS, S.DONE},
     S.DONE: set(),
 }

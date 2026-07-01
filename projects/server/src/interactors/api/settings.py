@@ -7,3 +7,4 @@ class Settings(BaseSettings):
     db_url: str = "sqlite://"
     auth_mode: str = "dev"
     dev_owner_id: str = "dev-user"
+    celery_broker_url: str = "redis://localhost:6379/0"
