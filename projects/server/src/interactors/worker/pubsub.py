@@ -4,11 +4,29 @@
 via the ``MessageSource`` port, one item per ``uow.transaction()``, dispatching to
 interested subscribers.  Poison isolation is delegated to ``source.on_poison``.
 """
+from collections.abc import Callable
+from typing import Any, Protocol
+
 from domain.messaging.source import PoisonOutcome
 
 
-def process_subscription(subscription, uow_factory, ctx_factory) -> int:
-    """Drain *subscription* until the source is empty; return total items handled.
+class _Subscription(Protocol):
+    """Structural type for any subscription object passed to process_subscription.
+
+    Requires ``.source`` (MessageSource) and ``.subscribers`` (list[Subscriber]).
+    """
+
+    source: Any  # MessageSource
+    subscribers: list  # list[Subscriber]
+
+
+def process_subscription(
+    subscription: Any,  # Any object satisfying _Subscription protocol
+    uow_factory: Callable[[], Any],
+    ctx_factory: Callable[..., Any],
+    max_items: int = 1000,
+) -> int:
+    """Drain *subscription* until the source is empty or *max_items* is reached.
 
     Args:
         subscription: any object with ``.source`` (MessageSource) and
@@ -16,6 +34,12 @@ def process_subscription(subscription, uow_factory, ctx_factory) -> int:
         uow_factory:  callable ``() -> UnitOfWork`` — called once per item.
         ctx_factory:  callable ``(uow, item) -> HandlerContext`` — builds the
                       per-item owner-scoped context.
+        max_items:    safety cap — stop after this many handled items.  Guards
+                      against a misbehaving source whose ``on_poison`` returns
+                      CONTINUE without advancing the cursor (which would otherwise
+                      spin forever, blocking the single worker thread).  The beat
+                      task re-fires on the next tick, so a capped drain just
+                      resumes then.
 
     Returns:
         Number of items handled (success + CONTINUE-recovered poison items).
@@ -23,6 +47,8 @@ def process_subscription(subscription, uow_factory, ctx_factory) -> int:
     handled = 0
     source = subscription.source
     while True:
+        if handled >= max_items:
+            return handled
         uow = uow_factory()
         item = None
         try:

@@ -28,7 +28,16 @@ def _uow_factory():
 
 
 class FakeSource:
-    """Scripted source: returns items in order, then None (drained).
+    """Cursor-faithful scripted source: returns items in order, then None (drained).
+
+    Faithfully models the MessageSource cursor contract:
+    - ``fetch_next`` returns the item at ``_pos`` WITHOUT advancing the cursor.
+      A real source holds the cursor fixed until ``advance()`` or the internal
+      advance inside ``on_poison(CONTINUE)`` moves it.  Auto-advancing on fetch
+      would hide infinite-spin regressions in tests.
+    - ``advance(item, uow)`` increments ``_pos`` and records the call.
+    - ``on_poison(...)`` records the call; for CONTINUE it also increments ``_pos``
+      (models dead-letter-then-advance); for STOP the cursor stays put.
 
     Records every advance() and on_poison() call for assertion.
     """
@@ -43,15 +52,16 @@ class FakeSource:
     def fetch_next(self, uow) -> Item | None:
         if self._pos >= len(self._items):
             return None
-        item = self._items[self._pos]
-        self._pos += 1
-        return item
+        return self._items[self._pos]
 
     def advance(self, item: Item, uow) -> None:
         self.advanced.append(item)
+        self._pos += 1
 
     def on_poison(self, item: Item, exc: Exception, uow_factory) -> PoisonOutcome:
         self.poisoned.append((item, exc))
+        if self._poison_outcome is PoisonOutcome.CONTINUE:
+            self._pos += 1
         return self._poison_outcome
 
 
@@ -147,7 +157,7 @@ def test_engine_skips_uninterested_subscribers():
 
 
 def test_engine_isolates_handler_failure_stop():
-    """Handler raises → source.on_poison called; STOP returns current count without incrementing."""
+    """Handler raises → source.on_poison called; STOP returns current count without advancing."""
     # Arrange
     item_a = Item(message="msg_a", owner_id="u1", position=1)
     item_b = Item(message="msg_b", owner_id="u1", position=2)
@@ -158,7 +168,7 @@ def test_engine_isolates_handler_failure_stop():
     # Act
     count = process_subscription(subscription, _uow_factory, _ctx_factory)
 
-    # Assert: STOP → return handled before incrementing (item_a not counted)
+    # Assert: STOP → return immediately; item_a not counted; cursor not advanced
     assert count == 0
     assert len(source.poisoned) == 1
     assert source.poisoned[0][0] is item_a
@@ -167,7 +177,7 @@ def test_engine_isolates_handler_failure_stop():
 
 
 def test_engine_isolates_handler_failure_continue():
-    """Handler raises → on_poison CONTINUE: count increments and loop proceeds to next item."""
+    """Handler raises → on_poison CONTINUE: cursor advances internally, loop drains all items."""
     # Arrange
     item_a = Item(message="msg_a", owner_id="u1", position=1)
     item_b = Item(message="msg_b", owner_id="u1", position=2)
@@ -178,7 +188,7 @@ def test_engine_isolates_handler_failure_continue():
     # Act
     count = process_subscription(subscription, _uow_factory, _ctx_factory)
 
-    # Assert: CONTINUE → both items poisoned but counted, loop runs to drain
+    # Assert: CONTINUE → both items poisoned and counted; advance() never called by engine
     assert count == 2
     assert len(source.poisoned) == 2
     assert source.poisoned[0][0] is item_a
@@ -205,3 +215,40 @@ def test_engine_propagates_infra_error_when_fetch_raises():
     # Act / Assert
     with pytest.raises(RuntimeError, match="db gone"):
         process_subscription(subscription, _uow_factory, _ctx_factory)
+
+
+def test_engine_spin_safety_cap():
+    """A contract-violating source (on_poison CONTINUE but no cursor advance) is bounded.
+
+    Without max_items this loop would spin forever.  With max_items=5 the engine
+    returns after exactly 5 handled items, proving the safety cap works.
+    """
+    # Arrange: source always returns the same item; on_poison returns CONTINUE
+    # without advancing _pos — a deliberate contract violation.
+    item = Item(message="bad_msg", owner_id="u1", position=1)
+
+    class NonAdvancingSource:
+        """Contract-violating source: on_poison CONTINUE but never moves cursor."""
+
+        def __init__(self):
+            self.poison_count = 0
+
+        def fetch_next(self, uow) -> Item | None:
+            return item  # always returns the same item (cursor stuck)
+
+        def advance(self, item, uow) -> None:
+            pass  # never called on error path
+
+        def on_poison(self, itm, exc, uow_factory) -> PoisonOutcome:
+            self.poison_count += 1
+            return PoisonOutcome.CONTINUE  # advance NOT called → spin without cap
+
+    source = NonAdvancingSource()
+    subscription = FakeSubscription(source=source, subscribers=[RaisingSubscriber()])
+
+    # Act
+    count = process_subscription(subscription, _uow_factory, _ctx_factory, max_items=5)
+
+    # Assert: bounded at max_items — did NOT hang
+    assert count == 5
+    assert source.poison_count == 5
