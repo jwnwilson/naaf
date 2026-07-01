@@ -1,11 +1,11 @@
 from domain.base import utcnow
+from domain.messaging.subscriber import CursorState
 from domain.notifications.notification import Notification
 from domain.project import Project
 from domain.runs.events import RunEvent
 from domain.runs.run import Run
 from domain.team import AgentDefinition, Team
 from domain.work_item import WorkItem
-from interactors.dispatcher.subscriber import CursorState
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 

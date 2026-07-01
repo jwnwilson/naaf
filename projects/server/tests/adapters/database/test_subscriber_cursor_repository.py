@@ -1,5 +1,5 @@
 from adapters.database.repositories import SubscriberCursorRepository
-from interactors.dispatcher.subscriber import CursorState
+from domain.messaging.subscriber import CursorState
 
 
 def test_cursor_defaults_then_persists(session_factory):

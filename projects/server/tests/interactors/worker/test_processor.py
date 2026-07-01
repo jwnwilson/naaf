@@ -1,3 +1,13 @@
+"""Bus-draining integration tests (formerly test_processor.py).
+
+Drives the agent-bus subscription via run_subscription("agent-bus", …) — the
+unified engine entry point that replaced the old process_next helper.
+
+Parity assertions are preserved:
+- empty bus → 0 returned
+- START message → processed, run_started event written
+- poison (bogus role) → dead-lettered, not re-delivered, run marked failed
+"""
 from adapters.agent.runtime.fake import FakeAgentRuntime
 from adapters.bus.sql import SqlMessageBus
 from adapters.database.uow import SqlUnitOfWork
@@ -5,14 +15,14 @@ from domain.project import Project
 from domain.runs.messages import AgentMessage, MessageType, recipient_key
 from domain.runs.run import Run, RunStatus
 from domain.work_item import WorkItem, WorkItemKind, WorkItemStatus
-from interactors.worker.processor import process_next
+from interactors.worker.subscription_runner import run_subscription
 
 
-def test_process_next_returns_false_when_empty(session_factory):
-    assert process_next(session_factory, FakeAgentRuntime()) is False
+def test_run_subscription_returns_zero_when_empty(session_factory):
+    assert run_subscription("agent-bus", session_factory, FakeAgentRuntime()) == 0
 
 
-def test_process_next_handles_a_start_message(session_factory):
+def test_run_subscription_handles_a_start_message(session_factory):
     # Arrange — seed project, work item, and run for owner "u1"
     uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
     with uow.transaction():
@@ -50,22 +60,22 @@ def test_process_next_handles_a_start_message(session_factory):
     session.close()
 
     # Act
-    result = process_next(session_factory, FakeAgentRuntime())
+    result = run_subscription("agent-bus", session_factory, FakeAgentRuntime())
 
-    # Assert
-    assert result is True
+    # Assert — at least one item processed (the START triggers further bus messages)
+    assert result >= 1
     uow2 = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
     with uow2.transaction():
         events = uow2.run_events.read_multi(filters={"run_id": run.id}).results
     assert any(e.type.value == "run_started" for e in events)
 
 
-def test_process_next_isolates_poison_message_without_crashing(session_factory):
+def test_run_subscription_isolates_poison_message_without_crashing(session_factory):
     """A message with an unknown role causes dispatch to raise ValueError.
 
-    process_next must:
-    - NOT propagate the exception (returns True instead of raising)
-    - Dead-letter the message (a second call returns False — not redelivered)
+    run_subscription must:
+    - NOT propagate the exception (returns >= 1 instead of raising)
+    - Dead-letter the message (a second call returns 0 — not re-delivered)
     - Mark the run as failed
     """
     # Arrange — seed a run so the poison message references a real run
@@ -96,12 +106,12 @@ def test_process_next_isolates_poison_message_without_crashing(session_factory):
     session.close()
 
     # Act — must NOT raise
-    result = process_next(session_factory, FakeAgentRuntime())
-    assert result is True, "process_next should return True (work consumed) even on dispatch error"
+    result = run_subscription("agent-bus", session_factory, FakeAgentRuntime())
+    assert result >= 1, "run_subscription should return >= 1 (work consumed) even on dispatch error"
 
-    # Assert — message is dead-lettered (not redelivered)
-    assert process_next(session_factory, FakeAgentRuntime()) is False, \
-        "poison message must not be redelivered after dead-lettering"
+    # Assert — message is dead-lettered (not re-delivered)
+    assert run_subscription("agent-bus", session_factory, FakeAgentRuntime()) == 0, \
+        "poison message must not be re-delivered after dead-lettering"
 
     # Assert — run is marked failed
     uow2 = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})

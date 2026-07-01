@@ -1,7 +1,7 @@
 """Full fake-pipeline integration tests.
 
-Drives the entire run pipeline through process_next with the real (SQLite) bus
-and FakeAgentRuntime, proving three scenarios:
+Drives the entire run pipeline through run_subscription("agent-bus", …) with
+the real (SQLite) bus and FakeAgentRuntime, proving three scenarios:
 1. full_auto run completes to succeeded with work_item done.
 2. gated_all run pauses at the plan gate; approving it advances to merge gate.
 3. FakeAgentRuntime(fail_verify_times=1) retries IMPLEMENT then succeeds.
@@ -13,7 +13,7 @@ from domain.project import Project
 from domain.runs.messages import AgentMessage, MessageType, recipient_key
 from domain.runs.run import Run
 from domain.work_item import WorkItem, WorkItemKind
-from interactors.worker.processor import process_next
+from interactors.worker.subscription_runner import run_subscription
 
 
 def _seed(session_factory, autonomy):
@@ -30,7 +30,7 @@ def _seed(session_factory, autonomy):
 
 
 def _drain(session_factory, runtime):
-    while process_next(session_factory, runtime):
+    while run_subscription("agent-bus", session_factory, runtime):
         pass
 
 
