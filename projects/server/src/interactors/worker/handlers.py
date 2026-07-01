@@ -21,7 +21,6 @@ class HandlerContext:
     run_events: Any
     work_items: Any
     bus: Any
-    session: Any
     runtime: AgentRuntime | None  # None only in dead-letter cleanup (couple path — no stage runs)
 
 
@@ -140,7 +139,6 @@ def _handoff(ctx: HandlerContext, run: Run, role: str, stage: Stage) -> None:
             type=MessageType.RUN_STAGE,
             payload={"stage": stage.value},
         ),
-        ctx.session,
     )
 
 
@@ -215,7 +213,6 @@ def _report(ctx: HandlerContext, run: Run, result: StageResult) -> None:
             type=MessageType.STAGE_REPORT,
             payload={"passed": result.passed, "summary": result.summary},
         ),
-        ctx.session,
     )
 
 

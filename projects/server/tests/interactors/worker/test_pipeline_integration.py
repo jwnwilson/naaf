@@ -29,17 +29,16 @@ def _seed(session_factory, autonomy):
     return wi.id, run.id
 
 
-def _drain(session_factory, bus, runtime):
-    while process_next(session_factory, bus, runtime):
+def _drain(session_factory, runtime):
+    while process_next(session_factory, runtime):
         pass
 
 
-def _start(bus, session_factory, run_id):
+def _start(session_factory, run_id):
     s = session_factory()
-    bus.publish(
+    SqlMessageBus(s).publish(
         AgentMessage(owner_id="u1", run_id=run_id, recipient=recipient_key(run_id, "lead"),
                      role="lead", type=MessageType.START),
-        s,
     )
     s.commit()
 
@@ -53,10 +52,10 @@ def _read_run(session_factory, run_id):
 
 
 def test_full_auto_run_succeeds_without_gates(session_factory):
-    bus, rt = SqlMessageBus(), FakeAgentRuntime()
+    rt = FakeAgentRuntime()
     wi_id, run_id = _seed(session_factory, "full_auto")
-    _start(bus, session_factory, run_id)
-    _drain(session_factory, bus, rt)
+    _start(session_factory, run_id)
+    _drain(session_factory, rt)
     run, events = _read_run(session_factory, run_id)
     assert run.status.value == "succeeded"
     assert {e.type.value for e in events} >= {"run_started", "stage_passed", "run_finished"}
@@ -79,22 +78,21 @@ def test_full_auto_run_succeeds_without_gates(session_factory):
 
 
 def test_gated_all_pauses_at_plan_gate_then_resumes(session_factory):
-    bus, rt = SqlMessageBus(), FakeAgentRuntime()
+    rt = FakeAgentRuntime()
     _, run_id = _seed(session_factory, "gated_all")
-    _start(bus, session_factory, run_id)
-    _drain(session_factory, bus, rt)
+    _start(session_factory, run_id)
+    _drain(session_factory, rt)
     run, _ = _read_run(session_factory, run_id)
     assert run.status.value == "awaiting_gate" and run.pending_gate.kind.value == "plan"
     # approve the plan gate
     s = session_factory()
-    bus.publish(
+    SqlMessageBus(s).publish(
         AgentMessage(owner_id="u1", run_id=run_id, recipient=recipient_key(run_id, "lead"),
                      role="lead", type=MessageType.GATE_RESOLVED,
                      payload={"decision": "approve"}),
-        s,
     )
     s.commit()
-    _drain(session_factory, bus, rt)
+    _drain(session_factory, rt)
     run, _ = _read_run(session_factory, run_id)
     # next pause is the merge gate
     assert run.status.value == "awaiting_gate" and run.pending_gate.kind.value == "merge"
@@ -106,26 +104,25 @@ def test_duplicate_gate_resolved_is_a_harmless_noop(session_factory):
     The first message resolves the plan gate and advances the run; the second
     hits pending_gate=None and is silently dropped. The run ends at the merge gate.
     """
-    bus, rt = SqlMessageBus(), FakeAgentRuntime()
+    rt = FakeAgentRuntime()
     _, run_id = _seed(session_factory, "gated_all")
-    _start(bus, session_factory, run_id)
-    _drain(session_factory, bus, rt)
+    _start(session_factory, run_id)
+    _drain(session_factory, rt)
     run, _ = _read_run(session_factory, run_id)
     assert run.status.value == "awaiting_gate" and run.pending_gate.kind.value == "plan"
 
     # Publish GATE_RESOLVED/approve TWICE — simulating a double-click
     for _ in range(2):
         s = session_factory()
-        bus.publish(
+        SqlMessageBus(s).publish(
             AgentMessage(owner_id="u1", run_id=run_id, recipient=recipient_key(run_id, "lead"),
                          role="lead", type=MessageType.GATE_RESOLVED,
                          payload={"decision": "approve"}),
-            s,
         )
         s.commit()
 
     # Drain — worker must not raise; duplicate is a no-op
-    _drain(session_factory, bus, rt)
+    _drain(session_factory, rt)
 
     run, _ = _read_run(session_factory, run_id)
     # Run advanced past the plan gate and is now paused at the merge gate
@@ -134,10 +131,10 @@ def test_duplicate_gate_resolved_is_a_harmless_noop(session_factory):
 
 
 def test_verify_retry_then_success(session_factory):
-    bus, rt = SqlMessageBus(), FakeAgentRuntime(fail_verify_times=1)
+    rt = FakeAgentRuntime(fail_verify_times=1)
     _, run_id = _seed(session_factory, "full_auto")
-    _start(bus, session_factory, run_id)
-    _drain(session_factory, bus, rt)
+    _start(session_factory, run_id)
+    _drain(session_factory, rt)
     run, events = _read_run(session_factory, run_id)
     assert run.status.value == "succeeded"
     assert run.verify_attempts == 1

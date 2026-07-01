@@ -3,7 +3,7 @@ import asyncio
 import time
 from uuid import UUID
 
-from adapters.bus.sql import SqlMessageBus
+from adapters.bus.ports import MessageBus
 from adapters.database.uow import SqlUnitOfWork
 from crud_router import Envelope, ok
 from domain.errors import InvalidTransition
@@ -24,7 +24,7 @@ from interactors.api.contract import (
     StageStateOut,
     iso,
 )
-from interactors.api.deps import get_uow
+from interactors.api.deps import get_bus, get_uow
 
 _SSE_POLL_SECONDS = 0.25
 _SSE_MAX_SECONDS = 600
@@ -33,8 +33,6 @@ _SSE_MAX_SECONDS = 600
 router = APIRouter(prefix="/runs", tags=["runs"])
 # /work-items/{id}/runs nested endpoint
 work_items_router = APIRouter(tags=["runs"])
-
-_bus = SqlMessageBus()
 
 
 def _stage_out(s: StageState) -> StageStateOut:
@@ -91,6 +89,7 @@ def start_run(
     id: UUID,
     uow: SqlUnitOfWork = Depends(get_uow),  # noqa: B008
     owner_id: str = Depends(get_owner_id),  # noqa: B008
+    bus: MessageBus = Depends(get_bus),  # noqa: B008
 ):
     """Start an agent run for a work item.
 
@@ -110,13 +109,13 @@ def start_run(
         autonomy_level=project.autonomy_level.value,
     ))
 
-    _bus.publish(AgentMessage(
+    bus.publish(AgentMessage(
         owner_id=owner_id,
         run_id=run.id,
         recipient=recipient_key(run.id, "lead"),
         role="lead",
         type=MessageType.START,
-    ), uow.session)
+    ))
 
     uow.work_items.update(
         work_item.id, work_item.model_copy(update={"status": new_status})
@@ -227,6 +226,7 @@ def resolve_gate(
     body: GateDecisionIn,
     uow: SqlUnitOfWork = Depends(get_uow),  # noqa: B008
     owner_id: str = Depends(get_owner_id),  # noqa: B008
+    bus: MessageBus = Depends(get_bus),  # noqa: B008
 ):
     """Submit a gate decision (approve/reject) for a run awaiting human review.
 
@@ -236,12 +236,12 @@ def resolve_gate(
     run = uow.runs.read(id.hex)
     if run.pending_gate is None:
         raise InvalidTransition("no pending gate to resolve")
-    _bus.publish(AgentMessage(
+    bus.publish(AgentMessage(
         owner_id=owner_id,
         run_id=run.id,
         recipient=recipient_key(run.id, "lead"),
         role="lead",
         type=MessageType.GATE_RESOLVED,
         payload={"decision": body.decision},
-    ), uow.session)
+    ))
     return ok(_run_out(run))

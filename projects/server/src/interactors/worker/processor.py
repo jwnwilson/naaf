@@ -1,11 +1,12 @@
 import logging
 
+from adapters.bus.sql import SqlMessageBus
 from adapters.database.repositories import RunEventRepository, RunRepository, WorkItemRepository
 
 from interactors.worker.handlers import HandlerContext, couple, dispatch
 
 
-def _dead_letter(msg, exc, session_factory, bus) -> None:
+def _dead_letter(msg, exc, session_factory) -> None:
     """Isolate a poison message: mark it consumed and fail its run in a fresh transaction.
 
     This prevents the message from being redelivered (claim_next skips status=done rows)
@@ -17,8 +18,9 @@ def _dead_letter(msg, exc, session_factory, bus) -> None:
 
     session = session_factory()
     try:
+        bus = SqlMessageBus(session)
         # (i) dead-letter the message — status=done prevents claim_next from returning it again
-        bus.ack(msg, session)
+        bus.ack(msg)
 
         # (ii) fail the run so it doesn't hang
         scope = {"owner_id": msg.owner_id}
@@ -43,7 +45,6 @@ def _dead_letter(msg, exc, session_factory, bus) -> None:
                 run_events=run_events,
                 work_items=work_items,
                 bus=bus,
-                session=session,
                 runtime=None,
             )
             try:
@@ -61,11 +62,12 @@ def _dead_letter(msg, exc, session_factory, bus) -> None:
         session.close()
 
 
-def process_next(session_factory, bus, runtime) -> bool:
+def process_next(session_factory, runtime) -> bool:
     """Claim one bus message, dispatch it, ack, commit. Returns True if processed."""
     session = session_factory()
     try:
-        msg = bus.claim_next(session)
+        bus = SqlMessageBus(session)
+        msg = bus.claim_next()
         if msg is None:
             session.commit()
             return False
@@ -75,7 +77,6 @@ def process_next(session_factory, bus, runtime) -> bool:
             run_events=RunEventRepository(session, required_filters=scope),
             work_items=WorkItemRepository(session, required_filters=scope),
             bus=bus,
-            session=session,
             runtime=runtime,
         )
         try:
@@ -83,9 +84,9 @@ def process_next(session_factory, bus, runtime) -> bool:
         except Exception as exc:
             session.rollback()
             logging.exception("worker: dispatch failed for message %s", msg.id)
-            _dead_letter(msg, exc, session_factory, bus)
+            _dead_letter(msg, exc, session_factory)
             return True
-        bus.ack(msg, session)
+        bus.ack(msg)
         session.commit()
         return True
     except Exception:

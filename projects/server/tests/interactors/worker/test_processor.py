@@ -9,7 +9,7 @@ from interactors.worker.processor import process_next
 
 
 def test_process_next_returns_false_when_empty(session_factory):
-    assert process_next(session_factory, SqlMessageBus(), FakeAgentRuntime()) is False
+    assert process_next(session_factory, FakeAgentRuntime()) is False
 
 
 def test_process_next_handles_a_start_message(session_factory):
@@ -36,9 +36,8 @@ def test_process_next_handles_a_start_message(session_factory):
         )
 
     # Publish a START message targeting the lead
-    bus = SqlMessageBus()
     session = session_factory()
-    bus.publish(
+    SqlMessageBus(session).publish(
         AgentMessage(
             owner_id="u1",
             run_id=run.id,
@@ -46,13 +45,12 @@ def test_process_next_handles_a_start_message(session_factory):
             role="lead",
             type=MessageType.START,
         ),
-        session,
     )
     session.commit()
     session.close()
 
     # Act
-    result = process_next(session_factory, bus, FakeAgentRuntime())
+    result = process_next(session_factory, FakeAgentRuntime())
 
     # Assert
     assert result is True
@@ -84,9 +82,8 @@ def test_process_next_isolates_poison_message_without_crashing(session_factory):
         )
 
     # Publish a message with a bogus role — dispatch raises ValueError("unknown role")
-    bus = SqlMessageBus()
     session = session_factory()
-    bus.publish(
+    SqlMessageBus(session).publish(
         AgentMessage(
             owner_id="u1",
             run_id=run.id,
@@ -94,17 +91,16 @@ def test_process_next_isolates_poison_message_without_crashing(session_factory):
             role="bogus",
             type=MessageType.START,
         ),
-        session,
     )
     session.commit()
     session.close()
 
     # Act — must NOT raise
-    result = process_next(session_factory, bus, FakeAgentRuntime())
+    result = process_next(session_factory, FakeAgentRuntime())
     assert result is True, "process_next should return True (work consumed) even on dispatch error"
 
     # Assert — message is dead-lettered (not redelivered)
-    assert process_next(session_factory, bus, FakeAgentRuntime()) is False, \
+    assert process_next(session_factory, FakeAgentRuntime()) is False, \
         "poison message must not be redelivered after dead-lettering"
 
     # Assert — run is marked failed

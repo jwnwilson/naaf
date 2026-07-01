@@ -1,5 +1,7 @@
 from collections.abc import Iterator
 
+from adapters.bus.ports import MessageBus
+from adapters.bus.sql import SqlMessageBus
 from adapters.database.uow import SqlUnitOfWork
 from fastapi import Depends, Request
 
@@ -13,3 +15,13 @@ def get_uow(request: Request, owner_id: str = Depends(get_owner_id)) -> Iterator
     )
     with uow.transaction():
         yield uow
+
+
+def get_bus(uow: SqlUnitOfWork = Depends(get_uow)) -> MessageBus:  # noqa: B008
+    """Build the message bus from the request's uow session.
+
+    FastAPI shares the single get_uow result within a request, so the bus and
+    the route's uow use the SAME session/transaction — the enqueue stays atomic
+    with the run/work-item writes.
+    """
+    return SqlMessageBus(uow.session)

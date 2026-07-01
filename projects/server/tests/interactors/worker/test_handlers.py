@@ -17,7 +17,7 @@ from interactors.worker import handlers
 class FakeBus:
     published: list = field(default_factory=list)
 
-    def publish(self, msg, session) -> None:
+    def publish(self, msg) -> None:
         self.published.append(msg)
 
 
@@ -55,7 +55,6 @@ def _make_ctx(*, fail_verify_times: int = 0) -> tuple[handlers.HandlerContext, F
         run_events=run_events,
         work_items=work_items,
         bus=bus,
-        session=None,
         runtime=runtime,
     )
     return ctx, runs, bus

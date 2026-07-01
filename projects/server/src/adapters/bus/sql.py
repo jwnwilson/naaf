@@ -7,14 +7,17 @@ from adapters.database.orm import BusMessageRow
 
 
 class SqlMessageBus:
-    def publish(self, msg: AgentMessage, session: Session) -> None:
-        session.add(BusMessageRow(
+    def __init__(self, session: Session) -> None:
+        self.session = session
+
+    def publish(self, msg: AgentMessage) -> None:
+        self.session.add(BusMessageRow(
             id=msg.id, owner_id=msg.owner_id, run_id=msg.run_id, recipient=msg.recipient,
             role=msg.role, type=msg.type.value, payload=msg.payload, status=msg.status.value,
         ))
-        session.flush()
+        self.session.flush()
 
-    def claim_next(self, session: Session) -> AgentMessage | None:
+    def claim_next(self) -> AgentMessage | None:
         """Claim the next pending message for processing.
 
         FOR UPDATE SKIP LOCKED prevents two workers from claiming the SAME row, but does not
@@ -29,22 +32,22 @@ class SqlMessageBus:
         q = (select(BusMessageRow)
              .where(BusMessageRow.status == "pending", BusMessageRow.recipient.notin_(busy))
              .order_by(BusMessageRow.created_at).limit(1))
-        if session.get_bind().dialect.name != "sqlite":
+        if self.session.get_bind().dialect.name != "sqlite":
             q = q.with_for_update(skip_locked=True)
-        row = session.execute(q).scalar_one_or_none()
+        row = self.session.execute(q).scalar_one_or_none()
         if row is None:
             return None
         row.status = "claimed"
         row.claimed_at = utcnow()
-        session.flush()
+        self.session.flush()
         return self._to_msg(row)
 
-    def ack(self, msg: AgentMessage, session: Session) -> None:
-        row = session.get(BusMessageRow, msg.id)
+    def ack(self, msg: AgentMessage) -> None:
+        row = self.session.get(BusMessageRow, msg.id)
         if row is None:
             raise RuntimeError(f"ack: message {msg.id} not found")
         row.status = MessageStatus.DONE.value
-        session.flush()
+        self.session.flush()
 
     def _to_msg(self, row: BusMessageRow) -> AgentMessage:
         return AgentMessage(id=row.id, owner_id=row.owner_id, run_id=row.run_id,
