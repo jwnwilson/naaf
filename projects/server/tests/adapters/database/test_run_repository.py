@@ -62,3 +62,15 @@ def test_run_event_seq_is_monotonic_per_run(session_factory):
         e3 = uow.run_events.create(RunEvent(owner_id="", run_id="r2", type=EventType.LOG))
     assert (e1.seq, e2.seq) == (1, 2)
     assert e3.seq == 1  # per-run counter resets
+
+
+def test_run_events_get_monotonic_global_seq_across_runs(session_factory):
+    from adapters.database.uow import SqlUnitOfWork
+    from domain.runs.events import EventType, RunEvent
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
+    with uow.transaction():
+        a = uow.run_events.create(RunEvent(owner_id="", run_id="r1", type=EventType.LOG))
+        b = uow.run_events.create(RunEvent(owner_id="", run_id="r2", type=EventType.LOG))
+        c = uow.run_events.create(RunEvent(owner_id="", run_id="r1", type=EventType.LOG))
+    assert a.global_seq == 1 and b.global_seq == 2 and c.global_seq == 3   # global, not per-run
+    assert a.seq == 1 and b.seq == 1 and c.seq == 2                        # per-run unchanged

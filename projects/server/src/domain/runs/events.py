@@ -21,6 +21,7 @@ class RunEvent(Entity):
     owner_id: str
     run_id: str
     seq: int = 0
+    global_seq: int = 0
     stage: Stage | None = None
     role: str | None = None
     type: EventType

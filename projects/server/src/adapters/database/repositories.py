@@ -52,4 +52,6 @@ class RunEventRepository(SqlRepository[RunEvent]):
         for key, value in self.required_filters.items():
             q = q.where(getattr(RunEventRow, key) == value)
         next_seq = self.session.execute(q).scalar_one()
-        return super().create(dto.model_copy(update={"seq": next_seq}))
+        gq = select(func.coalesce(func.max(RunEventRow.global_seq), 0) + 1)  # global, no filters
+        next_global = self.session.execute(gq).scalar_one()
+        return super().create(dto.model_copy(update={"seq": next_seq, "global_seq": next_global}))

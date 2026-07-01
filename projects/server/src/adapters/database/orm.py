@@ -86,6 +86,7 @@ class RunEventRow(_Timestamped, Base):
     __table_args__ = (UniqueConstraint("run_id", "seq"),)
     run_id: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
     seq: Mapped[int] = mapped_column(Integer, nullable=False)
+    global_seq: Mapped[int | None] = mapped_column(Integer, unique=True, index=True, nullable=True)
     stage: Mapped[str | None] = mapped_column(String(16), nullable=True)
     role: Mapped[str | None] = mapped_column(String(32), nullable=True)
     type: Mapped[str] = mapped_column(String(32), nullable=False)
