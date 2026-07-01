@@ -1,10 +1,13 @@
+from domain.base import utcnow
 from domain.notifications.notification import Notification
 from domain.project import Project
 from domain.runs.events import RunEvent
 from domain.runs.run import Run
 from domain.team import AgentDefinition, Team
 from domain.work_item import WorkItem
+from interactors.dispatcher.subscriber import CursorState
 from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 from adapters.database.orm import (
     AgentDefinitionRow,
@@ -12,6 +15,7 @@ from adapters.database.orm import (
     ProjectRow,
     RunEventRow,
     RunRow,
+    SubscriberCursorRow,
     TeamRow,
     WorkItemRow,
 )
@@ -62,3 +66,33 @@ class RunEventRepository(SqlRepository[RunEvent]):
         gq = select(func.coalesce(func.max(RunEventRow.global_seq), 0) + 1)  # global, no filters
         next_global = self.session.execute(gq).scalar_one()
         return super().create(dto.model_copy(update={"seq": next_seq, "global_seq": next_global}))
+
+    def list_after(self, after: int, limit: int = 100) -> list[RunEvent]:
+        rows = self.session.execute(
+            select(RunEventRow)
+            .where(RunEventRow.global_seq.isnot(None), RunEventRow.global_seq > after)
+            .order_by(RunEventRow.global_seq)
+            .limit(limit)
+        ).scalars().all()
+        return [self._to_dto(r) for r in rows]
+
+
+class SubscriberCursorRepository:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def get(self, name: str) -> CursorState:
+        row = self.session.get(SubscriberCursorRow, name)
+        if row is None:
+            return CursorState()
+        return CursorState(last_global_seq=row.last_global_seq, retries=row.retries)
+
+    def save(self, name: str, state: CursorState) -> None:
+        row = self.session.get(SubscriberCursorRow, name)
+        if row is None:
+            row = SubscriberCursorRow(name=name)
+            self.session.add(row)
+        row.last_global_seq = state.last_global_seq
+        row.retries = state.retries
+        row.updated_at = utcnow()
+        self.session.flush()
