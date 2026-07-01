@@ -50,7 +50,7 @@ def test_beat_has_no_dispatch_events():
 # ---------------------------------------------------------------------------
 
 def _seed_run_events(session_factory) -> str:
-    """Create a project/work-item/run and insert GATE_REQUESTED + RUN_FINISHED events.
+    """Create a project/work-item/run and insert RUN_STARTED + GATE_REQUESTED + RUN_FINISHED events.
 
     Returns the run_id so the caller can read back notifications.
     """
@@ -80,6 +80,14 @@ def _seed_run_events(session_factory) -> str:
             RunEvent(
                 owner_id="",
                 run_id=run.id,
+                type=EventType.RUN_STARTED,
+                payload={},
+            )
+        )
+        uow.run_events.create(
+            RunEvent(
+                owner_id="",
+                run_id=run.id,
                 type=EventType.GATE_REQUESTED,
                 payload={"kind": "plan"},
             )
@@ -99,7 +107,8 @@ def test_run_subscription_notifications_creates_notifications_for_gate_and_finis
     session_factory,
 ):
     """run_subscription('notifications', …) must create one notification per
-    GATE_REQUESTED / RUN_FINISHED event — behaviour parity with old dispatch_events."""
+    GATE_REQUESTED / RUN_FINISHED event, ignoring RUN_STARTED — parity with
+    old dispatch_events."""
     # Arrange
     run_id = _seed_run_events(session_factory)
     runtime = FakeAgentRuntime()
@@ -108,8 +117,8 @@ def test_run_subscription_notifications_creates_notifications_for_gate_and_finis
     from interactors.worker.subscription_runner import run_subscription
     processed = run_subscription("notifications", session_factory, runtime)
 
-    # Assert — both events handled
-    assert processed == 2
+    # Assert — 3 events processed, but only 2 result in notifications (RUN_STARTED ignored)
+    assert processed == 3
 
     uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
     with uow.transaction():
@@ -121,6 +130,10 @@ def test_run_subscription_notifications_creates_notifications_for_gate_and_finis
     types = {n.type.value for n in notifs}
     assert "gate_pending" in types
     assert "run_succeeded" in types
+    # Parity assertion: RUN_STARTED event must be ignored
+    assert "run_started" not in types
+    # Parity assertion: all notifications must be owner-scoped
+    assert all(n.owner_id == "u1" for n in notifs)
 
 
 def test_run_subscription_notifications_is_idempotent(session_factory):

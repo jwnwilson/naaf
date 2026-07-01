@@ -1,4 +1,4 @@
-"""Bus-draining integration tests (formerly test_processor.py).
+"""Bus-draining integration tests (formerly driven via process_next; now via run_subscription).
 
 Drives the agent-bus subscription via run_subscription("agent-bus", …) — the
 unified engine entry point that replaced the old process_next helper.
