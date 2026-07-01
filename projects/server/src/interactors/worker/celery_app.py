@@ -26,7 +26,11 @@ celery_app.conf.beat_schedule = {
     "drain-bus": {
         "task": "naaf.drain_bus",
         "schedule": 1.0,
-    }
+    },
+    "dispatch-events": {
+        "task": "naaf.dispatch_events",
+        "schedule": 1.0,
+    },
 }
 
 
@@ -63,3 +67,10 @@ def drain(session_factory: sessionmaker, runtime: AgentRuntime, max_per_tick: in
 def drain_bus() -> int:
     sf, rt = _deps()
     return drain(sf, rt)
+
+
+@celery_app.task(name="naaf.dispatch_events")
+def dispatch_events_task() -> int:
+    from interactors.dispatcher.dispatcher import dispatch_events
+    sf, _ = _deps()
+    return dispatch_events(sf)
