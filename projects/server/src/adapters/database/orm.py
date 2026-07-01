@@ -93,6 +93,17 @@ class RunEventRow(_Timestamped, Base):
     payload: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
 
 
+# system table (not owner-scoped): per-subscriber fan-out cursor
+class SubscriberCursorRow(Base):
+    __tablename__ = "subscriber_cursors"
+    name: Mapped[str] = mapped_column(String(64), primary_key=True)
+    last_global_seq: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    retries: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utcnow, onupdate=utcnow, nullable=False
+    )
+
+
 # accessed directly by the SqlMessageBus adapter, not via a UoW repository
 class BusMessageRow(_Timestamped, Base):
     __tablename__ = "bus_messages"

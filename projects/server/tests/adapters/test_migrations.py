@@ -101,3 +101,26 @@ def test_migration_adds_run_events_global_seq(tmp_path):
     con = sqlite3.connect(db)
     cols = {r[1] for r in con.execute("PRAGMA table_info(run_events)")}
     assert "global_seq" in cols
+
+
+def test_migration_adds_subscriber_cursors(tmp_path):
+    import os
+    import sqlite3
+    import subprocess
+    from pathlib import Path
+
+    db = tmp_path / "naaf.db"
+    server = Path(__file__).resolve().parents[2]
+    env = {"naaf_db_url": f"sqlite:///{db}", "PATH": os.environ["PATH"]}
+    assert subprocess.run(
+        ["uv", "run", "alembic", "upgrade", "head"],
+        cwd=server,
+        env=env,
+        capture_output=True,
+        text=True,
+    ).returncode == 0
+    con = sqlite3.connect(db)
+    tables = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "subscriber_cursors" in tables
+    cols = {r[1] for r in con.execute("PRAGMA table_info(subscriber_cursors)")}
+    assert {"name", "last_global_seq", "retries", "updated_at"} <= cols
