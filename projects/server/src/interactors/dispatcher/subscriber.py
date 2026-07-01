@@ -1,13 +1,10 @@
+# Re-export CursorState from its canonical domain location.
+# This shim will be removed when interactors/dispatcher/ is deleted (Task 7).
 from typing import Protocol
 
+from domain.messaging.subscriber import CursorState as CursorState  # noqa: F401
 from domain.runs.events import RunEvent
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
-
-
-class CursorState(BaseModel):
-    last_global_seq: int = 0
-    retries: int = 0
 
 
 class EventSubscriber(Protocol):

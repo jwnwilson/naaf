@@ -1,7 +1,7 @@
 import logging
 
 from domain.messaging.source import Item, PoisonOutcome
-from interactors.dispatcher.subscriber import CursorState  # moves to domain/messaging in Task 3
+from domain.messaging.subscriber import CursorState
 
 from adapters.database.repositories import RunEventRepository, SubscriberCursorRepository
 
