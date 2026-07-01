@@ -1,26 +1,8 @@
-import logging
-import time
+"""Worker entrypoint — re-exports the Celery application.
 
-from adapters.agent.runtime.fake import FakeAgentRuntime
-from adapters.database.engine import build_engine, build_session_factory
+Start with:
+    celery -A interactors.worker.celery_app:celery_app worker --beat --loglevel=info
+"""
+from interactors.worker.celery_app import celery_app as app
 
-from interactors.api.settings import Settings
-from interactors.worker.processor import process_next
-
-_IDLE_SLEEP_SECONDS = 0.5
-
-
-def run_forever() -> None:
-    settings = Settings()
-    session_factory = build_session_factory(build_engine(settings.db_url))
-    runtime = FakeAgentRuntime()
-    while True:
-        try:
-            if not process_next(session_factory, runtime):
-                time.sleep(_IDLE_SLEEP_SECONDS)
-        except Exception:
-            logging.exception("worker: unhandled error in process_next loop")
-
-
-if __name__ == "__main__":
-    run_forever()
+__all__ = ["app"]

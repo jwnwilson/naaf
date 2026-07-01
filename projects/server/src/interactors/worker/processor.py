@@ -1,6 +1,6 @@
 import logging
 
-from adapters.bus.sql import SqlMessageBus
+from adapters.bus.factory import build_message_bus
 from adapters.database.repositories import RunEventRepository, RunRepository, WorkItemRepository
 
 from interactors.worker.handlers import HandlerContext, couple, dispatch
@@ -18,7 +18,7 @@ def _dead_letter(msg, exc, session_factory) -> None:
 
     session = session_factory()
     try:
-        bus = SqlMessageBus(session)
+        bus = build_message_bus(session)
         # (i) dead-letter the message — status=done prevents claim_next from returning it again
         bus.ack(msg)
 
@@ -66,7 +66,7 @@ def process_next(session_factory, runtime) -> bool:
     """Claim one bus message, dispatch it, ack, commit. Returns True if processed."""
     session = session_factory()
     try:
-        bus = SqlMessageBus(session)
+        bus = build_message_bus(session)
         msg = bus.claim_next()
         if msg is None:
             session.commit()

@@ -76,12 +76,13 @@ projects/
 
 ```bash
 uv sync
-docker compose up -d postgres
+docker compose up -d postgres redis
 make db-upgrade            # alembic upgrade head
 uv run python -m interactors.cli.seed
 make test                  # uv run pytest
 make coverage              # 80% gate
 make run                   # uvicorn interactors.api.app:create_app --factory --reload
+make worker                # Celery worker+beat; agent queue stays Postgres, Celery broker is Redis (scheduling only)
 ```
 
 ### UI (fully mocked — no backend needed)

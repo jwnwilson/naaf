@@ -26,4 +26,4 @@ db-reset:
 	uv run python -m interactors.cli.seed
 
 worker:
-	cd projects/server && uv run python -m interactors.worker.main
+	cd projects/server && uv run celery -A interactors.worker.celery_app:celery_app worker --beat --loglevel=info
