@@ -25,7 +25,7 @@ class NotificationSubscriber:
         if event.type is EventType.GATE_REQUESTED:
             kind = event.payload.get("kind", "review")
             notif = Notification(
-                owner_id="",
+                owner_id=event.owner_id,
                 run_id=event.run_id,
                 type=NotificationType.GATE_PENDING,
                 title="Action needed",
@@ -35,7 +35,7 @@ class NotificationSubscriber:
         else:  # RUN_FINISHED
             status = event.payload.get("status", "succeeded")
             notif = Notification(
-                owner_id="",
+                owner_id=event.owner_id,
                 run_id=event.run_id,
                 type=_FINISH_STATUS_TYPE.get(status, NotificationType.RUN_SUCCEEDED),
                 title=f"Run {status}",

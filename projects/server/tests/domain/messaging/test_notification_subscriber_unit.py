@@ -79,6 +79,7 @@ def test_handle_gate_requested_creates_gate_pending_notification():
     assert notif.type == NotificationType.GATE_PENDING
     assert notif.run_id == "run-1"
     assert notif.source_seq == 7
+    assert notif.owner_id == "owner-1"
 
 
 def test_handle_skips_create_when_notification_already_exists():
@@ -108,3 +109,36 @@ def test_handle_run_finished_creates_run_succeeded_notification():
     notif = repo.create.call_args[0][0]
     assert notif.type == NotificationType.RUN_SUCCEEDED
     assert notif.source_seq == 9
+    assert notif.owner_id == "owner-1"
+
+
+def test_handle_run_finished_creates_run_failed_notification():
+    # Arrange
+    sub = NotificationSubscriber()
+    event = _event(type=EventType.RUN_FINISHED, payload={"status": "failed"}, global_seq=10)
+    ctx, repo = _make_ctx()
+
+    # Act
+    sub.handle(event, ctx)
+
+    # Assert
+    notif = repo.create.call_args[0][0]
+    assert notif.type == NotificationType.RUN_FAILED
+    assert notif.source_seq == 10
+    assert notif.owner_id == "owner-1"
+
+
+def test_handle_run_finished_creates_run_cancelled_notification():
+    # Arrange
+    sub = NotificationSubscriber()
+    event = _event(type=EventType.RUN_FINISHED, payload={"status": "cancelled"}, global_seq=11)
+    ctx, repo = _make_ctx()
+
+    # Act
+    sub.handle(event, ctx)
+
+    # Assert
+    notif = repo.create.call_args[0][0]
+    assert notif.type == NotificationType.RUN_CANCELLED
+    assert notif.source_seq == 11
+    assert notif.owner_id == "owner-1"

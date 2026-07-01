@@ -1,8 +1,11 @@
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from pydantic import BaseModel
 
 from domain.runs.events import RunEvent
+
+if TYPE_CHECKING:
+    from domain.messaging.context import HandlerContext
 
 
 class CursorState(BaseModel):
@@ -15,4 +18,4 @@ class Subscriber(Protocol):
 
     def interested_in(self, message: RunEvent) -> bool: ...
 
-    def handle(self, message: RunEvent, ctx: object) -> None: ...
+    def handle(self, message: RunEvent, ctx: "HandlerContext") -> None: ...
