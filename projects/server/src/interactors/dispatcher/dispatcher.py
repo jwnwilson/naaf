@@ -43,31 +43,45 @@ def _dispatch_one(session_factory, sub: EventSubscriber) -> int:
             if not rows:
                 session.commit()
                 return handled
+
             for row in rows:
-                event = RunEvent.model_validate(row)
-                if sub.interested_in(event):
-                    try:
+                try:
+                    event = RunEvent.model_validate(row)
+                    if sub.interested_in(event):
                         sub.handle(event, session)
-                    except Exception:  # isolate: never let one subscriber/event break others
-                        state = CursorState(
-                            last_global_seq=state.last_global_seq,
-                            retries=state.retries + 1,
-                        )
-                        if state.retries < MAX_SUBSCRIBER_RETRIES:
-                            store.save(sub.name, state)  # keep cursor; retry next tick
-                            session.commit()
-                            return handled
-                        logger.exception(
-                            "subscriber %s dead-lettering event global_seq=%s after %s retries",
+                    # Success path: advance cursor and commit this event atomically.
+                    store.save(sub.name, CursorState(last_global_seq=event.global_seq, retries=0))
+                    session.commit()
+                    handled += 1
+                    state = CursorState(last_global_seq=event.global_seq, retries=0)
+                except Exception:
+                    # Rollback discards THIS event's partial writes; earlier events are safe
+                    # because they were already individually committed.
+                    session.rollback()
+                    retries = state.retries + 1
+                    if retries < MAX_SUBSCRIBER_RETRIES:
+                        # Keep cursor position; increment retry counter; retry next tick.
+                        store.save(
                             sub.name,
-                            event.global_seq,
-                            state.retries,
+                            CursorState(last_global_seq=state.last_global_seq, retries=retries),
                         )
-                        # fall through: advance past the poison event
-                state = CursorState(last_global_seq=event.global_seq, retries=0)
-                store.save(sub.name, state)
-                handled += 1
-            session.commit()
+                        session.commit()
+                        return handled
+                    # Retry cap reached: dead-letter — log and advance past the poison event.
+                    logger.exception(
+                        "subscriber %s dead-lettering event global_seq=%s after %s retries",
+                        sub.name,
+                        row.global_seq,
+                        retries,
+                    )
+                    store.save(
+                        sub.name,
+                        CursorState(last_global_seq=row.global_seq, retries=0),
+                    )
+                    session.commit()
+                    handled += 1
+                    state = CursorState(last_global_seq=row.global_seq, retries=0)
+                    # Continue to next event in the batch.
         except Exception:
             session.rollback()
             raise
