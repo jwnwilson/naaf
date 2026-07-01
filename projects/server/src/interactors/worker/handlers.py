@@ -20,6 +20,7 @@ class HandlerContext:
     runs: Any
     run_events: Any
     work_items: Any
+    notifications: Any  # NotificationRepository | None — None in dead-letter cleanup
     bus: Any
     runtime: AgentRuntime | None  # None only in dead-letter cleanup (couple path — no stage runs)
 

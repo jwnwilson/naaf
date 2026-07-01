@@ -54,6 +54,7 @@ def _make_ctx(*, fail_verify_times: int = 0) -> tuple[handlers.HandlerContext, F
         runs=runs,
         run_events=run_events,
         work_items=work_items,
+        notifications=None,
         bus=bus,
         runtime=runtime,
     )

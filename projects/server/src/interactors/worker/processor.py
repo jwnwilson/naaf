@@ -44,6 +44,7 @@ def _dead_letter(msg, exc, session_factory) -> None:
                 runs=runs,
                 run_events=run_events,
                 work_items=work_items,
+                notifications=None,
                 bus=bus,
                 runtime=None,
             )
@@ -76,6 +77,7 @@ def process_next(session_factory, runtime) -> bool:
             runs=RunRepository(session, required_filters=scope),
             run_events=RunEventRepository(session, required_filters=scope),
             work_items=WorkItemRepository(session, required_filters=scope),
+            notifications=None,
             bus=bus,
             runtime=runtime,
         )

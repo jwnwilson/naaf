@@ -72,6 +72,7 @@ class BusSource:
                         runs=runs,
                         run_events=run_events,
                         work_items=work_items,
+                        notifications=None,
                         bus=bus,
                         runtime=None,
                     )
