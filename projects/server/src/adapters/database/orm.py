@@ -104,6 +104,18 @@ class SubscriberCursorRow(Base):
     )
 
 
+class NotificationRow(_Timestamped, Base):
+    __tablename__ = "notifications"
+    __table_args__ = (UniqueConstraint("source_seq"),)
+    run_id: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    work_item_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    type: Mapped[str] = mapped_column(String(32), nullable=False)
+    title: Mapped[str] = mapped_column(String(512), nullable=False)
+    body: Mapped[str] = mapped_column(String, default="", nullable=False)
+    read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    source_seq: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
 # accessed directly by the SqlMessageBus adapter, not via a UoW repository
 class BusMessageRow(_Timestamped, Base):
     __tablename__ = "bus_messages"

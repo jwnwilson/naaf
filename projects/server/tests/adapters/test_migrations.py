@@ -103,6 +103,30 @@ def test_migration_adds_run_events_global_seq(tmp_path):
     assert "global_seq" in cols
 
 
+def test_migration_creates_notifications(tmp_path):
+    import os
+    import sqlite3
+    import subprocess
+    from pathlib import Path
+
+    db = tmp_path / "naaf.db"
+    server = Path(__file__).resolve().parents[2]
+    env = {"naaf_db_url": f"sqlite:///{db}", "PATH": os.environ["PATH"]}
+    r = subprocess.run(
+        ["uv", "run", "alembic", "upgrade", "head"],
+        cwd=server,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert r.returncode == 0, r.stderr
+    con = sqlite3.connect(db)
+    tables = {row[0] for row in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "notifications" in tables
+    cols = {r[1] for r in con.execute("PRAGMA table_info(notifications)")}
+    assert {"id", "owner_id", "run_id", "type", "title", "body", "read", "source_seq"} <= cols
+
+
 def test_migration_adds_subscriber_cursors(tmp_path):
     import os
     import sqlite3

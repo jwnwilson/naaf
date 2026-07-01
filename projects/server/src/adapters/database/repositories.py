@@ -1,3 +1,4 @@
+from domain.notifications.notification import Notification
 from domain.project import Project
 from domain.runs.events import RunEvent
 from domain.runs.run import Run
@@ -7,6 +8,7 @@ from sqlalchemy import func, select
 
 from adapters.database.orm import (
     AgentDefinitionRow,
+    NotificationRow,
     ProjectRow,
     RunEventRow,
     RunRow,
@@ -39,6 +41,11 @@ class AgentDefinitionRepository(SqlRepository[AgentDefinition]):
 class RunRepository(SqlRepository[Run]):
     orm_model = RunRow
     dto = Run
+
+
+class NotificationRepository(SqlRepository[Notification]):
+    orm_model = NotificationRow
+    dto = Notification
 
 
 class RunEventRepository(SqlRepository[RunEvent]):
