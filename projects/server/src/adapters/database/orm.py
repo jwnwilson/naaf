@@ -86,10 +86,34 @@ class RunEventRow(_Timestamped, Base):
     __table_args__ = (UniqueConstraint("run_id", "seq"),)
     run_id: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
     seq: Mapped[int] = mapped_column(Integer, nullable=False)
+    global_seq: Mapped[int | None] = mapped_column(Integer, unique=True, index=True, nullable=True)
     stage: Mapped[str | None] = mapped_column(String(16), nullable=True)
     role: Mapped[str | None] = mapped_column(String(32), nullable=True)
     type: Mapped[str] = mapped_column(String(32), nullable=False)
     payload: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+
+
+# system table (not owner-scoped): per-subscriber fan-out cursor
+class SubscriberCursorRow(Base):
+    __tablename__ = "subscriber_cursors"
+    name: Mapped[str] = mapped_column(String(64), primary_key=True)
+    last_global_seq: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    retries: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utcnow, onupdate=utcnow, nullable=False
+    )
+
+
+class NotificationRow(_Timestamped, Base):
+    __tablename__ = "notifications"
+    __table_args__ = (UniqueConstraint("source_seq"),)
+    run_id: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    work_item_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    type: Mapped[str] = mapped_column(String(32), nullable=False)
+    title: Mapped[str] = mapped_column(String(512), nullable=False)
+    body: Mapped[str] = mapped_column(String, default="", nullable=False)
+    read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    source_seq: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
 # accessed directly by the SqlMessageBus adapter, not via a UoW repository

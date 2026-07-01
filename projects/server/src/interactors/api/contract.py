@@ -210,3 +210,22 @@ class GateDecisionIn(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     decision: Literal["approve", "reject"]
+
+
+# ---------------------------------------------------------------------------
+# Notification
+# ---------------------------------------------------------------------------
+
+
+class NotificationOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str
+    runId: str
+    workItemId: str | None = None
+    type: str  # NotificationType value
+    title: str
+    body: str
+    read: bool
+    createdAt: str
+    updatedAt: str

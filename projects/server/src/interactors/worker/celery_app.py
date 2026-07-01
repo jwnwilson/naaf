@@ -1,4 +1,8 @@
-"""Celery application + Beat schedule for the NAAF agent-bus drain task.
+"""Celery application + Beat schedule for the NAAF worker.
+
+Beat fires ``dispatch-subscriptions`` every second.  That task spawns one
+child ``process-subscription`` task per entry in the SUBSCRIPTIONS registry
+(currently: "agent-bus" and "notifications").
 
 The engine/session-factory/runtime are built LAZILY (on first task invocation)
 so that importing this module never opens a DB connection or requires a running
@@ -23,10 +27,10 @@ celery_app = Celery("naaf", broker=settings.celery_broker_url)
 celery_app.conf.task_ignore_result = True
 celery_app.conf.worker_concurrency = 1  # single dispatcher: preserves one-in-flight-per-recipient
 celery_app.conf.beat_schedule = {
-    "drain-bus": {
-        "task": "naaf.drain_bus",
+    "dispatch-subscriptions": {
+        "task": "naaf.dispatch_subscriptions",
         "schedule": 1.0,
-    }
+    },
 }
 
 
@@ -42,24 +46,19 @@ def _deps() -> tuple[sessionmaker, AgentRuntime]:
     return session_factory, runtime
 
 
-def drain(session_factory: sessionmaker, runtime: AgentRuntime, max_per_tick: int = 100) -> int:
-    """Drain the message bus, processing up to *max_per_tick* messages.
+@celery_app.task(name="naaf.dispatch_subscriptions")
+def dispatch_subscriptions_task() -> None:
+    """Enqueue one child process-subscription task per registered subscription."""
+    from interactors.worker.registry import SUBSCRIPTIONS
 
-    Returns the number of messages processed.  Pure function — no Celery
-    dependency — so it can be tested without a broker.
-    """
-    from interactors.worker.processor import process_next
-
-    count = 0
-    while count < max_per_tick:
-        processed = process_next(session_factory, runtime)
-        if not processed:
-            break
-        count += 1
-    return count
+    for sub in SUBSCRIPTIONS:
+        process_subscription_task.apply_async(args=[sub.name])
 
 
-@celery_app.task(name="naaf.drain_bus")
-def drain_bus() -> int:
-    sf, rt = _deps()
-    return drain(sf, rt)
+@celery_app.task(name="naaf.process_subscription")
+def process_subscription_task(name: str) -> int:
+    """Drain a single named subscription and return the number of items handled."""
+    from interactors.worker.subscription_runner import run_subscription
+
+    session_factory, runtime = _deps()
+    return run_subscription(name, session_factory, runtime)

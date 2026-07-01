@@ -99,6 +99,14 @@ with uow.transaction():
   remains for SQLite in-memory tests and ephemeral dev; Postgres is migrated. `make db-reset`
   clears the Postgres volume, runs `alembic upgrade head`, and re-seeds via `cli/seed.py`.
 
+### SQL rule
+
+**All SQLAlchemy `select`/ORM queries live in `adapters/database` repository methods.** Domain
+and interactors depend on repository methods, never on `session.execute(select(...))` or ORM
+rows directly. System-level reads that must bypass owner scoping (e.g. `RunEventRepository.
+list_after`) instantiate the repository directly without `required_filters` — document this
+clearly at the call site.
+
 ### Owner scoping via required filters
 
 Hexrepo's `required_filters` mechanism is our owner-scoping enforcement: the API
