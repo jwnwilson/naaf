@@ -27,7 +27,7 @@ class EventLogSource:
             self.subscriber_name, CursorState(last_global_seq=item.position, retries=0)
         )
 
-    def on_poison(self, item, exc, uow_factory) -> PoisonOutcome:
+    def on_poison(self, item: Item, exc: Exception, uow_factory) -> PoisonOutcome:
         uow = uow_factory()
         with uow.transaction():
             store = SubscriberCursorRepository(uow.session)
@@ -37,7 +37,10 @@ class EventLogSource:
                 store.save(self.subscriber_name, CursorState(
                     last_global_seq=state.last_global_seq, retries=retries))
                 return PoisonOutcome.STOP
-            logger.exception("subscriber %s dead-lettering global_seq=%s after %s retries",
-                             self.subscriber_name, item.position, retries)
+            logger.error(
+                "subscriber %s dead-lettering global_seq=%s after %s retries",
+                self.subscriber_name, item.position, retries,
+                exc_info=exc,
+            )
             store.save(self.subscriber_name, CursorState(last_global_seq=item.position, retries=0))
             return PoisonOutcome.CONTINUE
