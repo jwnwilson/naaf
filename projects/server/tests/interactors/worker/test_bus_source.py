@@ -1,11 +1,12 @@
 from adapters.bus.factory import build_message_bus
-from adapters.database.bus_source import BusSource
 from adapters.database.uow import SqlUnitOfWork
 from domain.messaging.source import Item, PoisonOutcome
 from domain.project import Project
+from domain.runs.events import EventType
 from domain.runs.messages import AgentMessage, MessageType, recipient_key
 from domain.runs.run import Run, RunStatus
 from domain.work_item import WorkItem, WorkItemKind, WorkItemStatus
+from interactors.worker.bus_source import BusSource
 
 
 def _msg(run_id="r1", owner_id="u1", role="lead"):
@@ -58,7 +59,8 @@ def test_fetch_next_returns_none_when_empty(session_factory):
 
 
 def test_on_poison_fails_run_acks_message_returns_continue(session_factory):
-    """on_poison acks the message, marks the run FAILED, returns PoisonOutcome.CONTINUE."""
+    """on_poison acks the message, marks the run FAILED with ended_at set,
+    emits a RUN_FINISHED event, and returns PoisonOutcome.CONTINUE."""
     # Arrange: seed a run
     owned = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
     with owned.transaction():
@@ -105,13 +107,20 @@ def test_on_poison_fails_run_acks_message_returns_continue(session_factory):
     src = BusSource()
     outcome = src.on_poison(item, ValueError("boom"), lambda: SqlUnitOfWork(session_factory))
 
-    # Assert: CONTINUE returned, run is FAILED, message not redelivered
+    # Assert: CONTINUE returned, run is FAILED with ended_at set, message not redelivered
     assert outcome is PoisonOutcome.CONTINUE
 
     owned2 = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
     with owned2.transaction():
         failed_run = owned2.runs.read(run.id)
+        run_events = owned2.run_events.read_multi(filters={"run_id": run.id})
+
     assert failed_run.status == RunStatus.FAILED
+    assert failed_run.ended_at is not None
+
+    finished_events = [e for e in run_events.results if e.type == EventType.RUN_FINISHED]
+    assert len(finished_events) == 1
+    assert finished_events[0].payload["status"] == "failed"
 
     # Message should be acked (not redelivered)
     uow = _sys_uow(session_factory)

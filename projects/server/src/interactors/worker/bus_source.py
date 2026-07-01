@@ -1,12 +1,15 @@
 import logging
+from collections.abc import Callable
 
+from adapters.bus.factory import build_message_bus
+from adapters.database.repositories import RunEventRepository, RunRepository, WorkItemRepository
+from adapters.database.uow import SqlUnitOfWork
 from domain.base import utcnow
 from domain.messaging.source import Item, PoisonOutcome
 from domain.runs.events import EventType, RunEvent
 from domain.runs.run import RunStatus
 
-from adapters.bus.factory import build_message_bus
-from adapters.database.repositories import RunEventRepository, RunRepository, WorkItemRepository
+from interactors.worker.handlers import HandlerContext, couple
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +32,9 @@ class BusSource:
     def advance(self, item: Item, uow) -> None:
         build_message_bus(uow.session).ack(item.message)
 
-    def on_poison(self, item: Item, exc: Exception, uow_factory) -> PoisonOutcome:
+    def on_poison(
+        self, item: Item, exc: Exception, uow_factory: Callable[[], SqlUnitOfWork]
+    ) -> PoisonOutcome:
         """Isolate a poison message: ack it and fail its run in a fresh transaction.
 
         Converted from interactors.worker.processor._dead_letter to use uow.transaction()
@@ -63,7 +68,6 @@ class BusSource:
                         payload={"status": "failed", "error": str(exc)},
                     ))
                     # (iii) best-effort work-item coupling — skip on transition error
-                    from interactors.worker.handlers import HandlerContext, couple
                     ctx = HandlerContext(
                         runs=runs,
                         run_events=run_events,
@@ -74,7 +78,9 @@ class BusSource:
                     try:
                         couple(ctx, run)
                     except Exception:
-                        pass
+                        logger.warning(
+                            "bus_source: couple failed for run %s", run.id, exc_info=True
+                        )
                 except Exception as inner:
                     logger.warning(
                         "bus_source: could not fail run for message %s: %s", msg.id, inner
