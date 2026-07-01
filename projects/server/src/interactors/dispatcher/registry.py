@@ -1,3 +1,4 @@
 from interactors.dispatcher.subscriber import EventSubscriber
+from interactors.dispatcher.subscribers.notifications import NotificationSubscriber
 
-SUBSCRIBERS: list[EventSubscriber] = []  # populated in interactors.dispatcher.subscribers
+SUBSCRIBERS: list[EventSubscriber] = [NotificationSubscriber()]
