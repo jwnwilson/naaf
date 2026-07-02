@@ -4,7 +4,8 @@ import { http, HttpResponse } from "msw";
 import { describe, expect, it, test } from "vitest";
 import { server } from "../mocks/server";
 import { createQueryClient } from "../queryClient";
-import { useRun } from "./useRun";
+import { mergeEventsBySeq, useRun } from "./useRun";
+import type { RunEventOut } from "./useRun";
 
 function wrapper() {
   const client = createQueryClient();
@@ -47,6 +48,48 @@ describe("useRun", () => {
     expect(result.current.run!.tokenUsage).toBe(500);
     expect(result.current.events).toEqual([]);
     expect(result.current.isStreaming).toBe(true);
+  });
+});
+
+describe("mergeEventsBySeq", () => {
+  function makeEvent(seq: number): RunEventOut {
+    return {
+      id: `e${seq}`,
+      runId: "r1",
+      seq,
+      stage: "plan",
+      role: "lead",
+      type: "log",
+      payload: { message: `event ${seq}` },
+      createdAt: "2026-07-02T00:00:00Z",
+    };
+  }
+
+  it("deduplicates overlapping seq values and returns ascending order", () => {
+    // Arrange: history has seq 1 and 2; streamed overlaps seq 2 and adds seq 3
+    const history = [makeEvent(1), makeEvent(2)];
+    const streamed = [makeEvent(2), makeEvent(3)];
+
+    // Act
+    const result = mergeEventsBySeq(history, streamed);
+
+    // Assert: exactly 3 entries, no duplicate seq 2, ascending order
+    expect(result).toHaveLength(3);
+    expect(result.map((e) => e.seq)).toEqual([1, 2, 3]);
+  });
+
+  it("returns history-only events when streamed is empty", () => {
+    const history = [makeEvent(1), makeEvent(2)];
+    const result = mergeEventsBySeq(history, []);
+    expect(result).toHaveLength(2);
+    expect(result.map((e) => e.seq)).toEqual([1, 2]);
+  });
+
+  it("returns streamed-only events when history is empty", () => {
+    const streamed = [makeEvent(3), makeEvent(1), makeEvent(2)];
+    const result = mergeEventsBySeq([], streamed);
+    expect(result).toHaveLength(3);
+    expect(result.map((e) => e.seq)).toEqual([1, 2, 3]);
   });
 });
 
