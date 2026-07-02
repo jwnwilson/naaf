@@ -16,7 +16,7 @@ services:
   # LiteLLM gateway — routes to any provider (OpenAI, Anthropic, etc.)
   # Uncomment and pin a specific tag before use, e.g. ghcr.io/berriai/litellm:main-v1.x.y
   # litellm:
-  #   image: ghcr.io/berriai/litellm:main-latest  # pin a specific tag
+  #   image: ghcr.io/berriai/litellm:main-v1.x.y  # pin a specific tag before uncommenting
   #   ports:
   #     - "4000:4000"
   #   volumes:

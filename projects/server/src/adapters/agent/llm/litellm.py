@@ -36,16 +36,17 @@ class LiteLLMAdapter:
                 }
                 for t in request.tools
             ]
-        client = self._client
-        if client is None:
+        if self._client is None:
             import httpx
 
-            client = httpx.Client(timeout=600)
+            self._client = httpx.Client(timeout=600)
+        client = self._client
         resp = client.post(
             f"{self._base_url}/chat/completions",
             json=payload,
             headers={"Authorization": f"Bearer {self._key}"},
         )
+        resp.raise_for_status()
         body = resp.json()
         choice = body["choices"][0]
         message = choice.get("message", {})

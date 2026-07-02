@@ -1,5 +1,6 @@
 import json
 
+import pytest
 from adapters.agent.llm.litellm import LiteLLMAdapter
 from domain.agent.llm import LLMMessage, LLMRequest, MessageRole, ToolCall, ToolSpec
 
@@ -7,6 +8,9 @@ from domain.agent.llm import LLMMessage, LLMRequest, MessageRole, ToolCall, Tool
 class _FakeResp:
     def __init__(self, body):
         self._body = body
+
+    def raise_for_status(self):
+        return None
 
     def json(self):
         return self._body
@@ -107,3 +111,20 @@ def test_outbound_tool_result_and_assistant_tool_calls():
     assert json.loads(assistant["tool_calls"][0]["function"]["arguments"]) == {"cmd": "ls"}
     tool_msg = next(m for m in msgs if m["role"] == "tool")
     assert tool_msg["tool_call_id"] == "tc2" and tool_msg["content"] == "exit=0"
+
+
+def test_gateway_http_error_propagates():
+    class _ErrResp:
+        def raise_for_status(self):
+            raise RuntimeError("HTTP 401")
+
+        def json(self):
+            return {}
+
+    class _ErrClient:
+        def post(self, url, json, headers):
+            return _ErrResp()
+
+    adapter = LiteLLMAdapter(base_url="http://lite:4000", key="k", client=_ErrClient())
+    with pytest.raises(RuntimeError):
+        adapter.complete(LLMRequest(model="gpt", messages=[]))
