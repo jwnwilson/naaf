@@ -1,11 +1,8 @@
+import { useState } from "react";
 import { Avatar } from "../../components/ui/Avatar";
 import { Button } from "../../components/ui/Button";
-import { StatusBadge } from "../../components/ui/StatusBadge";
-import type { components } from "../../lib/api/schema";
-import { useInboxConversation } from "./useInboxConversation";
-
-type InboxItem = components["schemas"]["InboxItem"];
-type Message = components["schemas"]["Message"];
+import { useThreadMessages, useSendMessage } from "../../lib/api/hooks";
+import type { Message } from "../../lib/api/hooks";
 
 const AGENT_BUBBLE_STYLE: React.CSSProperties = {
   background: "#131618",
@@ -46,100 +43,63 @@ function MessageBubble({ message }: { message: Message }) {
   );
 }
 
-export function ConversationPane({ item }: { item: InboxItem }) {
-  const { data, isLoading } = useInboxConversation(item.conversationId);
-  const messages = data?.results ?? [];
+export function ConversationPane({ threadId }: { threadId: string }) {
+  const { data: messages = [], isLoading } = useThreadMessages(threadId);
+  const send = useSendMessage(threadId);
+  const [value, setValue] = useState("");
+  const disabled = value.trim().length === 0;
+
+  function submit() {
+    if (disabled) return;
+    send.mutate({ content: value.trim() });
+    setValue("");
+  }
 
   return (
     <div className="flex flex-col h-full flex-1 overflow-hidden">
-      {/* Header */}
       <div
         className="flex items-center gap-2 shrink-0 px-4"
-        style={{
-          height: 44,
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-        }}
+        style={{ height: 44, borderBottom: "1px solid rgba(255,255,255,0.06)" }}
       >
-        <Avatar
-          initials={agentInitials(item.agentId)}
-          variant="agent"
-          size={22}
-        />
-        <span className="text-[12.5px] font-medium text-[#c4c5cb]">
-          {item.agentId}
-        </span>
-        <span className="font-mono text-[11px] text-[#7c6cf0]">
-          {item.workItemId}
-        </span>
-        <StatusBadge kind={item.type} />
-        <div className="flex-1" />
-        <Button variant="secondary">View PR</Button>
-        <Button variant="tertiary">Dismiss</Button>
+        <Avatar initials="LEAD" variant="agent" size={22} />
+        <span className="text-[12.5px] font-medium text-[#c4c5cb]">lead</span>
       </div>
 
-      {/* Message list */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        {isLoading && (
-          <p className="text-[11px] text-[#30333c]">Loading…</p>
-        )}
+        {isLoading && <p className="text-[11px] text-[#30333c]">Loading…</p>}
         {!isLoading && messages.length === 0 && (
           <p className="text-[11px] text-[#30333c]">No messages yet</p>
         )}
-        {messages.map((msg) => (
+        {messages.map((msg: Message) => (
           <MessageBubble key={msg.id} message={msg} />
         ))}
-
-        {/* Quick actions shown when there are messages */}
-        {messages.length > 0 && (
-          <div className="flex gap-2 mt-2">
-            <Button variant="primary">Approve PR</Button>
-            <Button variant="secondary">Request changes</Button>
-            <Button variant="tertiary">Skip</Button>
-          </div>
-        )}
       </div>
 
-      {/* Reply input (display-only for A2) */}
       <div
         className="shrink-0 px-4 py-3"
         style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
       >
-        <div
-          className="rounded-[6px] px-3 py-2"
-          style={{
-            background: "#0e0f11",
-            border: "1px solid rgba(255,255,255,0.09)",
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
           }}
+          className="rounded-[6px] px-3 py-2"
+          style={{ background: "#0e0f11", border: "1px solid rgba(255,255,255,0.09)" }}
         >
-          {/* Context chips */}
-          <div className="flex gap-2 mb-2">
-            <span
-              className="text-[10.5px] font-mono px-[6px] py-[2px] rounded"
-              style={{
-                background: "rgba(124,108,240,0.10)",
-                color: "#bab7f6",
-              }}
-            >
-              @{item.agentId}
-            </span>
-            <span className="text-[10.5px] text-[#30333c] cursor-pointer">
-              + attach
-            </span>
-          </div>
-
-          {/* Input row */}
           <div className="flex items-center justify-between gap-2">
             <input
-              readOnly
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
               placeholder="Reply to agent…"
               className="bg-transparent text-[12px] flex-1 outline-none"
-              style={{ color: "#8a8d96" }}
+              style={{ color: "#c4c5cb" }}
             />
-            <Button variant="primary" disabled>
+            <Button type="submit" variant="primary" disabled={disabled}>
               Send ↑
             </Button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );

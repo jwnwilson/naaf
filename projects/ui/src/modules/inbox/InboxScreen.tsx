@@ -1,20 +1,14 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useInbox } from "../../lib/api/hooks/useInbox";
+import { useThreads } from "../../lib/api/hooks";
 import { ConversationPane } from "./ConversationPane";
 import { InboxList } from "./InboxList";
 
 export function InboxScreen() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
-  const { data, isLoading } = useInbox();
+  const { data: threads = [], isLoading } = useThreads();
 
-  const items = data?.results ?? [];
-  const selectedId = id ?? items[0]?.id;
-  const selectedItem = items.find((item) => item.id === selectedId);
-
-  function handleSelect(itemId: string) {
-    navigate(`/inbox/${itemId}`);
-  }
+  const selectedId = id ?? threads[0]?.id;
 
   if (isLoading) {
     return (
@@ -24,21 +18,18 @@ export function InboxScreen() {
     );
   }
 
-  if (items.length === 0) {
+  if (threads.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-[12px] text-[#52555e]">No notifications</p>
+        <p className="text-[12px] text-[#52555e]">No conversations</p>
       </div>
     );
   }
 
   return (
     <div className="flex h-full overflow-hidden">
-      <InboxList
-        selectedId={selectedId}
-        onSelect={handleSelect}
-      />
-      {selectedItem && <ConversationPane item={selectedItem} />}
+      <InboxList selectedId={selectedId} onSelect={(tid) => navigate(`/inbox/${tid}`)} />
+      {selectedId && <ConversationPane threadId={selectedId} />}
     </div>
   );
 }
