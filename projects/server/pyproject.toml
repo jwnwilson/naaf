@@ -18,6 +18,7 @@ dependencies = [
     "sse-starlette>=2.1",
     "celery>=5.4",
     "redis>=5",
+    "anthropic>=0.40",
 ]
 
 [tool.uv.sources]

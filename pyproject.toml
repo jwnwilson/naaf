@@ -25,6 +25,7 @@ dev = [
 testpaths = ["projects/server/tests", "libs/crud_router/tests"]
 addopts = "-q --import-mode=importlib"
 filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
+markers = ["integration: hits a real LLM; opt-in"]
 
 [tool.coverage.run]
 source = ["domain", "adapters", "interactors", "crud_router"]
