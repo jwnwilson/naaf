@@ -39,6 +39,27 @@ automatically. Manual re-deploy: run either workflow via `workflow_dispatch`.
   `kubectl rollout undo deployment/naaf-api`.
 - UI: re-run `Deploy UI` from an earlier commit (S3 sync + invalidation).
 
+## LiteLLM gateway (local dev — provider-swap route)
+
+Set these env vars to route the agent runtime through a LiteLLM gateway instead of
+calling Anthropic directly:
+
+```bash
+naaf_llm_provider=litellm
+naaf_litellm_base_url=http://localhost:4000
+naaf_litellm_key=<your-litellm-master-key>
+```
+
+Start the gateway (see the commented-out `litellm` service in `docker-compose.yml`
+— pin a specific `ghcr.io/berriai/litellm:main-v1.x.y` tag before use):
+
+```bash
+docker compose up -d litellm
+```
+
+The gateway proxies OpenAI-compatible `/chat/completions` calls to any backend
+(Anthropic, OpenAI, Azure, Ollama, etc.) via `litellm.config.yaml`.
+
 ## Known follow-ups (out of scope here)
 
 Auth0 wiring (API ships in `dev` auth mode = single shared owner), managed

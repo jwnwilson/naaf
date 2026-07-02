@@ -13,5 +13,17 @@ services:
     image: redis:7
     ports:
       - "6379:6379"
+  # LiteLLM gateway — routes to any provider (OpenAI, Anthropic, etc.)
+  # Uncomment and pin a specific tag before use, e.g. ghcr.io/berriai/litellm:main-v1.x.y
+  # litellm:
+  #   image: ghcr.io/berriai/litellm:main-latest  # pin a specific tag
+  #   ports:
+  #     - "4000:4000"
+  #   volumes:
+  #     - ./litellm.config.yaml:/app/config.yaml
+  #   command: ["--config", "/app/config.yaml", "--port", "4000"]
+  #   environment:
+  #     ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  #     OPENAI_API_KEY: ${OPENAI_API_KEY:-}
 volumes:
   naaf_pg:
