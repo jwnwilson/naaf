@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Protocol
 
 from pydantic import BaseModel, Field
@@ -27,20 +28,26 @@ class StageOutcome(BaseModel):
 
 
 class AgentRuntime(Protocol):
-    def run_stage(self, role: str, stage: Stage, ctx: dict) -> StageOutcome: ...
+    def run_stage(self, role: str, stage: Stage, ctx: StageContext) -> StageOutcome: ...
 
 
 class LlmAgentRuntime:
     """LLM-agnostic agent loop. Reaches the model only through the LLMAdapter port."""
 
-    def __init__(self, llm: LLMAdapter, workspace: Workspace, max_iterations: int = 25):
+    def __init__(
+        self,
+        llm: LLMAdapter,
+        workspace_factory: Callable[[str], Workspace],
+        max_iterations: int = 25,
+    ):
         self._llm = llm
-        self._workspace = workspace
+        self._workspace_factory = workspace_factory
         self._max_iterations = max_iterations
 
     def run_stage(self, role: str, stage: Stage, ctx: StageContext) -> StageOutcome:
         # role/stage are accepted for AgentRuntime interface compatibility; the loop
         # reads them via ctx (ctx.role / ctx.stage).
+        workspace = self._workspace_factory(ctx.workspace_path)
         events: list[AgentEvent] = []
         messages = [LLMMessage(role=MessageRole.USER, content=stage_instruction(ctx))]
         request = LLMRequest(
@@ -81,7 +88,7 @@ class LlmAgentRuntime:
             tool_messages: list[LLMMessage] = []
             for call in response.tool_calls:
                 events.append(AgentEvent(message=f"tool:{call.name} {call.args}"))
-                tr = execute_tool(self._workspace, call)
+                tr = execute_tool(workspace, call)
                 tool_messages.append(
                     LLMMessage(role=MessageRole.TOOL, content=tr.content, tool_call_id=call.id)
                 )

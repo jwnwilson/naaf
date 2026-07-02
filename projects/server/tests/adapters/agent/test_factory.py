@@ -19,10 +19,10 @@ def test_build_llm_adapter_returns_claude(monkeypatch):
     assert isinstance(build_llm_adapter(_S()), ClaudeLLMAdapter)
 
 
-def test_build_runtime_wires_local_workspace(monkeypatch, tmp_path):
+def test_build_runtime_wires_local_workspace(monkeypatch):
     monkeypatch.setattr(ClaudeLLMAdapter, "__init__",
                         lambda self, **kw: setattr(self, "_client", object()) or None)
-    rt = build_runtime(_S(), str(tmp_path))
+    rt = build_runtime(_S())
     assert isinstance(rt, LlmAgentRuntime)
 
 
@@ -37,4 +37,4 @@ def test_build_runtime_fake_returns_fake():
     from adapters.agent.runtime.fake import FakeAgentRuntime
     class S:
         agent_runtime = "fake"
-    assert isinstance(build_runtime(S(), "/tmp/ws"), FakeAgentRuntime)
+    assert isinstance(build_runtime(S()), FakeAgentRuntime)

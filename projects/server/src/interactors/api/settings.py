@@ -18,3 +18,5 @@ class Settings(BaseSettings):
     agent_max_iterations: int = 25
     agent_bash_timeout_s: int = 120
     agent_runtime: str = "claude_code"
+    workspace_root: str = "/tmp/naaf-workspaces"
+    role_model_aliases: dict[str, str] = {}

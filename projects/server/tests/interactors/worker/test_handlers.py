@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 
 from adapters.agent.runtime.fake import FakeAgentRuntime
 from domain.agent.runtime import StageResult
+from domain.errors import RecordNotFound
 from domain.runs.messages import AgentMessage, MessageType
 from domain.runs.run import Run, RunStatus, Stage
 from interactors.worker import handlers
@@ -36,7 +37,10 @@ class FakeRepo:
         return dto
 
     def read(self, id_):
-        return self.saved[id_]
+        try:
+            return self.saved[id_]
+        except KeyError:
+            raise RecordNotFound(id_) from None
 
 
 # ---------------------------------------------------------------------------

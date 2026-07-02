@@ -37,12 +37,12 @@ celery_app.conf.beat_schedule = {
 @lru_cache(maxsize=1)
 def _deps() -> tuple[sessionmaker, AgentRuntime]:
     """Build heavy resources once, on first use."""
-    from adapters.agent.runtime.fake import FakeAgentRuntime
+    from adapters.agent.factory import build_runtime
     from adapters.database.engine import build_engine, build_session_factory
 
     engine = build_engine(Settings().db_url)
     session_factory = build_session_factory(engine)
-    runtime: AgentRuntime = FakeAgentRuntime()
+    runtime: AgentRuntime = build_runtime(Settings())
     return session_factory, runtime
 
 
