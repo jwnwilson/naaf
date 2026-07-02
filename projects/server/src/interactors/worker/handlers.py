@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
 from typing import Any
 
+from adapters.agent.provision import provision_workspace
 from domain.agent.context import StageContext, WorkItemBrief
-from domain.agent.runtime import AgentRuntime, StageResult
+from domain.agent.runtime import AgentEvent, AgentRuntime, StageOutcome, StageResult
 from domain.base import utcnow
 from domain.errors import RecordNotFound
 from domain.runs.coupling import work_item_status_for
@@ -27,6 +28,7 @@ class HandlerContext:
     runtime: AgentRuntime | None  # None only in dead-letter cleanup (couple path — no stage runs)
     workspace_root: str = ""
     role_aliases: dict[str, str] | None = field(default=None)
+    projects: Any = None
 
 
 _ROLE_MAP = {
@@ -105,20 +107,24 @@ def _save(ctx: HandlerContext, run: Run) -> Run:
     return run
 
 
-def _run_stage_inline(ctx: HandlerContext, run: Run, role: str, stage: Stage) -> StageResult:
-    # Append a RUNNING entry for this stage (immutable — build a new list)
+def _start_stage(ctx: HandlerContext, run: Run, role: str, stage: Stage) -> Run:
     new_entry = StageState(stage=stage, status=StageStatus.RUNNING, role=role, started_at=utcnow())
-    new_stages = [*run.stages, new_entry]
-    run = _save(ctx, run.model_copy(update={"current_stage": stage, "stages": new_stages}))
+    run = _save(ctx, run.model_copy(update={
+        "current_stage": stage,
+        "stages": [*run.stages, new_entry],
+    }))
     emit(ctx, run, EventType.STAGE_STARTED, stage=stage, role=role)
-    assert ctx.runtime is not None, "_run_stage_inline requires a non-None runtime"
-    outcome = ctx.runtime.run_stage(role, stage, build_stage_context(ctx, run, role, stage))
+    return run
+
+
+def _finish_stage(
+    ctx: HandlerContext, run: Run, role: str, stage: Stage, outcome: StageOutcome
+) -> StageResult:
     for ev in outcome.events:
         emit(ctx, run, EventType.LOG, stage=stage, role=role, payload={"message": ev.message})
-    # Update the last entry with PASSED/FAILED + ended_at (immutable — replace tail)
     final_status = StageStatus.PASSED if outcome.result.passed else StageStatus.FAILED
     updated_entry = run.stages[-1].model_copy(update={"status": final_status, "ended_at": utcnow()})
-    run = _save(ctx, run.model_copy(update={
+    _save(ctx, run.model_copy(update={
         "stages": [*run.stages[:-1], updated_entry],
         "token_usage": run.token_usage + outcome.result.tokens,
     }))
@@ -126,6 +132,52 @@ def _run_stage_inline(ctx: HandlerContext, run: Run, role: str, stage: Stage) ->
     emit(ctx, run, event_type, stage=stage, role=role,
          payload={"summary": outcome.result.summary, "tokens": outcome.result.tokens})
     return outcome.result
+
+
+def _run_stage_inline(ctx: HandlerContext, run: Run, role: str, stage: Stage) -> StageResult:
+    run = _start_stage(ctx, run, role, stage)
+    assert ctx.runtime is not None, "_run_stage_inline requires a non-None runtime"
+    outcome = ctx.runtime.run_stage(role, stage, build_stage_context(ctx, run, role, stage))
+    return _finish_stage(ctx, run, role, stage, outcome)
+
+
+def _provision(ctx: HandlerContext, run: Run) -> StageOutcome:
+    def skip(msg: str) -> StageOutcome:
+        return StageOutcome(
+            events=[AgentEvent(message=msg)],
+            result=StageResult(passed=True, summary=msg),
+        )
+
+    if ctx.projects is None:
+        return skip("provision skipped (no project repository configured)")
+    try:
+        wi = ctx.work_items.read(run.work_item_id)
+        project = ctx.projects.read(wi.project_id)
+    except RecordNotFound:
+        return skip("provision skipped (project not found)")
+    repo = project.repo_url or project.repo_path
+    if not repo:
+        return skip("provision skipped (project has no repo)")
+    root = ctx.workspace_root or "/tmp/naaf-workspaces"
+    try:
+        path = provision_workspace(repo, run.id, root)
+    except Exception as exc:  # git failures should fail the stage, not crash the worker
+        return StageOutcome(
+            events=[AgentEvent(message=f"provision failed: {exc}")],
+            result=StageResult(passed=False, summary=f"provision failed: {exc}"),
+        )
+    return StageOutcome(
+        events=[
+            AgentEvent(message=f"cloned {repo}"),
+            AgentEvent(message=f"branch agent/{run.id} at {path}"),
+        ],
+        result=StageResult(passed=True, summary=f"provisioned {path}"),
+    )
+
+
+def _run_provision_inline(ctx: HandlerContext, run: Run) -> StageResult:
+    run = _start_stage(ctx, run, "lead", Stage.PROVISION)
+    return _finish_stage(ctx, run, "lead", Stage.PROVISION, _provision(ctx, run))
 
 
 def advance(ctx: HandlerContext, run: Run, result: StageResult) -> None:
@@ -173,7 +225,10 @@ def advance(ctx: HandlerContext, run: Run, result: StageResult) -> None:
 
         # Stub stages (PROVISION, PR, LEARN): run inline then keep looping
         if stage in _STUB_STAGES:
-            result = _run_stage_inline(ctx, run, "lead", stage)
+            if stage is Stage.PROVISION:
+                result = _run_provision_inline(ctx, run)
+            else:
+                result = _run_stage_inline(ctx, run, "lead", stage)
             run = ctx.runs.read(run.id)
             continue
 
