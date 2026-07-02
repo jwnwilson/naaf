@@ -114,10 +114,10 @@ VITE_LIVE_API=true pnpm dev
 > worker drives `plan → [✋plan gate] → implement → verify → [✋merge gate] → pr → learn`
 > with `FakeAgentRuntime` (no LLM yet). Observe via `GET /runs/{id}`, `GET /runs/{id}/events`,
 > the SSE stream `GET /runs/{id}/events/stream`, and resolve gates via
-> `POST /runs/{id}/gate {"decision":"approve"|"reject"}`. The UI run/agent/inbox screens stay
-> **mocked** for now — wiring them live needs a contract reconciliation (the mock-era
-> `schema.d.ts` run/agent shapes diverge from the A3 `RunOut`/`RunEventOut`); tracked as an
-> A3 follow-up.
+> `POST /runs/{id}/gate {"decision":"approve"|"reject"}`. The UI **run monitor** (Detail
+> screen) and **inbox** are now wired live to this API (`RunOut`/`RunEventOut` + SSE + gate
+> Approve/Reject). Still mocked: the `Agent`-entity **dashboard/board "live agents" panels**
+> and token/cost pricing (A5/A5d).
 
 ## Status
 
