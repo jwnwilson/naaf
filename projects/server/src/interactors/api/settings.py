@@ -14,9 +14,22 @@ class Settings(BaseSettings):
     anthropic_base_url: str = ""           # blank = Anthropic default
     litellm_base_url: str = ""
     litellm_key: str = ""
-    model_aliases: dict[str, str] = {}     # alias -> concrete model id (claude adapter)
+    model_aliases: dict[str, str] = {
+        "opus": "claude-opus-4-8",
+        "sonnet": "claude-sonnet-4-6",
+        "haiku": "claude-haiku-4-5",
+    }
     agent_max_iterations: int = 25
     agent_bash_timeout_s: int = 120
     agent_runtime: str = "claude_code"
     workspace_root: str = "/tmp/naaf-workspaces"
-    role_model_aliases: dict[str, str] = {}
+    role_model_aliases: dict[str, str] = {
+        "lead": "opus",
+        "architect": "opus",
+        "engineer": "sonnet",
+        "backend": "sonnet",
+        "frontend": "sonnet",
+        "qa": "haiku",
+        "curator": "haiku",
+        "devops": "sonnet",
+    }

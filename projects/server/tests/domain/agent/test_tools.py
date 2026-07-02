@@ -16,7 +16,7 @@ class _RecordingWorkspace:
 
 def test_tool_specs_cover_the_toolset():
     names = {t.name for t in TOOL_SPECS}
-    assert names == {"read_file", "write_file", "edit_file", "grep", "bash"}
+    assert names == {"read_file", "write_file", "edit_file", "grep", "bash", "report"}
 
 
 def test_execute_read_file_returns_contents():

@@ -239,6 +239,7 @@ def advance(ctx: HandlerContext, run: Run, result: StageResult) -> None:
         # Stub stages (PROVISION, PR, LEARN): run inline then keep looping
         if stage in _STUB_STAGES:
             if stage is Stage.PROVISION:
+                # unreachable: PROVISION runs once at START, never advanced-to; kept for safety
                 result = _run_provision_inline(ctx, run)
             elif stage is Stage.PR:
                 result = _run_stage_inline(ctx, run, "lead", stage)
@@ -273,6 +274,11 @@ def handle_lead(msg: AgentMessage, ctx: HandlerContext) -> None:
         }))
         emit(ctx, run, EventType.RUN_STARTED, role="lead")
         couple(ctx, run)
+        prov = _run_provision_inline(ctx, run)
+        run = ctx.runs.read(run.id)
+        if not prov.passed:
+            advance(ctx, run, prov)  # I1: failed PROVISION halts the run (Finish FAILED)
+            return
         result = _run_stage_inline(ctx, run, "lead", Stage.PLAN)
         run = ctx.runs.read(run.id)
         advance(ctx, run, result)

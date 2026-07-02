@@ -4,7 +4,8 @@ from domain.runs.run import Stage
 _BASE = (
     "You are an autonomous software engineer working in a git workspace. "
     "Use the provided tools to inspect and change files and run commands. "
-    "When you have completed the stage, stop calling tools and give a one-line summary."
+    "When the stage is done, either call the `report` tool with your verdict (required for "
+    "VERIFY) or, for other stages, stop calling tools and give a one-line summary."
 )
 
 _STAGE_INSTRUCTIONS = {
@@ -13,7 +14,8 @@ _STAGE_INSTRUCTIONS = {
     Stage.IMPLEMENT: "Implement the ticket. Edit files, run the build, and commit your changes.",
     Stage.VERIFY: (
         "You are QA in a fresh context. Run the tests, lint, and build, and check the "
-        "acceptance criteria. Report whether the work is done."
+        "acceptance criteria. Then call the `report` tool with passed=true only if everything "
+        "passes, otherwise passed=false with a summary of what failed."
     ),
     Stage.PR: (
         "Push the agent branch and run `gh pr create` to open a pull request summarizing the "

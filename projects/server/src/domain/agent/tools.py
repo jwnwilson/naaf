@@ -53,6 +53,21 @@ TOOL_SPECS: list[ToolSpec] = [
             "required": ["cmd"],
         },
     ),
+    ToolSpec(
+        name="report",
+        description=(
+            "Report the outcome of this stage and finish. Call this to end the stage with an "
+            "explicit pass/fail verdict (required for the VERIFY stage)."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "passed": {"type": "boolean"},
+                "summary": {"type": "string"},
+            },
+            "required": ["passed", "summary"],
+        },
+    ),
 ]
 
 

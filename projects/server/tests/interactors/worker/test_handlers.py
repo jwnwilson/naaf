@@ -1,12 +1,16 @@
 """Unit tests for the worker agent handlers — focused on the advance loop."""
 
+import uuid
 from dataclasses import dataclass, field
 
 from adapters.agent.runtime.fake import FakeAgentRuntime
 from domain.agent.runtime import StageResult
 from domain.errors import RecordNotFound
+from domain.project import Project
+from domain.runs.events import EventType
 from domain.runs.messages import AgentMessage, MessageType
 from domain.runs.run import Run, RunStatus, Stage
+from domain.work_item import WorkItem, WorkItemKind
 from interactors.worker import handlers
 
 # ---------------------------------------------------------------------------
@@ -99,3 +103,75 @@ def test_advance_full_auto_chains_provision_stub_then_hands_off_to_engineer():
     # Assert: run was updated to IMPLEMENT stage
     saved_run = runs.read(run.id)
     assert saved_run.current_stage is Stage.IMPLEMENT
+
+
+def _start_msg(run_id: str) -> AgentMessage:
+    return AgentMessage(
+        owner_id="u",
+        run_id=run_id,
+        recipient="lead",
+        role="lead",
+        type=MessageType.START,
+    )
+
+
+def test_start_emits_provision_stage_before_plan_stage():
+    """handle_lead START must emit STAGE_STARTED for PROVISION before PLAN.
+
+    ctx.projects is None → _provision returns a skip (passed=True), so the full
+    pipeline runs. We verify ordering by inspecting the stage on each STAGE_STARTED event.
+    """
+    run = Run(owner_id="u", work_item_id="w", project_id="p", autonomy_level="full_auto")
+    ctx, runs, _ = _make_ctx()
+    runs.create(run)
+
+    handlers.handle_lead(_start_msg(run.id), ctx)
+
+    started = [
+        e for e in ctx.run_events.saved.values()
+        if e.type is EventType.STAGE_STARTED
+    ]
+    stage_order = [e.stage.value for e in started]
+    assert stage_order[0] == "provision", f"expected provision first, got {stage_order}"
+    assert stage_order[1] == "plan", f"expected plan second, got {stage_order}"
+
+
+def test_start_with_failing_provision_halts_before_plan():
+    """When PROVISION fails, the run must end FAILED and PLAN must never start.
+
+    We trigger a failing provision by wiring ctx.projects to return a project
+    whose repo_path points at a non-existent directory, causing provision_workspace
+    to raise (git clone fails) so _provision returns passed=False.
+    """
+    run = Run(owner_id="u", work_item_id="w", project_id="p", autonomy_level="full_auto")
+    ctx, runs, _ = _make_ctx()
+    runs.create(run)
+
+    # Wire work_items so _provision can look up the project
+    wi = WorkItem(id="w", owner_id="u", project_id="p", kind=WorkItemKind.TASK,
+                  title="T", status="todo")
+    ctx.work_items.create(wi)
+
+    # Wire projects with a bad repo path so provision_workspace raises
+    bad_repo = f"/tmp/naaf-nonexistent-{uuid.uuid4().hex}"
+    project = Project(id="p", owner_id="u", name="P", repo_path=bad_repo)
+    ctx.projects = FakeRepo()
+    ctx.projects.create(project)
+
+    handlers.handle_lead(_start_msg(run.id), ctx)
+
+    # Run must be FAILED
+    saved_run = runs.read(run.id)
+    assert saved_run.status is RunStatus.FAILED, (
+        f"expected FAILED after provision error, got {saved_run.status}"
+    )
+
+    # PLAN must never have started
+    started_stages = {
+        e.stage.value
+        for e in ctx.run_events.saved.values()
+        if e.type is EventType.STAGE_STARTED
+    }
+    assert "plan" not in started_stages, (
+        f"PLAN must not start when PROVISION fails; started stages: {started_stages}"
+    )

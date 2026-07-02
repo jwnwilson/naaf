@@ -10,6 +10,8 @@ from domain.agent.tools import TOOL_SPECS, execute_tool
 from domain.agent.workspace import Workspace
 from domain.runs.run import Stage
 
+MAX_OUTPUT_TOKENS = 16000
+
 
 class AgentEvent(BaseModel):
     type: str = "log"
@@ -55,7 +57,7 @@ class LlmAgentRuntime:
             system=system_prompt(ctx),
             messages=messages,
             tools=TOOL_SPECS,
-            max_tokens=ctx.agent.token_limit,
+            max_tokens=min(ctx.agent.token_limit, MAX_OUTPUT_TOKENS),
         )
         final_text = ""
         total_tokens = 0
@@ -68,11 +70,24 @@ class LlmAgentRuntime:
                 final_text = response.content
                 events.append(AgentEvent(message=response.content))
 
+            report = next((c for c in response.tool_calls if c.name == "report"), None)
+            if report is not None:
+                return StageOutcome(
+                    events=events,
+                    result=StageResult(
+                        passed=bool(report.args.get("passed", ctx.stage is not Stage.VERIFY)),
+                        summary=str(report.args.get("summary", final_text or "ok")),
+                        tokens=total_tokens,
+                    ),
+                )
+
             if response.stop_reason != "tool_use" or not response.tool_calls:
                 return StageOutcome(
                     events=events,
                     result=StageResult(
-                        passed=True, summary=final_text or "ok", tokens=total_tokens
+                        passed=ctx.stage is not Stage.VERIFY,
+                        summary=final_text or "ok",
+                        tokens=total_tokens,
                     ),
                 )
 
@@ -87,6 +102,8 @@ class LlmAgentRuntime:
             ]
             tool_messages: list[LLMMessage] = []
             for call in response.tool_calls:
+                if call.name == "report":
+                    continue
                 events.append(AgentEvent(message=f"tool:{call.name} {call.args}"))
                 tr = execute_tool(workspace, call)
                 tool_messages.append(

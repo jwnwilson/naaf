@@ -122,3 +122,67 @@ def test_runtime_builds_workspace_from_ctx_path():
         "engineer", Stage.PLAN, _ctx(Stage.PLAN)
     )
     assert seen["p"] == "/ws"
+
+
+def test_verify_fails_without_report():
+    # VERIFY stage: LLM returns end_turn with no report tool → must fail (fail-safe)
+    llm = FakeLLMAdapter([LLMResponse(content="looks good", stop_reason="end_turn")])
+    outcome = LlmAgentRuntime(llm=llm, workspace_factory=lambda _p: _Workspace()).run_stage(
+        "qa", Stage.VERIFY, _ctx(Stage.VERIFY)
+    )
+    assert outcome.result.passed is False
+
+
+def test_report_tool_sets_verdict():
+    # LLM returns a report tool call with passed=False → outcome must reflect it,
+    # and the workspace must NOT have been asked to execute the report tool.
+    ws = _Workspace()
+    executed: list[str] = []
+    original_bash = ws.bash
+
+    def tracking_bash(cmd, timeout_s):
+        executed.append(cmd)
+        return original_bash(cmd, timeout_s)
+
+    ws.bash = tracking_bash
+
+    llm = FakeLLMAdapter([
+        LLMResponse(
+            tool_calls=[
+                ToolCall(id="r", name="report", args={"passed": False, "summary": "tests failed"})
+            ],
+            stop_reason="tool_use",
+        )
+    ])
+    outcome = LlmAgentRuntime(llm=llm, workspace_factory=lambda _p: ws).run_stage(
+        "qa", Stage.VERIFY, _ctx(Stage.VERIFY)
+    )
+    assert outcome.result.passed is False
+    assert outcome.result.summary == "tests failed"
+    # report is a terminal signal — workspace must never execute it
+    assert executed == []
+
+
+def test_max_tokens_capped():
+    # token_limit=200000 on the agent but the request must be capped at MAX_OUTPUT_TOKENS
+    from domain.agent.runtime import MAX_OUTPUT_TOKENS
+    llm = FakeLLMAdapter([LLMResponse(content="done", stop_reason="end_turn")])
+    ctx = StageContext(
+        run_id="r",
+        role="engineer",
+        stage=Stage.IMPLEMENT,
+        workspace_path="/ws",
+        work_item=WorkItemBrief(title="Big task"),
+        agent=AgentDefinition(
+            owner_id="o",
+            team_id="t",
+            role=AgentRole.BACKEND,
+            model_alias="sonnet",
+            token_limit=200000,
+        ),
+    )
+    LlmAgentRuntime(llm=llm, workspace_factory=lambda _p: _Workspace()).run_stage(
+        "engineer", Stage.IMPLEMENT, ctx
+    )
+    assert llm.requests[0].max_tokens == MAX_OUTPUT_TOKENS
+    assert llm.requests[0].max_tokens == 16000

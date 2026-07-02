@@ -38,3 +38,11 @@ def test_build_runtime_fake_returns_fake():
     class S:
         agent_runtime = "fake"
     assert isinstance(build_runtime(S()), FakeAgentRuntime)
+
+
+def test_build_llm_adapter_missing_key_raises():
+    class S:
+        llm_provider = "claude"
+        anthropic_api_key = ""
+    with pytest.raises(ValueError, match="naaf_anthropic_api_key"):
+        build_llm_adapter(S())
