@@ -191,6 +191,8 @@ class RunOut(BaseModel):
     updatedAt: str
     startedAt: str | None = None
     endedAt: str | None = None
+    tokenUsage: int
+    cost: float
 
 
 class RunEventOut(BaseModel):

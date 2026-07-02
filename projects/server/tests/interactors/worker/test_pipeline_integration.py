@@ -136,7 +136,9 @@ def test_run_accumulates_token_usage_from_stages(session_factory):
     _start(session_factory, run_id)
     _drain(session_factory, rt)
     run, events = _read_run(session_factory, run_id)
-    passed_tokens = sum(e.payload.get("tokens", 0) for e in events if e.type.value == "stage_passed")
+    passed_tokens = sum(
+        e.payload.get("tokens", 0) for e in events if e.type.value == "stage_passed"
+    )
     assert run.token_usage > 0
     assert run.token_usage == passed_tokens
 

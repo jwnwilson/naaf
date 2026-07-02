@@ -149,7 +149,9 @@ def test_migration_creates_messages(tmp_path):
 
 
 def test_migration_adds_run_token_usage(tmp_path):
-    import os, sqlite3, subprocess
+    import os
+    import sqlite3
+    import subprocess
     from pathlib import Path
     db = tmp_path / "naaf.db"
     server = Path(__file__).resolve().parents[2]

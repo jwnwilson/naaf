@@ -31,4 +31,5 @@ class FakeAgentRuntime:
             passed = False
         summary = "ok" if passed else "verification failed"
         tokens = TOKENS_PER_STEP * len(events)
-        return StageOutcome(events=events, result=StageResult(passed=passed, summary=summary, tokens=tokens))
+        result = StageResult(passed=passed, summary=summary, tokens=tokens)
+        return StageOutcome(events=events, result=result)
