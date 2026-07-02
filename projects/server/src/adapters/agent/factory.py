@@ -18,7 +18,7 @@ def build_llm_adapter(settings):
 
 
 def build_runtime(settings, workspace_root: str) -> AgentRuntime:
-    if getattr(settings, "agent_runtime", "claude_code") == "fake":
+    if settings.agent_runtime == "fake":
         from adapters.agent.runtime.fake import FakeAgentRuntime
         return FakeAgentRuntime()
     return LlmAgentRuntime(

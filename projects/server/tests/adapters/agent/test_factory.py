@@ -1,3 +1,4 @@
+import pytest
 from adapters.agent.factory import build_llm_adapter, build_runtime
 from adapters.agent.llm.claude import ClaudeLLMAdapter
 from domain.agent.runtime import LlmAgentRuntime
@@ -23,3 +24,17 @@ def test_build_runtime_wires_local_workspace(monkeypatch, tmp_path):
                         lambda self, **kw: setattr(self, "_client", object()) or None)
     rt = build_runtime(_S(), str(tmp_path))
     assert isinstance(rt, LlmAgentRuntime)
+
+
+def test_build_llm_adapter_unknown_provider_raises():
+    class S:
+        llm_provider = "bogus"
+    with pytest.raises(ValueError):
+        build_llm_adapter(S())
+
+
+def test_build_runtime_fake_returns_fake():
+    from adapters.agent.runtime.fake import FakeAgentRuntime
+    class S:
+        agent_runtime = "fake"
+    assert isinstance(build_runtime(S(), "/tmp/ws"), FakeAgentRuntime)
