@@ -39,6 +39,8 @@ class LlmAgentRuntime:
         self._max_iterations = max_iterations
 
     def run_stage(self, role: str, stage: Stage, ctx: StageContext) -> StageOutcome:
+        # role/stage are accepted for AgentRuntime interface compatibility; the loop
+        # reads them via ctx (ctx.role / ctx.stage).
         events: list[AgentEvent] = []
         messages = [LLMMessage(role=MessageRole.USER, content=stage_instruction(ctx))]
         request = LLMRequest(
@@ -76,12 +78,14 @@ class LlmAgentRuntime:
                     tool_calls=response.tool_calls,
                 ),
             ]
+            tool_messages: list[LLMMessage] = []
             for call in response.tool_calls:
                 events.append(AgentEvent(message=f"tool:{call.name} {call.args}"))
                 tr = execute_tool(self._workspace, call)
-                messages.append(
+                tool_messages.append(
                     LLMMessage(role=MessageRole.TOOL, content=tr.content, tool_call_id=call.id)
                 )
+            messages = [*messages, *tool_messages]
 
         return StageOutcome(
             events=events,

@@ -85,6 +85,7 @@ def test_runtime_fails_when_iterations_exhausted():
     outcome = runtime.run_stage("engineer", Stage.IMPLEMENT, _ctx())
     assert outcome.result.passed is False
     assert "iteration" in outcome.result.summary.lower()
+    assert outcome.result.tokens == 0
 
 
 def test_runtime_accumulates_usage_tokens():
