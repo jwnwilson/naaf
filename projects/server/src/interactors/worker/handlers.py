@@ -239,6 +239,7 @@ def advance(ctx: HandlerContext, run: Run, result: StageResult) -> None:
         # Stub stages (PROVISION, PR, LEARN): run inline then keep looping
         if stage in _STUB_STAGES:
             if stage is Stage.PROVISION:
+                # unreachable: PROVISION runs once at START, never advanced-to; kept for safety
                 result = _run_provision_inline(ctx, run)
             elif stage is Stage.PR:
                 result = _run_stage_inline(ctx, run, "lead", stage)
