@@ -17,3 +17,4 @@ class Settings(BaseSettings):
     model_aliases: dict[str, str] = {}     # alias -> concrete model id (claude adapter)
     agent_max_iterations: int = 25
     agent_bash_timeout_s: int = 120
+    agent_runtime: str = "claude_code"
