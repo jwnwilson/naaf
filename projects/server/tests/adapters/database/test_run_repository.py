@@ -76,6 +76,19 @@ def test_run_events_get_monotonic_global_seq_across_runs(session_factory):
     assert a.seq == 1 and b.seq == 1 and c.seq == 2                        # per-run unchanged
 
 
+def test_run_persists_token_usage(session_factory):
+    from adapters.database.uow import SqlUnitOfWork
+    from domain.runs.run import Run
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
+    with uow.transaction():
+        run = uow.runs.create(
+            Run(owner_id="", work_item_id="w1", project_id="p1", autonomy_level="full_auto",
+                token_usage=1750)
+        )
+        got = uow.runs.read(run.id)
+    assert got.token_usage == 1750
+
+
 def test_list_after_is_global_and_ordered(session_factory):
     from adapters.database.repositories import RunEventRepository
     from adapters.database.uow import SqlUnitOfWork
