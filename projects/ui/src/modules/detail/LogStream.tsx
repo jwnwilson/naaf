@@ -1,6 +1,6 @@
 import type { components } from "../../lib/api/schema";
 
-type LogLine = components["schemas"]["LogLine"];
+type RunEventOut = components["schemas"]["RunEventOut"];
 
 function formatTimestamp(ts: string): string {
   try {
@@ -10,71 +10,48 @@ function formatTimestamp(ts: string): string {
   }
 }
 
-function isFilePath(target: string): boolean {
-  return target.includes("/") || target.includes(".");
+function lineFor(ev: RunEventOut): string {
+  const p = ev.payload as Record<string, unknown>;
+  switch (ev.type) {
+    case "log":
+      return String(p.message ?? "");
+    case "stage_started":
+      return `▶ ${ev.stage} started`;
+    case "stage_passed":
+      return `✓ ${ev.stage} (${Number(p.tokens ?? 0)} tok)`;
+    case "stage_failed":
+      return `✕ ${ev.stage} failed`;
+    case "gate_requested":
+      return `⏸ gate: ${String(p.kind ?? "")}`;
+    case "gate_resolved":
+      return `▶ gate ${String(p.decision ?? "")}`;
+    case "run_started":
+      return "▶ run started";
+    case "run_finished":
+      return `■ run ${String(p.status ?? "finished")}`;
+    default:
+      return ev.type;
+  }
 }
 
-function LogEntry({ line }: { line: LogLine }) {
-  const isToolLine = line.type === "tool_call" || line.type === "result";
-
+function LogEntry({ ev }: { ev: RunEventOut }) {
   return (
     <div className="flex gap-2 items-baseline">
       <span className="flex-shrink-0" style={{ color: "#28292e" }}>
-        {formatTimestamp(line.timestamp)}
+        {formatTimestamp(ev.createdAt)}
       </span>
-
-      {isToolLine ? (
-        <>
-          {line.tool && (
-            <span style={{ color: "#6b6e76" }}>{line.tool}</span>
-          )}
-          {line.target && (
-            <span style={{ color: isFilePath(line.target) ? "#7c6cf0" : "#6b6e76" }}>
-              {line.target}
-            </span>
-          )}
-          {line.message && (
-            <span style={{ color: "#42454e" }}>{line.message}</span>
-          )}
-        </>
-      ) : (
-        <span style={{ color: "#42454e" }}>{line.message}</span>
-      )}
+      {ev.stage && <span style={{ color: "#6b6e76" }}>{ev.stage}</span>}
+      <span style={{ color: "#42454e" }}>{lineFor(ev)}</span>
     </div>
   );
 }
 
-export function LogStream({ lines }: { lines: LogLine[] }) {
-  if (lines.length === 0) {
-    return (
-      <div
-        className="font-mono text-[11px] px-3 py-3"
-        style={{
-          background: "#07080a",
-          borderRadius: 6,
-          color: "#42454e",
-          lineHeight: 1.8,
-        }}
-      >
-        No log output yet.
-      </div>
-    );
-  }
-
+export function LogStream({ events }: { events: RunEventOut[] }) {
   return (
-    <div
-      className="font-mono text-[11px] overflow-y-auto"
-      style={{
-        background: "#07080a",
-        borderRadius: 6,
-        lineHeight: 1.8,
-      }}
-    >
-      <div className="px-3 py-2">
-        {lines.map((line, idx) => (
-          <LogEntry key={idx} line={line} />
-        ))}
-      </div>
+    <div className="flex flex-col gap-1 px-5 py-3 font-mono text-[10.5px] overflow-y-auto">
+      {events.map((ev) => (
+        <LogEntry key={ev.id} ev={ev} />
+      ))}
     </div>
   );
 }

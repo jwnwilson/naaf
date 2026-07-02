@@ -1,7 +1,16 @@
 import { Fragment } from "react";
 import type { components } from "../../lib/api/schema";
 
-type RunStep = components["schemas"]["RunStep"];
+type StageStateOut = components["schemas"]["StageStateOut"];
+
+type Circle = "done" | "active" | "failed" | "pending";
+
+function circle(status: string): Circle {
+  if (status === "passed") return "done";
+  if (status === "running" || status === "gated") return "active";
+  if (status === "failed") return "failed";
+  return "pending"; // pending, skipped
+}
 
 const CHECK_ICON = (
   <svg width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
@@ -15,8 +24,8 @@ const CHECK_ICON = (
   </svg>
 );
 
-function StepCircle({ step }: { step: RunStep }) {
-  if (step.status === "done") {
+function StageCircle({ state, index }: { state: Circle; index: number }) {
+  if (state === "done") {
     return (
       <div
         className="flex items-center justify-center text-[#8a8d96]"
@@ -33,7 +42,7 @@ function StepCircle({ step }: { step: RunStep }) {
     );
   }
 
-  if (step.status === "active") {
+  if (state === "active") {
     return (
       <div
         className="flex items-center justify-center font-mono text-[#bab7f6] animate-[pulse_2s_infinite]"
@@ -46,12 +55,29 @@ function StepCircle({ step }: { step: RunStep }) {
           fontSize: 8,
         }}
       >
-        {step.index + 1}
+        {index + 1}
       </div>
     );
   }
 
-  // pending
+  if (state === "failed") {
+    return (
+      <div
+        className="flex items-center justify-center font-mono text-[#f0a0a0]"
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: "50%",
+          background: "rgba(240,120,120,0.12)",
+          border: "1.5px solid #7a3a3a",
+          fontSize: 9,
+        }}
+      >
+        ✕
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -65,13 +91,14 @@ function StepCircle({ step }: { step: RunStep }) {
   );
 }
 
-export function StepTimeline({ steps }: { steps: RunStep[] }) {
+export function StepTimeline({ stages }: { stages: StageStateOut[] }) {
   return (
     <div className="flex items-start px-5 py-3.5">
-      {steps.map((step, idx) => {
-        const prevDone = idx > 0 && steps[idx - 1].status === "done";
+      {stages.map((s, idx) => {
+        const state = circle(s.status);
+        const prevDone = idx > 0 && circle(stages[idx - 1].status) === "done";
         return (
-          <Fragment key={step.index}>
+          <Fragment key={`${s.stage}-${idx}`}>
             {idx > 0 && (
               <div
                 className="flex-1"
@@ -83,15 +110,15 @@ export function StepTimeline({ steps }: { steps: RunStep[] }) {
               />
             )}
             <div className="flex flex-col items-center" style={{ gap: 4 }}>
-              <StepCircle step={step} />
+              <StageCircle state={state} index={idx} />
               <span
                 className="font-mono"
                 style={{
                   fontSize: 8.5,
-                  color: step.status === "active" ? "#bab7f6" : "#2e3038",
+                  color: state === "active" ? "#bab7f6" : "#2e3038",
                 }}
               >
-                {step.label}
+                {s.stage}
               </span>
             </div>
           </Fragment>
