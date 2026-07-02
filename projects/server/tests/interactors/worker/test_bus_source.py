@@ -23,6 +23,25 @@ def _sys_uow(session_factory):
     return SqlUnitOfWork(session_factory)  # no owner filter — system level
 
 
+def _publish(session_factory, role):
+    s = session_factory()
+    build_message_bus(s).publish(AgentMessage(owner_id="u1", run_id="r1",
+        recipient=recipient_key("r1", role), role=role, type=MessageType.START))
+    s.commit()
+    s.close()
+
+
+def test_bus_source_only_fetches_configured_roles(session_factory):
+    """BusSource(roles=['backend']) only claims messages for that role."""
+    _publish(session_factory, "lead")
+    _publish(session_factory, "backend")
+    source = BusSource(roles=["backend"])
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
+    with uow.transaction():
+        item = source.fetch_next(uow)
+    assert item is not None and item.message.role == "backend"
+
+
 def test_fetch_next_returns_item_and_advance_acks(session_factory):
     """fetch_next claims a pending message as Item; advance acks it so second fetch is None."""
     # Arrange
