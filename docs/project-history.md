@@ -25,6 +25,8 @@ SQLite in tests; dev auth. See [superpowers/plans/2026-06-29-a1-control-plane.md
 
 **A2 UI (mock-data SPA) — built (merged to `main`).** All 7 screens (Dashboard/Inbox/Board/List/Detail/Agent-Monitor/Settings) render from an OpenAPI-typed MSW mock layer; live-API swap deferred (A2-4). See [superpowers/plans/2026-06-29-a2-foundation.md](superpowers/plans/2026-06-29-a2-foundation.md) (+ the other `a2-*` plans).
 
+**Messaging foundation (A6 first slice) — built.** A conversational `Message` store + run-thread API: `GET /threads` (a thread = a run), `GET /threads/{id}/messages`, and `POST /threads/{id}/messages` (user→agent, **persist-only** — no bus publish yet). The inbox and the sidebar chat now share one live data source; the old `/inbox`/`InboxItem` mock is retired; notifications stay the separate alert channel. **Agents producing chat + the chat→bus bridge are deferred to the A5 runtime.** See [superpowers/plans/2026-07-02-messaging-foundation.md](superpowers/plans/2026-07-02-messaging-foundation.md).
+
 **Not yet built (designed only):** A3 agent run pipeline (**local pub/sub orchestration**) + runs · A4 sandbox /
 egress / GitHub App · A5 Claude Code runtime + LiteLLM · B/C management plane. The
 agent/sandbox/secrets content in the master design and architecture doc is the
