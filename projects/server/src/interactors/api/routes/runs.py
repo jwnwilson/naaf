@@ -29,6 +29,8 @@ from interactors.api.deps import get_bus, get_uow
 _SSE_POLL_SECONDS = 0.25
 _SSE_MAX_SECONDS = 600
 
+COST_PER_1K_TOKENS = 0.003  # flat placeholder; real per-model pricing is A5
+
 # /runs collection endpoints (owner-unscoped path, still owner-filtered by UoW)
 router = APIRouter(prefix="/runs", tags=["runs"])
 # /work-items/{id}/runs nested endpoint
@@ -63,6 +65,8 @@ def _run_out(run: Run) -> RunOut:
         updatedAt=iso(run.updated_at),
         startedAt=run.started_at.isoformat() if run.started_at else None,
         endedAt=run.ended_at.isoformat() if run.ended_at else None,
+        tokenUsage=run.token_usage,
+        cost=round(run.token_usage / 1000 * COST_PER_1K_TOKENS, 4),
     )
 
 

@@ -5,7 +5,8 @@ type Project = components["schemas"]["Project"];
 type WorkItem = components["schemas"]["WorkItem"];
 type Team = components["schemas"]["Team"];
 type AgentDefinition = components["schemas"]["AgentDefinition"];
-type AgentRun = components["schemas"]["AgentRun"];
+type RunOut = components["schemas"]["RunOut"];
+type RunEventOut = components["schemas"]["RunEventOut"];
 type Message = components["schemas"]["Message"];
 type Thread = components["schemas"]["Thread"];
 type DashboardMetrics = components["schemas"]["DashboardMetrics"];
@@ -307,71 +308,88 @@ const agentDefinitions: AgentDefinition[] = [
   },
 ];
 
-// ─── Agent runs ───────────────────────────────────────────────────────────────
-// run-1: one active run with all three step states + several log lines
+// ─── Runs ─────────────────────────────────────────────────────────────────────
+// run-1: active run, no pending gate (implement stage)
+// run-2: awaiting_gate at the plan gate checkpoint
 
-const agentRuns: AgentRun[] = [
+const runs: RunOut[] = [
   {
     id: "run-1",
-    agentId: "agent-1",
     workItemId: "wi-task-3",
+    projectId: "proj-1",
+    autonomyLevel: "supervised",
     status: "running",
-    steps: [
-      { index: 0, label: "Plan", status: "done" },
-      { index: 1, label: "Read", status: "done" },
-      { index: 2, label: "Analyze", status: "done" },
-      { index: 3, label: "Generate", status: "active" },
-      { index: 4, label: "Test", status: "pending" },
-      { index: 5, label: "PR", status: "pending" },
+    currentStage: "implement",
+    stages: [
+      { stage: "plan", status: "passed", role: null, startedAt: "2026-06-29T13:00:00Z", endedAt: "2026-06-29T13:02:00Z" },
+      { stage: "implement", status: "running", role: null, startedAt: "2026-06-29T13:02:00Z", endedAt: null },
+      { stage: "verify", status: "pending", role: null, startedAt: null, endedAt: null },
+      { stage: "pr", status: "pending", role: null, startedAt: null, endedAt: null },
+      { stage: "learn", status: "pending", role: null, startedAt: null, endedAt: null },
     ],
-    logLines: [
-      {
-        timestamp: "2026-06-29T13:00:00Z",
-        type: "status",
-        tool: null,
-        target: null,
-        message: "Starting run for wi-task-3",
-      },
-      {
-        timestamp: "2026-06-29T13:01:00Z",
-        type: "tool_call",
-        tool: "read_file",
-        target: "src/adapters/database/ports.py",
-        message: null,
-      },
-      {
-        timestamp: "2026-06-29T13:01:05Z",
-        type: "result",
-        tool: "read_file",
-        target: "src/adapters/database/ports.py",
-        message: "Read 120 lines",
-      },
-      {
-        timestamp: "2026-06-29T13:05:00Z",
-        type: "tool_call",
-        tool: "write_file",
-        target: "docker/sandbox/Dockerfile",
-        message: null,
-      },
-      {
-        timestamp: "2026-06-29T13:05:10Z",
-        type: "result",
-        tool: "write_file",
-        target: "docker/sandbox/Dockerfile",
-        message: "File written successfully",
-      },
-      {
-        timestamp: "2026-06-29T13:10:00Z",
-        type: "status",
-        tool: null,
-        target: null,
-        message: "Generating implementation...",
-      },
-    ],
-    tokenUsage: 12400,
-    tokenLimit: 200000,
-    cost: 0.0372,
+    pendingGate: null,
+    createdAt: "2026-06-29T13:00:00Z",
+    updatedAt: "2026-06-29T13:10:00Z",
     startedAt: "2026-06-29T13:00:00Z",
+    endedAt: null,
+    tokenUsage: 12400,
+    cost: 0.0372,
+  },
+  {
+    id: "run-2",
+    workItemId: "wi-task-4",
+    projectId: "proj-1",
+    autonomyLevel: "supervised",
+    status: "awaiting_gate",
+    currentStage: "plan",
+    stages: [
+      { stage: "plan", status: "passed", role: null, startedAt: "2026-06-28T15:00:00Z", endedAt: "2026-06-28T15:10:00Z" },
+      { stage: "implement", status: "pending", role: null, startedAt: null, endedAt: null },
+      { stage: "verify", status: "pending", role: null, startedAt: null, endedAt: null },
+      { stage: "pr", status: "pending", role: null, startedAt: null, endedAt: null },
+      { stage: "learn", status: "pending", role: null, startedAt: null, endedAt: null },
+    ],
+    pendingGate: { kind: "plan", stage: "plan" },
+    createdAt: "2026-06-28T15:00:00Z",
+    updatedAt: "2026-06-28T15:10:00Z",
+    startedAt: "2026-06-28T15:00:00Z",
+    endedAt: null,
+    tokenUsage: 2200,
+    cost: 0.0066,
+  },
+];
+
+// run events: a log event and a stage_passed event (with tokens payload) for run-1
+const runEvents: RunEventOut[] = [
+  {
+    id: "revt-1",
+    runId: "run-1",
+    seq: 1,
+    stage: "plan",
+    role: null,
+    type: "log",
+    payload: { message: "Starting run for wi-task-3", level: "info" },
+    createdAt: "2026-06-29T13:00:01Z",
+  },
+  {
+    id: "revt-2",
+    runId: "run-1",
+    seq: 2,
+    stage: "plan",
+    role: null,
+    type: "stage_passed",
+    payload: { tokens: 3200 },
+    createdAt: "2026-06-29T13:02:00Z",
+  },
+  {
+    id: "revt-3",
+    runId: "run-1",
+    seq: 3,
+    stage: "implement",
+    role: null,
+    type: "log",
+    payload: { message: "Generating implementation...", level: "info" },
+    createdAt: "2026-06-29T13:10:00Z",
   },
 ];
 
@@ -563,7 +581,8 @@ export const seed = {
   workItems,
   teams,
   agentDefinitions,
-  agentRuns,
+  runs,
+  runEvents,
   threads,
   messages,
   metrics,

@@ -148,6 +148,22 @@ def test_migration_creates_messages(tmp_path):
     assert {"id", "owner_id", "thread_id", "role", "agent_id", "content"} <= cols
 
 
+def test_migration_adds_run_token_usage(tmp_path):
+    import os
+    import sqlite3
+    import subprocess
+    from pathlib import Path
+    db = tmp_path / "naaf.db"
+    server = Path(__file__).resolve().parents[2]
+    env = {"naaf_db_url": f"sqlite:///{db}", "PATH": os.environ["PATH"]}
+    r = subprocess.run(["uv", "run", "alembic", "upgrade", "head"],
+                       cwd=server, env=env, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    con = sqlite3.connect(db)
+    cols = {row[1] for row in con.execute("PRAGMA table_info(runs)")}
+    assert "token_usage" in cols
+
+
 def test_migration_adds_subscriber_cursors(tmp_path):
     import os
     import sqlite3

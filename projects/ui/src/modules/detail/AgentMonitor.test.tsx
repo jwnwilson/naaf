@@ -1,21 +1,62 @@
-import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
-import { createQueryClient } from "../../lib/api/queryClient";
-import { seed } from "../../lib/api/mocks/fixtures";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
+import { expect, test, vi } from "vitest";
+import { server } from "../../lib/api/mocks/server";
 import { AgentMonitor } from "./AgentMonitor";
 
-describe("AgentMonitor", () => {
-  it("renders the run timeline steps and log stream from the mock", async () => {
-    const runId = seed.agentRuns[0].id;
-    render(
-      <QueryClientProvider client={createQueryClient()}>
-        <AgentMonitor runId={runId} />
-      </QueryClientProvider>,
-    );
-    // all 6 step labels (Plan/Read/Analyze/Generate/Test/PR) render
-    await waitFor(() =>
-      expect(screen.getAllByText(/Plan|Generate|Test/).length).toBeGreaterThan(0),
-    );
-  });
+function renderMonitor() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <AgentMonitor runId="r1" />
+    </QueryClientProvider>,
+  );
+}
+
+const RUN = {
+  id: "r1",
+  workItemId: "w1",
+  projectId: "p1",
+  autonomyLevel: "gated_all",
+  status: "awaiting_gate",
+  currentStage: "plan",
+  stages: [
+    {
+      stage: "plan",
+      status: "gated",
+      role: "lead",
+      startedAt: "2026-07-02T00:00:00Z",
+      endedAt: null,
+    },
+  ],
+  pendingGate: { kind: "plan", stage: "plan" },
+  createdAt: "2026-07-02T00:00:00Z",
+  updatedAt: "2026-07-02T00:00:00Z",
+  startedAt: "2026-07-02T00:00:00Z",
+  endedAt: null,
+  tokenUsage: 1050,
+  cost: 0.0032,
+};
+
+test("renders status + token usage and resolves a pending gate", async () => {
+  const gate = vi.fn();
+  server.use(
+    http.get("/api/runs/r1", () =>
+      HttpResponse.json({ success: true, error: null, data: RUN }),
+    ),
+    http.get("/api/runs/r1/events", () =>
+      HttpResponse.json({ success: true, error: null, data: [] }),
+    ),
+    http.post("/api/runs/r1/gate", async ({ request }) => {
+      gate((await request.json() as { decision: string }).decision);
+      return HttpResponse.json({ success: true, error: null, data: RUN });
+    }),
+  );
+  renderMonitor();
+  expect(await screen.findByText(/awaiting_gate/)).toBeInTheDocument();
+  expect(screen.getByText(/1050|1\.0k|1\.1k/)).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: /approve/i }));
+  expect(gate).toHaveBeenCalledWith("approve");
 });

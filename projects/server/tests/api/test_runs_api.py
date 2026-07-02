@@ -122,3 +122,22 @@ def test_gate_endpoint_rejects_invalid_decision(client):
     rid = client.post(f"/work-items/{wid}/runs").json()["data"]["id"]
     resp = client.post(f"/runs/{rid}/gate", json={"decision": "maybe"})
     assert resp.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# tokenUsage + cost on RunOut
+# ---------------------------------------------------------------------------
+
+
+def test_run_out_exposes_token_usage_and_cost(client, session_factory):
+    from adapters.database.uow import SqlUnitOfWork
+    from domain.runs.run import Run
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "dev-user"})
+    with uow.transaction():
+        run = uow.runs.create(
+            Run(owner_id="", work_item_id="w1", project_id="p1", autonomy_level="full_auto",
+                token_usage=2000)
+        )
+    body = client.get(f"/runs/{run.id}").json()["data"]
+    assert body["tokenUsage"] == 2000
+    assert body["cost"] == 0.006  # 2000/1000 * 0.003

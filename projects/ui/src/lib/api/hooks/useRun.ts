@@ -1,35 +1,57 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { apiFetch } from "../client";
+import { apiFetch, apiList } from "../client";
 import { queryKeys } from "../queryKeys";
 import { useEventSource } from "../../hooks/useEventSource";
 import type { components } from "../schema";
 
-export type AgentRun = components["schemas"]["AgentRun"];
-export type LogLine = components["schemas"]["LogLine"];
+export type RunOut = components["schemas"]["RunOut"];
+export type RunEventOut = components["schemas"]["RunEventOut"];
+
+/** Merge history and streamed events, deduplicating by seq, in ascending seq order. */
+export function mergeEventsBySeq(
+  history: RunEventOut[],
+  streamed: RunEventOut[],
+): RunEventOut[] {
+  const bySeq = new Map<number, RunEventOut>();
+  for (const ev of history) bySeq.set(ev.seq, ev);
+  for (const ev of streamed) bySeq.set(ev.seq, ev);
+  return Array.from(bySeq.values()).sort((a, b) => a.seq - b.seq);
+}
 
 export function useRun(runId: string): {
-  run: AgentRun | undefined;
-  logLines: LogLine[];
+  run: RunOut | undefined;
+  events: RunEventOut[];
   isStreaming: boolean;
 } {
-  const query = useQuery({
+  const runQuery = useQuery({
     queryKey: queryKeys.run(runId),
-    queryFn: () => apiFetch<AgentRun>(`/runs/${runId}`),
+    queryFn: () => apiFetch<RunOut>(`/runs/${runId}`),
+  });
+  const historyQuery = useQuery({
+    queryKey: queryKeys.runEvents(runId),
+    queryFn: () => apiList<RunEventOut>(`/runs/${runId}/events`),
+    select: (page) => page.results,
   });
 
-  const [streamed, setStreamed] = useState<LogLine[]>([]);
+  const history = historyQuery.data ?? [];
+  const [streamed, setStreamed] = useState<RunEventOut[]>([]);
 
-  useEventSource<LogLine>(
-    query.data ? `/api/runs/${runId}/stream` : null,
-    (line) => setStreamed((prev) => [...prev, line]),
+  useEffect(() => {
+    setStreamed([]);
+  }, [runId]);
+
+  const lastSeq = history.length ? history[history.length - 1].seq : 0;
+
+  useEventSource<RunEventOut>(
+    runQuery.data ? `/api/runs/${runId}/events/stream?after=${lastSeq}` : null,
+    (ev) => setStreamed((prev) => [...prev, ev]),
   );
 
-  const logLines = [...(query.data?.logLines ?? []), ...streamed];
-
+  const events = mergeEventsBySeq(history, streamed);
   return {
-    run: query.data,
-    logLines,
-    isStreaming: !!query.data && query.data.status === "running",
+    run: runQuery.data,
+    events,
+    isStreaming: !!runQuery.data && runQuery.data.status === "running",
   };
 }

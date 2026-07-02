@@ -1,39 +1,15 @@
 import type { components } from "../schema";
 
-type LogLine = components["schemas"]["LogLine"];
+type RunEventOut = components["schemas"]["RunEventOut"];
 
-/** Build a ReadableStream that emits a scripted SSE sequence for a fixture run. */
-export function buildRunStream(): ReadableStream<Uint8Array> {
+/** Build a ReadableStream that emits SSE frames for the given RunEventOut list. */
+export function buildEventStream(events: RunEventOut[]): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
-
-  const frames: LogLine[] = [
-    {
-      timestamp: new Date().toISOString(),
-      type: "status",
-      tool: null,
-      target: null,
-      message: "Streaming: starting generate phase",
-    },
-    {
-      timestamp: new Date().toISOString(),
-      type: "tool_call",
-      tool: "write_file",
-      target: "src/sandbox/runner.py",
-      message: null,
-    },
-    {
-      timestamp: new Date().toISOString(),
-      type: "result",
-      tool: "write_file",
-      target: "src/sandbox/runner.py",
-      message: "File written successfully",
-    },
-  ];
 
   return new ReadableStream<Uint8Array>({
     start(controller) {
-      for (const frame of frames) {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(frame)}\n\n`));
+      for (const event of events) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
       }
       controller.close();
     },

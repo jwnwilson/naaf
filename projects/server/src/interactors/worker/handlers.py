@@ -72,9 +72,13 @@ def _run_stage_inline(ctx: HandlerContext, run: Run, role: str, stage: Stage) ->
     # Update the last entry with PASSED/FAILED + ended_at (immutable — replace tail)
     final_status = StageStatus.PASSED if outcome.result.passed else StageStatus.FAILED
     updated_entry = run.stages[-1].model_copy(update={"status": final_status, "ended_at": utcnow()})
-    run = _save(ctx, run.model_copy(update={"stages": [*run.stages[:-1], updated_entry]}))
+    run = _save(ctx, run.model_copy(update={
+        "stages": [*run.stages[:-1], updated_entry],
+        "token_usage": run.token_usage + outcome.result.tokens,
+    }))
     event_type = EventType.STAGE_PASSED if outcome.result.passed else EventType.STAGE_FAILED
-    emit(ctx, run, event_type, stage=stage, role=role, payload={"summary": outcome.result.summary})
+    emit(ctx, run, event_type, stage=stage, role=role,
+         payload={"summary": outcome.result.summary, "tokens": outcome.result.tokens})
     return outcome.result
 
 

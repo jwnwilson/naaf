@@ -3,7 +3,8 @@ import { seed, threadConversationMap } from "./fixtures";
 
 type Project = components["schemas"]["Project"];
 type WorkItem = components["schemas"]["WorkItem"];
-type AgentRun = components["schemas"]["AgentRun"];
+type RunOut = components["schemas"]["RunOut"];
+type RunEventOut = components["schemas"]["RunEventOut"];
 type Message = components["schemas"]["Message"];
 
 // ─── Mutable in-memory stores ─────────────────────────────────────────────────
@@ -15,7 +16,7 @@ const clone = <T>(items: T[]): T[] => structuredClone(items);
 
 let projects: Project[] = clone(seed.projects);
 let workItems: WorkItem[] = clone(seed.workItems);
-let agentRuns: AgentRun[] = clone(seed.agentRuns);
+let runs: RunOut[] = clone(seed.runs);
 let messages: Message[] = clone(seed.messages);
 
 // ─── Public db interface ──────────────────────────────────────────────────────
@@ -28,8 +29,8 @@ export const db = {
   get workItems() {
     return workItems;
   },
-  get agentRuns() {
-    return agentRuns;
+  get runs() {
+    return runs;
   },
   get messages() {
     return messages;
@@ -43,8 +44,18 @@ export const db = {
   findWorkItem: (id: string): WorkItem | null =>
     workItems.find((w) => w.id === id) ?? null,
 
-  findRun: (id: string): AgentRun | null =>
-    agentRuns.find((r) => r.id === id) ?? null,
+  findRun: (id: string): RunOut | null =>
+    runs.find((r) => r.id === id) ?? null,
+
+  // Runs for a work item, newest first
+  runsForWorkItem: (workItemId: string): RunOut[] =>
+    [...runs.filter((r) => r.workItemId === workItemId)].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    ),
+
+  // Events for a run (read from seed — events are not mutated in mock mode)
+  eventsForRun: (runId: string): RunEventOut[] =>
+    seed.runEvents.filter((e) => e.runId === runId),
 
   // All work items belonging to a project (the board tree)
   boardFor: (projectId: string): WorkItem[] =>
@@ -71,12 +82,24 @@ export const db = {
     return workItems.find((w) => w.id === id) ?? null;
   },
 
+  updateRun: (
+    id: string,
+    patch: Partial<RunOut>,
+  ): RunOut | null => {
+    runs = runs.map((r) =>
+      r.id === id
+        ? { ...r, ...patch, updatedAt: new Date().toISOString() }
+        : r,
+    );
+    return runs.find((r) => r.id === id) ?? null;
+  },
+
   // ─── Reset (restore all stores to seed state) ─────────────────────────────
 
   reset: (): void => {
     projects = clone(seed.projects);
     workItems = clone(seed.workItems);
-    agentRuns = clone(seed.agentRuns);
+    runs = clone(seed.runs);
     messages = clone(seed.messages);
   },
 };

@@ -1,4 +1,4 @@
-from adapters.agent.runtime.fake import FakeAgentRuntime
+from adapters.agent.runtime.fake import TOKENS_PER_STEP, FakeAgentRuntime
 from domain.runs.run import Stage
 
 
@@ -16,3 +16,10 @@ def test_fake_verify_fails_then_passes():
     second = rt.run_stage("qa", Stage.VERIFY, ctx={"verify_attempts": 1})
     assert first.result.passed is False
     assert second.result.passed is True
+
+
+def test_run_stage_reports_tokens_proportional_to_steps():
+    rt = FakeAgentRuntime()
+    outcome = rt.run_stage("lead", Stage.PLAN, {})
+    assert outcome.result.tokens == TOKENS_PER_STEP * len(outcome.events)
+    assert outcome.result.tokens > 0
