@@ -569,6 +569,43 @@ export interface components {
             /** Format: date-time */
             startedAt: string;
         };
+        StageStateOut: {
+            stage: string;
+            status: string;
+            role?: string | null;
+            startedAt?: string | null;
+            endedAt?: string | null;
+        };
+        GateOut: {
+            kind: string;
+            stage: string;
+        };
+        RunOut: {
+            id: string;
+            workItemId: string;
+            projectId: string;
+            autonomyLevel: string;
+            status: string;
+            currentStage?: string | null;
+            stages: components["schemas"]["StageStateOut"][];
+            pendingGate?: components["schemas"]["GateOut"] | null;
+            createdAt: string;
+            updatedAt: string;
+            startedAt?: string | null;
+            endedAt?: string | null;
+            tokenUsage: number;
+            cost: number;
+        };
+        RunEventOut: {
+            id: string;
+            runId: string;
+            seq: number;
+            stage?: string | null;
+            role?: string | null;
+            type: string;
+            payload: Record<string, unknown>;
+            createdAt: string;
+        };
         DashboardMetrics: {
             activeAgents: number;
             totalSpend: number;
