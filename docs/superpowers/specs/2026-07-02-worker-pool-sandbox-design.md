@@ -167,7 +167,9 @@ The worker's `HandlerContext` gains a `workspace_root`, an `Scm`, and a per-run
   — the runtime selector for the A5 checkpoint).
 - `Dockerfile`: server image (Python 3.12, `uv sync`, `git`), worker entrypoint.
 - `docker-compose.yml`: a `worker` service (build the image; `naaf_worker_roles` +
-  creds; depends on postgres/redis), documented `docker compose up --scale worker=N`.
+  creds; depends on postgres/redis). Scale by **disjoint-role** workers (per-role services or
+  `docker compose run -e naaf_worker_roles=…`), NOT `--scale` on the default all-roles service
+  (that replicates the same roles and breaks one-in-flight-per-recipient — see the run-book).
 
 ## Error handling
 

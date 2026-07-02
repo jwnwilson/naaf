@@ -47,12 +47,31 @@ Each role appears in exactly one worker's `naaf_worker_roles` list.
 
 ```bash
 # DANGER: both workers subscribe to "backend"
-docker compose run -d -e naaf_worker_roles=lead,backend worker
-docker compose run -d -e naaf_worker_roles=backend,frontend worker
+docker compose run -d --rm -e naaf_worker_roles=lead,backend worker
+docker compose run -d --rm -e naaf_worker_roles=backend,frontend worker
 ```
 
 Overlapping roles will double-process messages for the shared role. This restriction will
 be lifted once per-recipient advisory-lock hardening lands (tracked as a follow-up).
+
+### Wrong — `--scale` on the default worker (DO NOT do this yet)
+
+```bash
+# DANGER: the default `worker` service is configured with ALL roles, so this
+# starts N identical all-roles workers — every role is shared across N workers.
+docker compose up --scale worker=3 worker
+```
+
+`--scale` replicates the **same** `naaf_worker_roles`, so it violates one-in-flight-per-recipient
+exactly like overlapping roles above. To run more workers, add **per-role services** (or use the
+disjoint-role `docker compose run` form above) so each role lives in exactly one worker — never
+`--scale` the default all-roles service until the advisory-lock hardening lands.
+
+> **Also load-bearing:** each worker container runs Celery with `worker_concurrency=1`
+> (set in `celery_app.py`) — a single in-container dispatcher. Do **not** add
+> `--concurrency=N` to the worker entrypoint; concurrent pool workers inside one container
+> share the same roles and would race on the same recipient (which `SKIP LOCKED` does not
+> prevent).
 
 ---
 
