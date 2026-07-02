@@ -9,7 +9,9 @@ from sqlalchemy.pool import StaticPool
 
 @pytest.fixture
 def session():
-    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    engine = create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
     Base.metadata.create_all(engine)
     with sessionmaker(bind=engine)() as s:
         yield s
