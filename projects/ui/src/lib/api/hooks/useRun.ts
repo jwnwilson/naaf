@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch, apiList } from "../client";
 import { queryKeys } from "../queryKeys";
@@ -36,6 +36,11 @@ export function useRun(runId: string): {
 
   const history = historyQuery.data ?? [];
   const [streamed, setStreamed] = useState<RunEventOut[]>([]);
+
+  useEffect(() => {
+    setStreamed([]);
+  }, [runId]);
+
   const lastSeq = history.length ? history[history.length - 1].seq : 0;
 
   useEventSource<RunEventOut>(

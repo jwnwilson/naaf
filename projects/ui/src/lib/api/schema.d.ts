@@ -233,7 +233,7 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** Get an agent run by id (steps, logLines, tokenUsage, cost, status) */
+        /** Get a run by id (RunOut: status, stages, pendingGate, tokenUsage, cost) */
         get: operations["getRun"];
         put?: never;
         post?: never;
