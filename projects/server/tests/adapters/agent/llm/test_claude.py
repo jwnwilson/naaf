@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
 from adapters.agent.llm.claude import ClaudeLLMAdapter
-from domain.agent.llm import LLMMessage, LLMRequest, MessageRole, ToolSpec
+from domain.agent.llm import LLMMessage, LLMRequest, MessageRole, ToolCall, ToolSpec
 
 
 class _FakeMessages:
@@ -44,3 +44,31 @@ def test_translates_tool_use_block_into_toolcall():
     assert resp.stop_reason == "tool_use"
     assert resp.tool_calls[0].name == "bash" and resp.tool_calls[0].args == {"cmd": "ls"}
     assert adapter._client.messages.seen["tools"][0]["name"] == "bash"
+
+
+def test_translates_tool_result_message_outbound():
+    adapter = ClaudeLLMAdapter(api_key="k",
+                               client=_FakeClient(_reply([SimpleNamespace(type="text", text="")])))
+    adapter.complete(LLMRequest(model="m", system="", messages=[
+        LLMMessage(role=MessageRole.TOOL, content="exit=0", tool_call_id="tu1"),
+    ]))
+    sent = adapter._client.messages.seen["messages"][0]
+    assert sent["role"] == "user"
+    assert sent["content"][0]["type"] == "tool_result"
+    assert sent["content"][0]["tool_use_id"] == "tu1"
+    assert sent["content"][0]["content"] == "exit=0"
+
+
+def test_translates_assistant_tool_calls_outbound():
+    adapter = ClaudeLLMAdapter(api_key="k",
+                               client=_FakeClient(_reply([SimpleNamespace(type="text", text="")])))
+    adapter.complete(LLMRequest(model="m", system="", messages=[
+        LLMMessage(role=MessageRole.ASSISTANT, content="calling",
+                   tool_calls=[ToolCall(id="tu2", name="bash", args={"cmd": "ls"})]),
+    ]))
+    sent = adapter._client.messages.seen["messages"][0]
+    assert sent["role"] == "assistant"
+    types = [b["type"] for b in sent["content"]]
+    assert "text" in types and "tool_use" in types
+    tu = next(b for b in sent["content"] if b["type"] == "tool_use")
+    assert tu["id"] == "tu2" and tu["name"] == "bash" and tu["input"] == {"cmd": "ls"}
