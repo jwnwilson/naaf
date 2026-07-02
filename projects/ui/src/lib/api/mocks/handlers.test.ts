@@ -40,18 +40,25 @@ describe("handler split", () => {
     expect(live).toMatch(/\/api\/projects/);
     expect(live).toMatch(/\/api\/work-items/);
     expect(live).toMatch(/\/api\/teams/);
-    expect(mock).toMatch(/\/api\/runs|\/api\/dashboard/);
-    // board and run endpoints have no backend — always mocked
+    // dashboard stays mock-only; runs are now live
+    expect(mock).toMatch(/\/api\/dashboard/);
+    expect(live).toMatch(/\/api\/runs/);
+    // board endpoint has no backend — always mocked
     expect(mock).toMatch(/\/api\/projects\/:id\/board/);
-    expect(mock).toMatch(/\/api\/work-items\/:id\/run/);
-    // these endpoints must NOT be in live (board tree and work-item runs are A2-mocked)
+    // board must NOT be in live
     expect(live).not.toMatch(/board/);
-    expect(live).not.toMatch(/\/run/);
     // /inbox is retired — must not appear anywhere
     expect(live).not.toMatch(/\/inbox/);
     expect(mock).not.toMatch(/\/inbox/);
     // /threads is now live (backed by Task 5 backend)
     expect(live).toMatch(/\/api\/threads/);
     expect(mock).not.toMatch(/\/api\/threads/);
+  });
+
+  it("/runs is a live handler and legacy run paths are gone", () => {
+    expect(liveHandlers.some((h) => String(h.info.path).endsWith("/runs"))).toBe(true);
+    const all = [...liveHandlers, ...mockOnlyHandlers].map((h) => String(h.info.path));
+    expect(all.some((p) => p.includes("/work-items/:id/run"))).toBe(false);
+    expect(all.some((p) => p.endsWith("/runs/:id/stream"))).toBe(false);
   });
 });

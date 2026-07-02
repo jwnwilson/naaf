@@ -77,6 +77,7 @@ class RunRow(_Timestamped, Base):
     resolved_gates: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
     verify_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     max_verify_loops: Mapped[int] = mapped_column(Integer, default=3, nullable=False)
+    token_usage: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 

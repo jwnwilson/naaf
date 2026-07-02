@@ -130,6 +130,54 @@ def test_duplicate_gate_resolved_is_a_harmless_noop(session_factory):
     assert run.pending_gate.kind.value == "merge"
 
 
+def test_run_accumulates_token_usage_from_stages(session_factory):
+    rt = FakeAgentRuntime()
+    _wi_id, run_id = _seed(session_factory, "full_auto")
+    _start(session_factory, run_id)
+    _drain(session_factory, rt)
+    run, events = _read_run(session_factory, run_id)
+    passed_tokens = sum(
+        e.payload.get("tokens", 0) for e in events if e.type.value == "stage_passed"
+    )
+    assert run.token_usage > 0
+    assert run.token_usage == passed_tokens
+
+
+def test_token_usage_counts_failed_stage_attempts(session_factory):
+    """token_usage must include tokens from failed stage attempts, not just passed ones.
+
+    When VERIFY fails once and is retried, the failed attempt genuinely consumed
+    tokens, so token_usage > sum(tokens over stage_passed events). The true
+    invariant is: token_usage == sum(tokens over all stage_passed + stage_failed events).
+    """
+    # Arrange
+    rt = FakeAgentRuntime(fail_verify_times=1)
+    _wi_id, run_id = _seed(session_factory, "full_auto")
+
+    # Act
+    _start(session_factory, run_id)
+    _drain(session_factory, rt)
+    run, events = _read_run(session_factory, run_id)
+
+    # Assert
+    passed_tokens = sum(
+        e.payload.get("tokens", 0) for e in events if e.type.value == "stage_passed"
+    )
+    all_runtime_tokens = sum(
+        e.payload.get("tokens", 0)
+        for e in events
+        if e.type.value in ("stage_passed", "stage_failed")
+    )
+    assert run.status.value == "succeeded"
+    assert run.token_usage == all_runtime_tokens, (
+        f"token_usage {run.token_usage} != all_runtime_tokens {all_runtime_tokens}"
+    )
+    assert run.token_usage > passed_tokens, (
+        f"token_usage {run.token_usage} should exceed passed-only tokens {passed_tokens} "
+        "because the failed VERIFY attempt also consumed tokens"
+    )
+
+
 def test_verify_retry_then_success(session_factory):
     rt = FakeAgentRuntime(fail_verify_times=1)
     _, run_id = _seed(session_factory, "full_auto")
