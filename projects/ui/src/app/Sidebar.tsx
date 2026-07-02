@@ -11,7 +11,6 @@ import {
 } from "../components/ui/icons";
 import { useBudget } from "../lib/api/hooks/useBudget";
 import { useDashboard } from "../lib/api/hooks/useDashboard";
-import { useInbox } from "../lib/api/hooks/useInbox";
 import { useProjects } from "../lib/api/hooks/useProjects";
 import type { Project } from "../lib/api/hooks/useProjects";
 
@@ -44,15 +43,7 @@ function NavItem({ to, icon, label, badge }: NavItemProps) {
   );
 }
 
-// ── Badge ──────────────────────────────────────────────────────────────────────
 
-function Badge({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-[8px] bg-[#181a22] px-[5px] py-[1px] font-mono text-[9px] text-[#52555e]">
-      {children}
-    </span>
-  );
-}
 
 // ── ProjectRow ─────────────────────────────────────────────────────────────────
 
@@ -88,16 +79,12 @@ function ProjectRow({ project }: { project: Project }) {
 
 export function Sidebar() {
   const projectsQuery = useProjects();
-  const inboxQuery = useInbox();
   const budgetQuery = useBudget();
   const dashboardQuery = useDashboard();
 
   const projects = projectsQuery.data?.results ?? [];
-  const inboxItems = inboxQuery.data?.results ?? [];
   const budget = budgetQuery.data;
   const activeAgents = dashboardQuery.data?.activeAgents ?? 0;
-
-  const unreadCount = inboxItems.filter((i) => !i.read).length;
 
   return (
     <nav className="flex h-full w-[214px] shrink-0 flex-col border-r border-[rgba(255,255,255,0.055)] bg-bg-sidebar">
@@ -142,7 +129,6 @@ export function Sidebar() {
           to="/inbox"
           icon={<InboxIcon size={13} />}
           label="Inbox"
-          badge={unreadCount > 0 ? <Badge>{unreadCount}</Badge> : undefined}
         />
         <NavItem
           to="/projects"

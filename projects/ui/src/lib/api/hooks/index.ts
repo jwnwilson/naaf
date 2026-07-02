@@ -6,9 +6,6 @@ export type { WorkItem } from "./useBoard";
 
 export { useWorkItem } from "./useWorkItem";
 
-export { useInbox } from "./useInbox";
-export type { InboxItem } from "./useInbox";
-
 export { useThreads } from "./useThreads";
 export type { Thread } from "./useThreads";
 

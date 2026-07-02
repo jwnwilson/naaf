@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { HttpHandler } from "msw";
-import type { components } from "../schema";
-import { apiFetch, apiList, apiPost } from "../client";
+import { apiFetch, apiList } from "../client";
 import { mockOnlyHandlers, liveHandlers } from "./handlers";
-
-type InboxItem = components["schemas"]["InboxItem"];
 
 // MSW node server is started globally in src/test/setup.ts
 describe("mock handlers", () => {
@@ -29,22 +26,9 @@ describe("mock handlers", () => {
     await expect(apiFetch("/projects/nope")).rejects.toMatchObject({ status: 404 });
   });
 
-  // The next two tests prove db.reset() runs between tests: the first mutates
-  // the inbox to all-read, the second re-asserts the seeded unread state — which
-  // can only pass if the mock db was re-seeded in afterEach.
-  it("marks all inbox items read (mutation takes effect)", async () => {
-    const before = await apiList<InboxItem>("/inbox");
-    expect(before.results.some((i) => !i.read)).toBe(true);
-
-    await apiPost("/inbox/mark-all-read", {});
-
-    const after = await apiList<InboxItem>("/inbox");
-    expect(after.results.every((i) => i.read)).toBe(true);
-  });
-
-  it("starts from a clean seeded db on the next test (reset wiring works)", async () => {
-    const page = await apiList<InboxItem>("/inbox");
-    expect(page.results.some((i) => !i.read)).toBe(true);
+  it("serves threads list", async () => {
+    const threads = await apiFetch<unknown[]>("/threads");
+    expect(Array.isArray(threads)).toBe(true);
   });
 });
 
@@ -56,12 +40,18 @@ describe("handler split", () => {
     expect(live).toMatch(/\/api\/projects/);
     expect(live).toMatch(/\/api\/work-items/);
     expect(live).toMatch(/\/api\/teams/);
-    expect(mock).toMatch(/\/api\/runs|\/api\/inbox|\/api\/dashboard/);
+    expect(mock).toMatch(/\/api\/runs|\/api\/dashboard/);
     // board and run endpoints have no backend — always mocked
     expect(mock).toMatch(/\/api\/projects\/:id\/board/);
     expect(mock).toMatch(/\/api\/work-items\/:id\/run/);
     // these endpoints must NOT be in live (board tree and work-item runs are A2-mocked)
     expect(live).not.toMatch(/board/);
     expect(live).not.toMatch(/\/run/);
+    // /inbox is retired — must not appear anywhere
+    expect(live).not.toMatch(/\/inbox/);
+    expect(mock).not.toMatch(/\/inbox/);
+    // /threads is now live (backed by Task 5 backend)
+    expect(live).toMatch(/\/api\/threads/);
+    expect(mock).not.toMatch(/\/api\/threads/);
   });
 });

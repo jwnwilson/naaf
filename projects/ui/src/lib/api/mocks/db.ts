@@ -4,7 +4,6 @@ import { seed, threadConversationMap } from "./fixtures";
 type Project = components["schemas"]["Project"];
 type WorkItem = components["schemas"]["WorkItem"];
 type AgentRun = components["schemas"]["AgentRun"];
-type InboxItem = components["schemas"]["InboxItem"];
 type Message = components["schemas"]["Message"];
 
 // ─── Mutable in-memory stores ─────────────────────────────────────────────────
@@ -17,7 +16,6 @@ const clone = <T>(items: T[]): T[] => structuredClone(items);
 let projects: Project[] = clone(seed.projects);
 let workItems: WorkItem[] = clone(seed.workItems);
 let agentRuns: AgentRun[] = clone(seed.agentRuns);
-let inboxItems: InboxItem[] = clone(seed.inboxItems);
 let messages: Message[] = clone(seed.messages);
 
 // ─── Public db interface ──────────────────────────────────────────────────────
@@ -32,9 +30,6 @@ export const db = {
   },
   get agentRuns() {
     return agentRuns;
-  },
-  get inboxItems() {
-    return inboxItems;
   },
   get messages() {
     return messages;
@@ -51,9 +46,6 @@ export const db = {
   findRun: (id: string): AgentRun | null =>
     agentRuns.find((r) => r.id === id) ?? null,
 
-  findInboxItem: (id: string): InboxItem | null =>
-    inboxItems.find((i) => i.id === id) ?? null,
-
   // All work items belonging to a project (the board tree)
   boardFor: (projectId: string): WorkItem[] =>
     workItems.filter((w) => w.projectId === projectId),
@@ -66,16 +58,6 @@ export const db = {
   },
 
   // ─── Mutations (immutable pattern: replace the array, never mutate items) ──
-
-  markInboxRead: (id: string): void => {
-    inboxItems = inboxItems.map((i) =>
-      i.id === id ? { ...i, read: true } : i,
-    );
-  },
-
-  markAllInboxRead: (): void => {
-    inboxItems = inboxItems.map((i) => ({ ...i, read: true }));
-  },
 
   updateWorkItem: (
     id: string,
@@ -95,7 +77,6 @@ export const db = {
     projects = clone(seed.projects);
     workItems = clone(seed.workItems);
     agentRuns = clone(seed.agentRuns);
-    inboxItems = clone(seed.inboxItems);
     messages = clone(seed.messages);
   },
 };
