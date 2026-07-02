@@ -45,8 +45,10 @@ def build_stage_context(ctx: HandlerContext, run: Run, role: str, stage: Stage) 
         wi = ctx.work_items.read(run.work_item_id)
         brief = WorkItemBrief(
             title=getattr(wi, "title", ""),
-            body=getattr(wi, "description", "") or getattr(wi, "body", ""),
-            acceptance_criteria=list(getattr(wi, "acceptance_criteria", []) or []),
+            body=getattr(wi, "body", ""),
+            acceptance_criteria=[
+                ac.text for ac in (getattr(wi, "acceptance_criteria", None) or [])
+            ],
         )
     except RecordNotFound:
         brief = WorkItemBrief(title="")

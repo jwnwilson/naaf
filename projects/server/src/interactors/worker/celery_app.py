@@ -40,9 +40,10 @@ def _deps() -> tuple[sessionmaker, AgentRuntime]:
     from adapters.agent.factory import build_runtime
     from adapters.database.engine import build_engine, build_session_factory
 
-    engine = build_engine(Settings().db_url)
+    s = Settings()
+    engine = build_engine(s.db_url)
     session_factory = build_session_factory(engine)
-    runtime: AgentRuntime = build_runtime(Settings())
+    runtime: AgentRuntime = build_runtime(s)
     return session_factory, runtime
 
 

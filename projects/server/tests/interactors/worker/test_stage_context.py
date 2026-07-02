@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 
 from domain.errors import RecordNotFound
 from domain.runs.run import Run, Stage
-from domain.work_item import WorkItem, WorkItemKind
+from domain.work_item import AcceptanceCriterion, WorkItem, WorkItemKind
 from interactors.worker.handlers import HandlerContext, build_stage_context
 
 # ---------------------------------------------------------------------------
@@ -64,8 +64,8 @@ def test_build_stage_context_populates_work_item_title():
     assert sc.work_item.title == "Add login"
 
 
-def test_build_stage_context_workspace_path_ends_with_run_id():
-    """workspace_path is built from workspace_root + run id."""
+def test_build_stage_context_workspace_path_is_root_slash_run_id():
+    """workspace_path is exactly workspace_root + "/" + run id."""
     ctx = _make_ctx(workspace_root="/data/ws")
     wi = WorkItem(owner_id="u", project_id="p", kind=WorkItemKind.TASK, title="T")
     ctx.work_items.create(wi)
@@ -73,7 +73,7 @@ def test_build_stage_context_workspace_path_ends_with_run_id():
 
     sc = build_stage_context(ctx, run, "engineer", Stage.IMPLEMENT)
 
-    assert sc.workspace_path.endswith(run.id)
+    assert sc.workspace_path == f"/data/ws/{run.id}"
 
 
 def test_build_stage_context_verify_attempts_matches_run():
@@ -113,3 +113,29 @@ def test_build_stage_context_missing_work_item_returns_empty_brief():
     sc = build_stage_context(ctx, run, "engineer", Stage.IMPLEMENT)
 
     assert sc.work_item.title == ""
+
+
+def test_build_stage_context_maps_acceptance_criteria_to_strings():
+    """AcceptanceCriterion objects on the WorkItem map to a list[str] on the brief.
+
+    Regression: WorkItem.acceptance_criteria is list[AcceptanceCriterion] while
+    WorkItemBrief.acceptance_criteria is list[str]; passing the objects through
+    raises a Pydantic ValidationError. The mapping must extract .text.
+    """
+    ctx = _make_ctx()
+    wi = WorkItem(
+        owner_id="u",
+        project_id="p",
+        kind=WorkItemKind.TASK,
+        title="T",
+        acceptance_criteria=[
+            AcceptanceCriterion(text="does X"),
+            AcceptanceCriterion(text="does Y", done=True),
+        ],
+    )
+    ctx.work_items.create(wi)
+    run = Run(owner_id="u", work_item_id=wi.id, project_id="p", autonomy_level="full_auto")
+
+    sc = build_stage_context(ctx, run, "engineer", Stage.IMPLEMENT)
+
+    assert sc.work_item.acceptance_criteria == ["does X", "does Y"]
