@@ -1,8 +1,13 @@
 import { Avatar, ProgressBar, PulseDot, StatusBadge } from "../../components/ui";
 import { useAgents } from "../../lib/api/hooks";
 import { useRun } from "../../lib/api/hooks/useRun";
+import type { components } from "../../lib/api/schema";
 import { LogStream } from "./LogStream";
 import { StepTimeline } from "./StepTimeline";
+
+// TODO(A3-reconcile): mock db still returns AgentRun-shaped data; cast until
+// the mock handler and StepTimeline/LogStream are updated to the RunOut schema.
+type AgentRun = components["schemas"]["AgentRun"];
 
 const FALLBACK_TOKEN_LIMIT = 200_000;
 
@@ -19,7 +24,10 @@ function agentInitials(agentId: string): string {
 }
 
 export function AgentMonitor({ runId }: { runId: string }) {
-  const { run, logLines, isStreaming } = useRun(runId);
+  const { run: runOut, isStreaming } = useRun(runId);
+  // Compat cast — mock handler returns AgentRun-shaped data until the mock is
+  // updated to serve RunOut.  Real callers will migrate in the A3-reconcile pass.
+  const run = runOut as unknown as AgentRun | undefined;
   const { data: agents } = useAgents();
 
   if (!run) {
@@ -94,7 +102,7 @@ export function AgentMonitor({ runId }: { runId: string }) {
 
       {/* ── Log stream ────────────────────────────────────────────────────── */}
       <div className="flex-1 px-5 py-3 min-h-0 overflow-hidden">
-        <LogStream lines={logLines} />
+        <LogStream lines={run?.logLines ?? []} />
       </div>
 
       {/* ── Token meter ───────────────────────────────────────────────────── */}

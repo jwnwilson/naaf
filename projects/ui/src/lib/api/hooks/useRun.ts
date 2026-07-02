@@ -1,35 +1,41 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { apiFetch } from "../client";
+import { apiFetch, apiList } from "../client";
 import { queryKeys } from "../queryKeys";
 import { useEventSource } from "../../hooks/useEventSource";
 import type { components } from "../schema";
 
-export type AgentRun = components["schemas"]["AgentRun"];
-export type LogLine = components["schemas"]["LogLine"];
+export type RunOut = components["schemas"]["RunOut"];
+export type RunEventOut = components["schemas"]["RunEventOut"];
 
 export function useRun(runId: string): {
-  run: AgentRun | undefined;
-  logLines: LogLine[];
+  run: RunOut | undefined;
+  events: RunEventOut[];
   isStreaming: boolean;
 } {
-  const query = useQuery({
+  const runQuery = useQuery({
     queryKey: queryKeys.run(runId),
-    queryFn: () => apiFetch<AgentRun>(`/runs/${runId}`),
+    queryFn: () => apiFetch<RunOut>(`/runs/${runId}`),
+  });
+  const historyQuery = useQuery({
+    queryKey: queryKeys.runEvents(runId),
+    queryFn: () => apiList<RunEventOut>(`/runs/${runId}/events`),
+    select: (page) => page.results,
   });
 
-  const [streamed, setStreamed] = useState<LogLine[]>([]);
+  const history = historyQuery.data ?? [];
+  const [streamed, setStreamed] = useState<RunEventOut[]>([]);
+  const lastSeq = history.length ? history[history.length - 1].seq : 0;
 
-  useEventSource<LogLine>(
-    query.data ? `/api/runs/${runId}/stream` : null,
-    (line) => setStreamed((prev) => [...prev, line]),
+  useEventSource<RunEventOut>(
+    runQuery.data ? `/api/runs/${runId}/events/stream?after=${lastSeq}` : null,
+    (ev) => setStreamed((prev) => [...prev, ev]),
   );
 
-  const logLines = [...(query.data?.logLines ?? []), ...streamed];
-
+  const events = [...history, ...streamed];
   return {
-    run: query.data,
-    logLines,
-    isStreaming: !!query.data && query.data.status === "running",
+    run: runQuery.data,
+    events,
+    isStreaming: !!runQuery.data && runQuery.data.status === "running",
   };
 }

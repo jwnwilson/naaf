@@ -200,6 +200,9 @@ export const mockOnlyHandlers = [
     return run ? ok(run) : notFound();
   }),
 
+  // Events history — returns empty list in mock mode; live data comes via SSE stream
+  http.get(`${BASE}/runs/:id/events`, () => ok([], pageMeta([]))),
+
   http.get(`${BASE}/runs/:id/stream`, () =>
     new HttpResponse(buildRunStream(), {
       headers: { "content-type": "text/event-stream" },

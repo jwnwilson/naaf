@@ -21,7 +21,8 @@ export type { Budget } from "./useBudget";
 export { useAgentDefinitions } from "./useAgentDefinitions";
 
 export { useRun } from "./useRun";
-export type { AgentRun, LogLine } from "./useRun";
+export type { RunOut, RunEventOut } from "./useRun";
+export { useResolveGate } from "./useResolveGate";
 export type { AgentDefinition } from "./useAgentDefinitions";
 
 export { useThreadMessages } from "./useThreadMessages";

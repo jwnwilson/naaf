@@ -1,13 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import { apiFetch } from "../client";
+import { apiList } from "../client";
 import type { components } from "../schema";
 
-type AgentRun = components["schemas"]["AgentRun"];
+export type RunOut = components["schemas"]["RunOut"];
 
 export function useWorkItemRun(itemId: string) {
   return useQuery({
     queryKey: ["work-item-run", itemId],
-    queryFn: () => apiFetch<AgentRun | null>(`/work-items/${itemId}/run`),
+    queryFn: async (): Promise<RunOut | null> => {
+      const { results } = await apiList<RunOut>("/runs", { work_item: itemId });
+      return results[0] ?? null;
+    },
     enabled: Boolean(itemId),
   });
 }
