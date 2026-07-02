@@ -70,6 +70,9 @@ def run_subscription(
         return SqlUnitOfWork(session_factory)
 
     # --- per-item owner-scoped context ---
+    from interactors.api.settings import Settings as _Settings
+    _s = _Settings()
+
     def ctx_factory(uow: SqlUnitOfWork, item: object) -> HandlerContext:
         owner_id: str = item.owner_id  # type: ignore[attr-defined]
         scope = {"owner_id": owner_id}
@@ -80,6 +83,8 @@ def run_subscription(
             notifications=NotificationRepository(uow.session, required_filters=scope),
             bus=build_message_bus(uow.session),
             runtime=runtime,
+            workspace_root=_s.workspace_root,
+            role_aliases=_s.role_model_aliases,
         )
 
     return process_subscription(bound, uow_factory, ctx_factory, max_items=max_items)

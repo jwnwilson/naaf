@@ -1,6 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
+from domain.agent.context import StageContext, WorkItemBrief
 from domain.agent.runtime import AgentRuntime, StageResult
 from domain.base import utcnow
 from domain.errors import RecordNotFound
@@ -9,6 +10,7 @@ from domain.runs.events import EventType, RunEvent
 from domain.runs.messages import AgentMessage, MessageType, recipient_key
 from domain.runs.pipeline import Finish, GateStep, Retry, next_step
 from domain.runs.run import Gate, Run, RunStatus, Stage, StageState, StageStatus
+from domain.team import AgentDefinition, AgentRole
 from domain.transitions import validate_transition
 from domain.work_item import WorkItemStatus
 
@@ -23,6 +25,50 @@ class HandlerContext:
     notifications: Any  # NotificationRepository | None — None in dead-letter cleanup
     bus: Any
     runtime: AgentRuntime | None  # None only in dead-letter cleanup (couple path — no stage runs)
+    workspace_root: str = ""
+    role_aliases: dict[str, str] | None = field(default=None)
+
+
+_ROLE_MAP = {
+    "lead": AgentRole.LEAD,
+    "architect": AgentRole.ARCHITECT,
+    "engineer": AgentRole.BACKEND,
+    "backend": AgentRole.BACKEND,
+    "frontend": AgentRole.FRONTEND,
+    "qa": AgentRole.QA,
+    "devops": AgentRole.DEVOPS,
+}
+
+
+def build_stage_context(ctx: HandlerContext, run: Run, role: str, stage: Stage) -> StageContext:
+    try:
+        wi = ctx.work_items.read(run.work_item_id)
+        brief = WorkItemBrief(
+            title=getattr(wi, "title", ""),
+            body=getattr(wi, "body", ""),
+            acceptance_criteria=[
+                ac.text for ac in (getattr(wi, "acceptance_criteria", None) or [])
+            ],
+        )
+    except RecordNotFound:
+        brief = WorkItemBrief(title="")
+    aliases = ctx.role_aliases or {}
+    agent = AgentDefinition(
+        owner_id=run.owner_id,
+        team_id="",
+        role=_ROLE_MAP.get(role, AgentRole.CUSTOM),
+        model_alias=aliases.get(role, ""),
+    )
+    root = ctx.workspace_root or "/tmp/naaf-workspaces"
+    return StageContext(
+        run_id=run.id,
+        role=role,
+        stage=stage,
+        workspace_path=f"{root}/{run.id}",
+        work_item=brief,
+        agent=agent,
+        verify_attempts=run.verify_attempts,
+    )
 
 
 def emit(ctx: HandlerContext, run: Run, type_: EventType, *, stage: Stage | None = None,
@@ -66,7 +112,7 @@ def _run_stage_inline(ctx: HandlerContext, run: Run, role: str, stage: Stage) ->
     run = _save(ctx, run.model_copy(update={"current_stage": stage, "stages": new_stages}))
     emit(ctx, run, EventType.STAGE_STARTED, stage=stage, role=role)
     assert ctx.runtime is not None, "_run_stage_inline requires a non-None runtime"
-    outcome = ctx.runtime.run_stage(role, stage, {"verify_attempts": run.verify_attempts})
+    outcome = ctx.runtime.run_stage(role, stage, build_stage_context(ctx, run, role, stage))
     for ev in outcome.events:
         emit(ctx, run, EventType.LOG, stage=stage, role=role, payload={"message": ev.message})
     # Update the last entry with PASSED/FAILED + ended_at (immutable — replace tail)

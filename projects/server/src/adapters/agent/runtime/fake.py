@@ -1,3 +1,4 @@
+from domain.agent.context import StageContext
 from domain.agent.runtime import AgentEvent, StageOutcome, StageResult
 from domain.runs.run import Stage
 
@@ -24,10 +25,10 @@ class FakeAgentRuntime:
     def __init__(self, fail_verify_times: int = 0):
         self.fail_verify_times = fail_verify_times
 
-    def run_stage(self, role: str, stage: Stage, ctx: dict) -> StageOutcome:
+    def run_stage(self, role: str, stage: Stage, ctx: StageContext) -> StageOutcome:
         events = [AgentEvent(message=m) for m in _SCRIPT.get(stage, [f"{stage.value} step"])]
         passed = True
-        if stage is Stage.VERIFY and ctx.get("verify_attempts", 0) < self.fail_verify_times:
+        if stage is Stage.VERIFY and ctx.verify_attempts < self.fail_verify_times:
             passed = False
         summary = "ok" if passed else "verification failed"
         tokens = TOKENS_PER_STEP * len(events)

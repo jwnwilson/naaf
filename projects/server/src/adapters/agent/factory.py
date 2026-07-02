@@ -17,12 +17,12 @@ def build_llm_adapter(settings):
     raise ValueError(f"unknown llm_provider: {settings.llm_provider}")
 
 
-def build_runtime(settings, workspace_root: str) -> AgentRuntime:
+def build_runtime(settings) -> AgentRuntime:
     if settings.agent_runtime == "fake":
         from adapters.agent.runtime.fake import FakeAgentRuntime
         return FakeAgentRuntime()
     return LlmAgentRuntime(
         build_llm_adapter(settings),
-        LocalWorkspace(workspace_root),
+        LocalWorkspace,
         settings.agent_max_iterations,
     )

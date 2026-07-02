@@ -55,7 +55,7 @@ def test_runtime_executes_tool_calls_then_finishes():
         ),
         LLMResponse(content="Implemented X.", stop_reason="end_turn"),
     ])
-    runtime = LlmAgentRuntime(llm=llm, workspace=ws)
+    runtime = LlmAgentRuntime(llm=llm, workspace_factory=lambda _p: ws)
     outcome = runtime.run_stage("engineer", Stage.IMPLEMENT, _ctx())
     assert ws.written["a.py"] == "x=1"
     assert outcome.result.passed is True
@@ -65,7 +65,7 @@ def test_runtime_executes_tool_calls_then_finishes():
 
 def test_runtime_passes_role_model_alias_to_the_request():
     llm = FakeLLMAdapter([LLMResponse(content="done", stop_reason="end_turn")])
-    LlmAgentRuntime(llm=llm, workspace=_Workspace()).run_stage(
+    LlmAgentRuntime(llm=llm, workspace_factory=lambda _p: _Workspace()).run_stage(
         "engineer", Stage.PLAN, _ctx(Stage.PLAN)
     )
     assert llm.requests[0].model == "sonnet"
@@ -81,7 +81,9 @@ def test_runtime_fails_when_iterations_exhausted():
         )
         for _ in range(5)
     ]
-    runtime = LlmAgentRuntime(llm=FakeLLMAdapter(loop), workspace=_Workspace(), max_iterations=3)
+    runtime = LlmAgentRuntime(
+        llm=FakeLLMAdapter(loop), workspace_factory=lambda _p: _Workspace(), max_iterations=3
+    )
     outcome = runtime.run_stage("engineer", Stage.IMPLEMENT, _ctx())
     assert outcome.result.passed is False
     assert "iteration" in outcome.result.summary.lower()
@@ -101,7 +103,22 @@ def test_runtime_accumulates_usage_tokens():
             usage=Usage(input_tokens=8, output_tokens=2),
         ),
     ])
-    outcome = LlmAgentRuntime(llm=llm, workspace=_Workspace()).run_stage(
+    outcome = LlmAgentRuntime(llm=llm, workspace_factory=lambda _p: _Workspace()).run_stage(
         "engineer", Stage.IMPLEMENT, _ctx()
     )
     assert outcome.result.tokens == 25
+
+
+def test_runtime_builds_workspace_from_ctx_path():
+    ws = _Workspace()
+    seen: dict = {}
+
+    def factory(path: str):
+        seen["p"] = path
+        return ws
+
+    llm = FakeLLMAdapter([LLMResponse(content="done", stop_reason="end_turn")])
+    LlmAgentRuntime(llm=llm, workspace_factory=factory).run_stage(
+        "engineer", Stage.PLAN, _ctx(Stage.PLAN)
+    )
+    assert seen["p"] == "/ws"
