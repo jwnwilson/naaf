@@ -2,7 +2,7 @@ import { HttpResponse, http } from "msw";
 import type { components } from "../schema";
 import { db } from "./db";
 import { seed } from "./fixtures";
-import { buildRunStream } from "./sse";
+import { buildEventStream } from "./sse";
 
 type WorkItemStatus = components["schemas"]["WorkItem"]["status"];
 
@@ -140,6 +140,49 @@ export const liveHandlers = [
     return ok({ ...def, ...body });
   }),
 
+  // ── Runs ──────────────────────────────────────────────────────────────────────
+  // Now backed by the real backend (A3). In live mode these pass through to /api.
+  // Literal + more-specific paths before the bare /:id catch-all.
+
+  http.get(`${BASE}/runs`, ({ request }) => {
+    const url = new URL(request.url);
+    const workItem = url.searchParams.get("work_item");
+    const runs = workItem ? db.runsForWorkItem(workItem) : db.runs;
+    return ok(runs, pageMeta(runs));
+  }),
+
+  http.get(`${BASE}/runs/:id/events/stream`, ({ params }) => {
+    const run = db.findRun(params.id as string);
+    if (!run) return notFound();
+    const events = db.eventsForRun(params.id as string);
+    return new HttpResponse(buildEventStream(events), {
+      headers: { "content-type": "text/event-stream" },
+    });
+  }),
+
+  http.get(`${BASE}/runs/:id/events`, ({ params }) => {
+    const run = db.findRun(params.id as string);
+    if (!run) return notFound();
+    const events = db.eventsForRun(params.id as string);
+    return ok(events, pageMeta(events));
+  }),
+
+  http.post(`${BASE}/runs/:id/gate`, async ({ params, request }) => {
+    const run = db.findRun(params.id as string);
+    if (!run) return notFound();
+    const body = (await request.json()) as { decision: "approve" | "reject" };
+    const updated = db.updateRun(params.id as string, {
+      status: body.decision === "approve" ? "running" : "failed",
+      pendingGate: null,
+    });
+    return ok(updated);
+  }),
+
+  http.get(`${BASE}/runs/:id`, ({ params }) => {
+    const run = db.findRun(params.id as string);
+    return run ? ok(run) : notFound();
+  }),
+
   // ── Threads ───────────────────────────────────────────────────────────────────
   // Backed by the real backend (Task 5). In live mode these pass through to /api.
 
@@ -182,32 +225,9 @@ export const mockOnlyHandlers = [
     return ok(db.boardFor(params.id as string));
   }),
 
-  http.get(`${BASE}/work-items/:id/run`, ({ params }) => {
-    const run = seed.agentRuns.find((r) => r.workItemId === params.id) ?? null;
-    return ok(run);
-  }),
-
   // ── Agents ───────────────────────────────────────────────────────────────────
 
   http.get(`${BASE}/agents`, () => ok(seed.agents)),
-
-  // ── Runs ──────────────────────────────────────────────────────────────────────
-
-  http.get(`${BASE}/runs`, () => ok(db.agentRuns, pageMeta(db.agentRuns))),
-
-  http.get(`${BASE}/runs/:id`, ({ params }) => {
-    const run = db.findRun(params.id as string);
-    return run ? ok(run) : notFound();
-  }),
-
-  // Events history — returns empty list in mock mode; live data comes via SSE stream
-  http.get(`${BASE}/runs/:id/events`, () => ok([], pageMeta([]))),
-
-  http.get(`${BASE}/runs/:id/stream`, () =>
-    new HttpResponse(buildRunStream(), {
-      headers: { "content-type": "text/event-stream" },
-    }),
-  ),
 
   // ── Dashboard ─────────────────────────────────────────────────────────────────
 

@@ -137,25 +137,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/work-items/{id}/run": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        /** Get the active agent run for a work item (or null) */
-        get: operations["getActiveRun"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/agents": {
         parameters: {
             query?: never;
@@ -254,25 +235,6 @@ export interface paths {
         };
         /** Get an agent run by id (steps, logLines, tokenUsage, cost, status) */
         get: operations["getRun"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/runs/{id}/stream": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        /** SSE stream of incremental log lines and step transitions for a run */
-        get: operations["streamRun"];
         put?: never;
         post?: never;
         delete?: never;
@@ -538,36 +500,6 @@ export interface components {
             workItemId?: string | null;
             /** Format: date-time */
             createdAt: string;
-        };
-        RunStep: {
-            index: number;
-            /** @enum {string} */
-            label: "Plan" | "Read" | "Analyze" | "Generate" | "Test" | "PR";
-            /** @enum {string} */
-            status: "done" | "active" | "pending";
-        };
-        LogLine: {
-            /** Format: date-time */
-            timestamp: string;
-            /** @enum {string} */
-            type: "tool_call" | "result" | "status";
-            tool?: string | null;
-            target?: string | null;
-            message?: string | null;
-        };
-        AgentRun: {
-            id: string;
-            agentId: string;
-            workItemId: string;
-            /** @enum {string} */
-            status: "running" | "paused" | "complete" | "failed";
-            steps: components["schemas"]["RunStep"][];
-            logLines: components["schemas"]["LogLine"][];
-            tokenUsage: number;
-            tokenLimit: number;
-            cost: number;
-            /** Format: date-time */
-            startedAt: string;
         };
         StageStateOut: {
             stage: string;
@@ -942,30 +874,6 @@ export interface operations {
             };
         };
     };
-    getActiveRun: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description ok */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope"] & {
-                        data?: components["schemas"]["AgentRun"] | null;
-                    };
-                };
-            };
-        };
-    };
     listAgents: {
         parameters: {
             query?: never;
@@ -1079,7 +987,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope"] & {
-                        data?: components["schemas"]["AgentRun"][];
+                        data?: components["schemas"]["RunOut"][];
                         meta?: components["schemas"]["Meta"];
                     };
                 };
@@ -1104,30 +1012,8 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope"] & {
-                        data?: components["schemas"]["AgentRun"];
+                        data?: components["schemas"]["RunOut"];
                     };
-                };
-            };
-        };
-    };
-    streamRun: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description SSE stream */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/event-stream": string;
                 };
             };
         };
