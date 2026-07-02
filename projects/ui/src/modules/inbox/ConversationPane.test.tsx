@@ -1,39 +1,74 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
+import { server } from "../../lib/api/mocks/server";
 import { createQueryClient } from "../../lib/api/queryClient";
+import type { Message } from "../../lib/api/hooks";
 import { ConversationPane } from "./ConversationPane";
-import { seed } from "../../lib/api/mocks/fixtures";
+
+function renderPane(threadId: string) {
+  render(
+    <QueryClientProvider client={createQueryClient()}>
+      <ConversationPane threadId={threadId} />
+    </QueryClientProvider>,
+  );
+}
 
 describe("ConversationPane", () => {
-  it("renders the conversation header and messages for the selected item", async () => {
-    const item = seed.inboxItems[0];
-    render(
-      <QueryClientProvider client={createQueryClient()}>
-        <ConversationPane item={item} />
-      </QueryClientProvider>,
+  it("renders thread messages", async () => {
+    server.use(
+      http.get("/api/threads/r1/messages", () =>
+        HttpResponse.json({
+          success: true,
+          data: [
+            {
+              id: "m0",
+              conversationId: "r1",
+              role: "agent",
+              agentId: "agent-1",
+              content: "existing message",
+              attachments: null,
+              createdAt: "2026-01-01T00:00:00Z",
+            },
+          ],
+          error: null,
+          meta: null,
+        }),
+      ),
     );
-    // the item id appears in the header
-    await waitFor(() => expect(screen.getByText(new RegExp(item.workItemId))).toBeInTheDocument());
+    renderPane("r1");
+    expect(await screen.findByText("existing message")).toBeInTheDocument();
   });
 
-  it("renders at least one message bubble for the selected item (not the empty state)", async () => {
-    // inbox-1 conversationId must resolve to a thread that has seeded messages
-    const item = seed.inboxItems[0];
-    render(
-      <QueryClientProvider client={createQueryClient()}>
-        <ConversationPane item={item} />
-      </QueryClientProvider>,
+  it("sends a reply and it stays visible after refetch", async () => {
+    const stored: Message[] = [];
+    server.use(
+      http.get("/api/threads/r1/messages", () =>
+        HttpResponse.json({ success: true, data: stored, error: null, meta: null }),
+      ),
+      http.post("/api/threads/r1/messages", async ({ request }) => {
+        const body = (await request.json()) as { content: string };
+        const msg: Message = {
+          id: "m1",
+          conversationId: "r1",
+          role: "user",
+          agentId: null,
+          content: body.content,
+          attachments: null,
+          createdAt: new Date().toISOString(),
+        };
+        stored.push(msg);
+        return HttpResponse.json(
+          { success: true, data: msg, error: null, meta: null },
+          { status: 201 },
+        );
+      }),
     );
-    // "No messages yet" must NOT appear — real message content must render
-    await waitFor(() =>
-      expect(screen.queryByText(/No messages yet/i)).not.toBeInTheDocument(),
-    );
-    // At least one seeded message bubble content is visible
-    await waitFor(() =>
-      expect(
-        screen.getByText(/Please implement the Docker sandbox container/i),
-      ).toBeInTheDocument(),
-    );
+    renderPane("r1");
+    await userEvent.type(screen.getByPlaceholderText("Reply to agent…"), "looks good");
+    await userEvent.click(screen.getByRole("button", { name: /send/i }));
+    expect(await screen.findByText("looks good")).toBeInTheDocument();
   });
 });

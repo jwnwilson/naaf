@@ -281,78 +281,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/inbox": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List inbox items */
-        get: operations["listInbox"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/inbox/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        /** Get an inbox item with its conversation */
-        get: operations["getInboxItem"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/inbox/{id}/read": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Mark an inbox item as read */
-        post: operations["markInboxItemRead"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/inbox/mark-all-read": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Mark all inbox items as read */
-        post: operations["markAllInboxRead"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/threads": {
         parameters: {
             query?: never;
@@ -592,19 +520,6 @@ export interface components {
             tokenLimit?: number;
             systemPrompt?: string;
             enabled?: boolean;
-        };
-        InboxItem: {
-            id: string;
-            /** @enum {string} */
-            type: "action_needed" | "review_needed" | "info" | "resolved";
-            title: string;
-            preview: string;
-            agentId: string;
-            workItemId: string;
-            conversationId: string;
-            /** Format: date-time */
-            createdAt: string;
-            read: boolean;
         };
         Message: {
             id: string;
@@ -1176,100 +1091,6 @@ export interface operations {
                 };
                 content: {
                     "text/event-stream": string;
-                };
-            };
-        };
-    };
-    listInbox: {
-        parameters: {
-            query?: {
-                type?: "action_needed" | "review_needed" | "info" | "resolved";
-                unread?: boolean;
-                page_size?: number;
-                page_number?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description ok */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope"] & {
-                        data?: components["schemas"]["InboxItem"][];
-                        meta?: components["schemas"]["Meta"];
-                    };
-                };
-            };
-        };
-    };
-    getInboxItem: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description ok */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope"] & {
-                        data?: components["schemas"]["InboxItem"];
-                    };
-                };
-            };
-        };
-    };
-    markInboxItemRead: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description ok */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope"];
-                };
-            };
-        };
-    };
-    markAllInboxRead: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description ok */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope"];
                 };
             };
         };

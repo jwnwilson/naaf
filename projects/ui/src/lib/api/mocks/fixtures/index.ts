@@ -6,7 +6,6 @@ type WorkItem = components["schemas"]["WorkItem"];
 type Team = components["schemas"]["Team"];
 type AgentDefinition = components["schemas"]["AgentDefinition"];
 type AgentRun = components["schemas"]["AgentRun"];
-type InboxItem = components["schemas"]["InboxItem"];
 type Message = components["schemas"]["Message"];
 type Thread = components["schemas"]["Thread"];
 type DashboardMetrics = components["schemas"]["DashboardMetrics"];
@@ -376,59 +375,6 @@ const agentRuns: AgentRun[] = [
   },
 ];
 
-// ─── Inbox ────────────────────────────────────────────────────────────────────
-// All four types, including one resolved
-
-const inboxItems: InboxItem[] = [
-  {
-    id: "inbox-1",
-    type: "action_needed",
-    title: "PR Review Required: Sandbox container implementation",
-    preview:
-      "Agent-1 has submitted a PR for the Docker sandbox. Please review changes to docker/sandbox/Dockerfile.",
-    agentId: "agent-1",
-    workItemId: "wi-task-3",
-    conversationId: "thread-1",
-    createdAt: "2026-06-29T14:00:00Z",
-    read: false,
-  },
-  {
-    id: "inbox-2",
-    type: "review_needed",
-    title: "Code Review: Network egress proxy implementation",
-    preview:
-      "The egress proxy implementation is ready for review. 3 files changed, +247 lines.",
-    agentId: "agent-3",
-    workItemId: "wi-task-4",
-    conversationId: "conv-2",
-    createdAt: "2026-06-28T16:30:00Z",
-    read: false,
-  },
-  {
-    id: "inbox-3",
-    type: "info",
-    title: "Run complete: Write sandbox integration tests",
-    preview:
-      "Agent successfully completed wi-task-5. All 24 tests passing. Token usage: 15,000.",
-    agentId: "agent-2",
-    workItemId: "wi-task-5",
-    conversationId: "conv-3",
-    createdAt: "2026-06-25T12:00:00Z",
-    read: true,
-  },
-  {
-    id: "inbox-4",
-    type: "resolved",
-    title: "Resolved: Board Kanban View feature",
-    preview: "Feature wi-feat-3 completed and merged. PR #42 closed.",
-    agentId: "agent-2",
-    workItemId: "wi-feat-3",
-    conversationId: "conv-4",
-    createdAt: "2026-06-26T14:00:00Z",
-    read: true,
-  },
-];
-
 // ─── Threads & messages ───────────────────────────────────────────────────────
 
 const threads: Thread[] = [
@@ -618,7 +564,6 @@ export const seed = {
   teams,
   agentDefinitions,
   agentRuns,
-  inboxItems,
   threads,
   messages,
   metrics,

@@ -1,23 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Avatar } from "../components/ui/Avatar";
 import { ChevronRightIcon } from "../components/ui";
 import { PulseDot } from "../components/ui/PulseDot";
 import { TypingIndicator } from "../components/ui/TypingIndicator";
-import { apiFetch } from "../lib/api/client";
-import { useThreads } from "../lib/api/hooks";
-import type { Thread } from "../lib/api/hooks";
-import type { components } from "../lib/api/schema";
+import { useThreads, useThreadMessages, useSendMessage } from "../lib/api/hooks";
+import type { Thread, Message } from "../lib/api/hooks";
 import { useLocalStorage } from "../lib/hooks/useLocalStorage";
-
-type Message = components["schemas"]["Message"];
-
-function useThreadMessages(threadId: string | undefined) {
-  return useQuery({
-    queryKey: ["thread-messages", threadId],
-    queryFn: () => apiFetch<Message[]>(`/threads/${threadId!}/messages`),
-    enabled: Boolean(threadId),
-  });
-}
 
 // ── Collapsed strip ────────────────────────────────────────────────────────────
 
@@ -73,10 +61,23 @@ function ThreadTab({ thread }: { thread: Thread | undefined }) {
 
 // ── Input area ─────────────────────────────────────────────────────────────────
 
-function ChatInput() {
+function ChatInput({ threadId }: { threadId: string | undefined }) {
+  const [value, setValue] = useState("");
+  const send = useSendMessage(threadId ?? "");
+  const disabled = !threadId || value.trim().length === 0;
+
+  function submit() {
+    if (disabled) return;
+    send.mutate({ content: value.trim() });
+    setValue("");
+  }
+
   return (
     <div className="p-[13px]">
-      <div className="rounded-[7px] border border-[rgba(255,255,255,0.09)] bg-[#101316] p-2">
+      <form
+        onSubmit={(e) => { e.preventDefault(); submit(); }}
+        className="rounded-[7px] border border-[rgba(255,255,255,0.09)] bg-[#101316] p-2"
+      >
         <div className="flex items-center gap-1 pb-2">
           <span className="rounded-[3px] border border-[rgba(255,255,255,0.08)] px-1.5 py-0.5 font-mono text-[9.5px] text-[#3a3d44]">
             @agent
@@ -84,17 +85,21 @@ function ChatInput() {
         </div>
         <div className="flex items-center gap-2">
           <input
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
             placeholder="Message…"
             className="flex-1 bg-transparent text-[11.5px] text-[#c4c5cb] placeholder-[#20222a] outline-none"
           />
           <button
+            type="submit"
             aria-label="send"
-            className="flex h-[22px] w-[22px] items-center justify-center rounded-[5px] bg-[rgba(124,108,240,0.18)] text-accent"
+            disabled={disabled}
+            className="flex h-[22px] w-[22px] items-center justify-center rounded-[5px] bg-[rgba(124,108,240,0.18)] text-accent disabled:opacity-40"
           >
             ↑
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
@@ -141,7 +146,7 @@ export function ChatPanel() {
       </div>
 
       {/* Input */}
-      <ChatInput />
+      <ChatInput threadId={firstThread?.id} />
     </aside>
   );
 }

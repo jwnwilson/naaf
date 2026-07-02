@@ -5,7 +5,6 @@ import { seed } from "./fixtures";
 import { buildRunStream } from "./sse";
 
 type WorkItemStatus = components["schemas"]["WorkItem"]["status"];
-type InboxItem = components["schemas"]["InboxItem"];
 
 const BASE = "/api";
 
@@ -140,12 +139,37 @@ export const liveHandlers = [
     const body = (await request.json()) as Partial<components["schemas"]["AgentDefinition"]>;
     return ok({ ...def, ...body });
   }),
+
+  // ── Threads ───────────────────────────────────────────────────────────────────
+  // Backed by the real backend (Task 5). In live mode these pass through to /api.
+
+  http.get(`${BASE}/threads`, () => ok(seed.threads)),
+
+  http.get(`${BASE}/threads/:id/messages`, ({ params }) => {
+    const msgs = db.messagesForThread(params.id as string);
+    return ok(msgs);
+  }),
+
+  http.post(`${BASE}/threads/:id/messages`, async ({ params, request }) => {
+    const body = (await request.json()) as { content: string };
+    const msg: components["schemas"]["Message"] = {
+      id: `msg-${Date.now()}`,
+      conversationId: `conv-${String(params.id).replace("thread-", "")}`,
+      role: "user",
+      agentId: null,
+      content: body.content,
+      attachments: null,
+      createdAt: new Date().toISOString(),
+    };
+    return HttpResponse.json(
+      { success: true, data: msg, error: null, meta: null },
+      { status: 201 },
+    );
+  }),
 ];
 
 // ─── Mock-only handlers ────────────────────────────────────────────────────────
 // These paths have NO real backend — always served by MSW regardless of mode.
-// Registration order matters: POST /inbox/mark-all-read MUST come before
-// GET|POST /inbox/:id to prevent MSW matching "mark-all-read" as an :id value.
 
 export const mockOnlyHandlers = [
   // ── Mocked work-item and project endpoints ──────────────────────────────────
@@ -181,59 +205,6 @@ export const mockOnlyHandlers = [
       headers: { "content-type": "text/event-stream" },
     }),
   ),
-
-  // ── Inbox ─────────────────────────────────────────────────────────────────────
-
-  http.post(`${BASE}/inbox/mark-all-read`, () => {
-    db.markAllInboxRead();
-    return ok(null);
-  }),
-
-  http.get(`${BASE}/inbox`, ({ request }) => {
-    const url = new URL(request.url);
-    const type = url.searchParams.get("type") as InboxItem["type"] | null;
-    const unread = url.searchParams.get("unread");
-    let items = db.inboxItems;
-    if (type) items = items.filter((i) => i.type === type);
-    if (unread === "true") items = items.filter((i) => !i.read);
-    return ok(items, pageMeta(items));
-  }),
-
-  http.get(`${BASE}/inbox/:id`, ({ params }) => {
-    const item = db.findInboxItem(params.id as string);
-    return item ? ok(item) : notFound();
-  }),
-
-  http.post(`${BASE}/inbox/:id/read`, ({ params }) => {
-    db.markInboxRead(params.id as string);
-    return ok(null);
-  }),
-
-  // ── Threads ───────────────────────────────────────────────────────────────────
-
-  http.get(`${BASE}/threads`, () => ok(seed.threads)),
-
-  http.get(`${BASE}/threads/:id/messages`, ({ params }) => {
-    const msgs = db.messagesForThread(params.id as string);
-    return ok(msgs);
-  }),
-
-  http.post(`${BASE}/threads/:id/messages`, async ({ params, request }) => {
-    const body = (await request.json()) as { content: string };
-    const msg: components["schemas"]["Message"] = {
-      id: `msg-${Date.now()}`,
-      conversationId: `conv-${String(params.id).replace("thread-", "")}`,
-      role: "user",
-      agentId: null,
-      content: body.content,
-      attachments: null,
-      createdAt: new Date().toISOString(),
-    };
-    return HttpResponse.json(
-      { success: true, data: msg, error: null, meta: null },
-      { status: 201 },
-    );
-  }),
 
   // ── Dashboard ─────────────────────────────────────────────────────────────────
 

@@ -106,8 +106,8 @@ make worker                # naaf_db_url must point at the same Postgres as the 
 # terminal 3 — UI with live API flag
 cd projects/ui
 VITE_LIVE_API=true pnpm dev
-# Vite proxies /api → http://localhost:8000; MSW still handles
-# runs/agents/inbox/threads/dashboard/budget with mock data.
+# Vite proxies /api → http://localhost:8000; /threads is now live
+# (inbox + sidebar chat); MSW still handles runs/agents/dashboard/budget.
 ```
 
 > **A3 run pipeline (backend, live):** `POST /work-items/{id}/runs` starts a run; the

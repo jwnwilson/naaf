@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Any, Literal
 
 from domain.work_item import Priority, WorkItemKind, WorkItemStatus
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 def iso(dt: datetime | None) -> str:
@@ -229,3 +229,40 @@ class NotificationOut(BaseModel):
     read: bool
     createdAt: str
     updatedAt: str
+
+
+# ---------------------------------------------------------------------------
+# Messaging (threads)
+# ---------------------------------------------------------------------------
+
+
+class ThreadOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str
+    agentId: str
+    workItemId: str
+    createdAt: str
+
+
+class MessageOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str
+    conversationId: str
+    role: str  # MessageRole value
+    agentId: str | None = None
+    content: str
+    createdAt: str
+
+
+class MessageCreate(BaseModel):
+    content: str
+    agentId: str | None = None
+
+    @field_validator("content")
+    @classmethod
+    def _non_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("content must not be empty")
+        return v
