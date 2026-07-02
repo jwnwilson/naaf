@@ -26,3 +26,7 @@ export { useAgentDefinitions } from "./useAgentDefinitions";
 export { useRun } from "./useRun";
 export type { AgentRun, LogLine } from "./useRun";
 export type { AgentDefinition } from "./useAgentDefinitions";
+
+export { useThreadMessages } from "./useThreadMessages";
+export type { Message } from "./useThreadMessages";
+export { useSendMessage } from "./useSendMessage";

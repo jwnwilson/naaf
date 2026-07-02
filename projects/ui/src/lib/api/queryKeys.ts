@@ -9,4 +9,5 @@ export const queryKeys = {
   budget: () => ["budget"] as const,
   agentDefinitions: () => ["agent-definitions"] as const,
   run: (id: string) => ["run", id] as const,
+  threadMessages: (threadId?: string) => ["threads", threadId ?? "none", "messages"] as const,
 };
