@@ -16,9 +16,14 @@ _STAGE_INSTRUCTIONS = {
         "acceptance criteria. Report whether the work is done."
     ),
     Stage.PR: (
-        "Push the branch and open a pull request summarizing the plan, changes, and QA result."
+        "Push the agent branch and run `gh pr create` to open a pull request summarizing the "
+        "plan, changes, and QA result. End your reply with the PR URL on its own line."
     ),
-    Stage.LEARN: "Distill durable lessons from this run into a short memory diff and commit it.",
+    Stage.LEARN: (
+        "You are the curator. Distill durable, reusable lessons from this run into a short "
+        "memory diff, append them to the project memory file (CLAUDE.md or AGENTS.md), and "
+        "commit the change. Keep it concise."
+    ),
 }
 
 

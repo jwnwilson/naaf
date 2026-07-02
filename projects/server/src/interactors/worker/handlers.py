@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -16,6 +17,8 @@ from domain.transitions import validate_transition
 from domain.work_item import WorkItemStatus
 
 _STUB_STAGES = {Stage.PROVISION, Stage.PR, Stage.LEARN}
+
+_PR_URL_RE = re.compile(r"https://github\.com/\S+?/pull/\d+")
 
 
 @dataclass
@@ -175,6 +178,16 @@ def _provision(ctx: HandlerContext, run: Run) -> StageOutcome:
     )
 
 
+def _capture_pr_url(ctx: HandlerContext, run: Run, result: StageResult) -> None:
+    match = _PR_URL_RE.search(result.summary or "")
+    if not match:
+        return
+    url = match.group(0)
+    run = ctx.runs.read(run.id)
+    emit(ctx, run, EventType.LOG, stage=Stage.PR, role="lead",
+         payload={"message": f"PR opened: {url}", "pr_url": url})
+
+
 def _run_provision_inline(ctx: HandlerContext, run: Run) -> StageResult:
     run = _start_stage(ctx, run, "lead", Stage.PROVISION)
     return _finish_stage(ctx, run, "lead", Stage.PROVISION, _provision(ctx, run))
@@ -227,8 +240,11 @@ def advance(ctx: HandlerContext, run: Run, result: StageResult) -> None:
         if stage in _STUB_STAGES:
             if stage is Stage.PROVISION:
                 result = _run_provision_inline(ctx, run)
-            else:
+            elif stage is Stage.PR:
                 result = _run_stage_inline(ctx, run, "lead", stage)
+                _capture_pr_url(ctx, run, result)
+            else:  # LEARN
+                result = _run_stage_inline(ctx, run, "curator", stage)
             run = ctx.runs.read(run.id)
             continue
 
