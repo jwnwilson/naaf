@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from domain.runs.gates import requires_merge_gate, requires_plan_gate
 from domain.runs.run import GateKind, Run, RunStatus, Stage
 
-_ORDER = [Stage.PLAN, Stage.PROVISION, Stage.IMPLEMENT, Stage.VERIFY, Stage.PR, Stage.LEARN]
+_ORDER = [Stage.PROVISION, Stage.PLAN, Stage.IMPLEMENT, Stage.VERIFY, Stage.PR, Stage.LEARN]
 
 
 @dataclass(frozen=True)
@@ -59,6 +59,9 @@ def next_step(run: Run, result) -> Step:
         if run.verify_attempts < run.max_verify_loops:
             return Retry(Stage.IMPLEMENT)
         return Finish(RunStatus.FAILED)
+
+    if not result.passed:
+        return Finish(RunStatus.FAILED)  # a failed non-VERIFY stage halts the run
 
     gate = _gate_after(current, run.autonomy_level)
     if gate is not None and gate not in run.resolved_gates and run.pending_gate is None:

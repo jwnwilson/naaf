@@ -4,7 +4,8 @@ from domain.runs.run import Stage
 _BASE = (
     "You are an autonomous software engineer working in a git workspace. "
     "Use the provided tools to inspect and change files and run commands. "
-    "When you have completed the stage, stop calling tools and give a one-line summary."
+    "When the stage is done, either call the `report` tool with your verdict (required for "
+    "VERIFY) or, for other stages, stop calling tools and give a one-line summary."
 )
 
 _STAGE_INSTRUCTIONS = {

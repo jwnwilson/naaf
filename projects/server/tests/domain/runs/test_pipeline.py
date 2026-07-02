@@ -19,16 +19,16 @@ def test_plan_passed_requests_plan_gate_when_gated_all():
 
 
 def test_plan_gate_skipped_when_gated_merge():
-    assert next_step(_run(Stage.PLAN, "gated_merge"), R(True)) == Advance(Stage.PROVISION)
+    assert next_step(_run(Stage.PLAN, "gated_merge"), R(True)) == Advance(Stage.IMPLEMENT)
 
 
 def test_resolved_plan_gate_advances():
     r = _run(Stage.PLAN, resolved_gates=[GateKind.PLAN])
-    assert next_step(r, R(True)) == Advance(Stage.PROVISION)
+    assert next_step(r, R(True)) == Advance(Stage.IMPLEMENT)
 
 
 def test_provision_and_implement_advance():
-    assert next_step(_run(Stage.PROVISION), R(True)) == Advance(Stage.IMPLEMENT)
+    assert next_step(_run(Stage.PROVISION), R(True)) == Advance(Stage.PLAN)
     assert next_step(_run(Stage.IMPLEMENT), R(True)) == Advance(Stage.VERIFY)
 
 
@@ -57,8 +57,20 @@ def test_pending_gate_blocks_re_requesting_a_gate():
     from domain.runs.run import Gate
     r = _run(Stage.PLAN, pending_gate=Gate(kind=GateKind.PLAN, stage=Stage.PLAN))
     # a gate is in-flight (pending, not yet resolved) → next_step must NOT re-issue it
-    assert next_step(r, R(True)) == Advance(Stage.PROVISION)
+    assert next_step(r, R(True)) == Advance(Stage.IMPLEMENT)
 
 
 def test_full_auto_plan_advances_without_gate():
-    assert next_step(_run(Stage.PLAN, "full_auto"), R(True)) == Advance(Stage.PROVISION)
+    assert next_step(_run(Stage.PLAN, "full_auto"), R(True)) == Advance(Stage.IMPLEMENT)
+
+
+def test_provision_precedes_plan():
+    # PROVISION is index 0; a passing PROVISION run advances to PLAN (not directly to IMPLEMENT)
+    assert next_step(_run(Stage.PROVISION, "full_auto"), R(True)) == Advance(Stage.PLAN)
+
+
+def test_failed_non_verify_stage_finishes_failed():
+    # A failing stage other than VERIFY (e.g. PROVISION or PR) must halt the run immediately
+    assert next_step(_run(Stage.PROVISION), R(False)) == Finish(RunStatus.FAILED)
+    assert next_step(_run(Stage.PLAN), R(False)) == Finish(RunStatus.FAILED)
+    assert next_step(_run(Stage.PR), R(False)) == Finish(RunStatus.FAILED)

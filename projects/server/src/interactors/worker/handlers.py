@@ -273,6 +273,11 @@ def handle_lead(msg: AgentMessage, ctx: HandlerContext) -> None:
         }))
         emit(ctx, run, EventType.RUN_STARTED, role="lead")
         couple(ctx, run)
+        prov = _run_provision_inline(ctx, run)
+        run = ctx.runs.read(run.id)
+        if not prov.passed:
+            advance(ctx, run, prov)  # I1: failed PROVISION halts the run (Finish FAILED)
+            return
         result = _run_stage_inline(ctx, run, "lead", Stage.PLAN)
         run = ctx.runs.read(run.id)
         advance(ctx, run, result)
