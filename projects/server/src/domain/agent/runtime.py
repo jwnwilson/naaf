@@ -13,6 +13,7 @@ class AgentEvent(BaseModel):
 class StageResult(BaseModel):
     passed: bool
     summary: str = ""
+    tokens: int = 0
 
 
 class StageOutcome(BaseModel):

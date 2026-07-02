@@ -1,6 +1,8 @@
 from domain.agent.runtime import AgentEvent, StageOutcome, StageResult
 from domain.runs.run import Stage
 
+TOKENS_PER_STEP = 350  # deterministic placeholder; real token counts arrive with the A5 runtime
+
 _SCRIPT = {
     Stage.PLAN: [
         "Reading ticket + project memory",
@@ -28,4 +30,5 @@ class FakeAgentRuntime:
         if stage is Stage.VERIFY and ctx.get("verify_attempts", 0) < self.fail_verify_times:
             passed = False
         summary = "ok" if passed else "verification failed"
-        return StageOutcome(events=events, result=StageResult(passed=passed, summary=summary))
+        tokens = TOKENS_PER_STEP * len(events)
+        return StageOutcome(events=events, result=StageResult(passed=passed, summary=summary, tokens=tokens))
