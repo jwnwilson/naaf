@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from domain.base import new_id, utcnow
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -126,3 +126,12 @@ class BusMessageRow(_Timestamped, Base):
     payload: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     status: Mapped[str] = mapped_column(String(16), default="pending", index=True, nullable=False)
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class MessageRow(_Timestamped, Base):
+    __tablename__ = "messages"
+    __table_args__ = (Index("ix_messages_owner_thread", "owner_id", "thread_id"),)
+    thread_id: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    role: Mapped[str] = mapped_column(String(16), nullable=False)
+    agent_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    content: Mapped[str] = mapped_column(String, nullable=False)

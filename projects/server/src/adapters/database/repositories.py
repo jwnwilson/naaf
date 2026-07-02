@@ -1,4 +1,5 @@
 from domain.base import utcnow
+from domain.messaging.message import Message
 from domain.messaging.subscriber import CursorState
 from domain.notifications.notification import Notification
 from domain.project import Project
@@ -11,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from adapters.database.orm import (
     AgentDefinitionRow,
+    MessageRow,
     NotificationRow,
     ProjectRow,
     RunEventRow,
@@ -50,6 +52,11 @@ class RunRepository(SqlRepository[Run]):
 class NotificationRepository(SqlRepository[Notification]):
     orm_model = NotificationRow
     dto = Notification
+
+
+class MessageRepository(SqlRepository[Message]):
+    orm_model = MessageRow
+    dto = Message
 
 
 class RunEventRepository(SqlRepository[RunEvent]):
