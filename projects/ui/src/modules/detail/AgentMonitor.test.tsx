@@ -40,6 +40,27 @@ const RUN = {
   cost: 0.0032,
 };
 
+test("shows a View PR link pointing at the run's prUrl when set", async () => {
+  const withPr = { ...RUN, status: "succeeded", pendingGate: null, prUrl: "https://github.com/acme/app/pull/42" };
+  server.use(
+    http.get("/api/runs/r1", () => HttpResponse.json({ success: true, error: null, data: withPr })),
+    http.get("/api/runs/r1/events", () => HttpResponse.json({ success: true, error: null, data: [] })),
+  );
+  renderMonitor();
+  const link = await screen.findByRole("link", { name: /view pr/i });
+  expect(link).toHaveAttribute("href", "https://github.com/acme/app/pull/42");
+});
+
+test("hides the View PR link when the run has no prUrl", async () => {
+  server.use(
+    http.get("/api/runs/r1", () => HttpResponse.json({ success: true, error: null, data: RUN })),
+    http.get("/api/runs/r1/events", () => HttpResponse.json({ success: true, error: null, data: [] })),
+  );
+  renderMonitor();
+  await screen.findByText(/awaiting_gate/);
+  expect(screen.queryByRole("link", { name: /view pr/i })).not.toBeInTheDocument();
+});
+
 test("renders status + token usage and resolves a pending gate", async () => {
   const gate = vi.fn();
   server.use(

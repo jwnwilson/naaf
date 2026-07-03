@@ -247,6 +247,10 @@ def _capture_pr_url(ctx: HandlerContext, run: Run, result: StageResult) -> None:
         return
     url = match.group(0)
     run = ctx.runs.read(run.id)
+    # Persist the PR URL onto the run so it survives past the event stream (the
+    # advance loop re-reads the run right after the PR stage, so this is preserved
+    # through Finish).
+    _save(ctx, run.model_copy(update={"pr_url": url}))
     emit(ctx, run, EventType.LOG, stage=Stage.PR, role="lead",
          payload={"message": f"PR opened: {url}", "pr_url": url})
 

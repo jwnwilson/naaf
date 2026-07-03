@@ -865,6 +865,7 @@ components:
         endedAt: { type: string, format: date-time, nullable: true }
         tokenUsage: { type: integer }
         cost: { type: number }
+        prUrl: { type: string, nullable: true }
 
     RunEventOut:
       type: object

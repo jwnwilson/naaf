@@ -11,6 +11,7 @@ import type { DetailTab } from "./TabBar";
 const ALL_DETAIL_TABS: DetailTab[] = ["Spec", "Attachments", "Activity", "Agent", "Thread"];
 import { SpecTab } from "./SpecTab";
 import { AgentMonitor } from "./AgentMonitor";
+import { StartRunButton } from "./StartRunButton";
 import { Thread } from "../../components/thread";
 
 function LoadingState() {
@@ -46,7 +47,11 @@ export function DetailScreen() {
   return (
     <div className="flex flex-col h-full">
       <Breadcrumb item={item} />
-      <ItemHeader item={item} onEdit={() => openEditWorkItem(item)} />
+      <ItemHeader
+        item={item}
+        onEdit={() => openEditWorkItem(item)}
+        actions={<StartRunButton item={item} run={run ?? null} />}
+      />
       <TabBar
         tabs={ALL_DETAIL_TABS}
         active={activeTab}
@@ -58,7 +63,12 @@ export function DetailScreen() {
         {activeTab === "Agent" && (
           run
             ? <AgentMonitor runId={run.id} />
-            : <EmptyBody message="No active run" />
+            : (
+              <div className="flex flex-1 flex-col items-center justify-center gap-3">
+                <span className="font-mono text-[11px] text-[#42454e]">No active run</span>
+                <StartRunButton item={item} run={null} />
+              </div>
+            )
         )}
         {activeTab === "Attachments" && <EmptyBody message="No attachments" />}
         {activeTab === "Activity" && <EmptyBody message="No activity yet" />}

@@ -78,6 +78,7 @@ class RunRow(_Timestamped, Base):
     verify_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     max_verify_loops: Mapped[int] = mapped_column(Integer, default=3, nullable=False)
     token_usage: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    pr_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 

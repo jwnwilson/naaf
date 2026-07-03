@@ -89,6 +89,29 @@ def test_run_persists_token_usage(session_factory):
     assert got.token_usage == 1750
 
 
+def test_run_persists_pr_url(session_factory):
+    from adapters.database.uow import SqlUnitOfWork
+    from domain.runs.run import Run
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
+    with uow.transaction():
+        run = uow.runs.create(
+            Run(owner_id="", work_item_id="w1", project_id="p1", autonomy_level="full_auto")
+        )
+        uow.runs.update(run.id, run.model_copy(update={"pr_url": "https://github.com/acme/app/pull/7"}))
+        got = uow.runs.read(run.id)
+    assert got.pr_url == "https://github.com/acme/app/pull/7"
+
+
+def test_run_pr_url_defaults_to_none(session_factory):
+    uow = _uow(session_factory)
+    with uow.transaction():
+        run = uow.runs.create(
+            Run(owner_id="", work_item_id="w1", project_id="p1", autonomy_level="gated_all")
+        )
+        got = uow.runs.read(run.id)
+    assert got.pr_url is None
+
+
 def test_list_after_is_global_and_ordered(session_factory):
     from adapters.database.repositories import RunEventRepository
     from adapters.database.uow import SqlUnitOfWork

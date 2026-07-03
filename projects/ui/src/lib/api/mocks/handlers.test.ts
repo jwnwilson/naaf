@@ -58,10 +58,11 @@ describe("handler split", () => {
     expect(mock).not.toMatch(/\/api\/threads/);
   });
 
-  it("/runs is a live handler and legacy run paths are gone", () => {
+  it("/runs and start-run are live handlers and legacy run paths are gone", () => {
     expect(liveHandlers.some((h) => String(h.info.path).endsWith("/runs"))).toBe(true);
+    // start-run (POST /work-items/:id/runs) is now backed by the real backend
+    expect(liveHandlers.some((h) => String(h.info.path).endsWith("/work-items/:id/runs"))).toBe(true);
     const all = [...liveHandlers, ...mockOnlyHandlers].map((h) => String(h.info.path));
-    expect(all.some((p) => p.includes("/work-items/:id/run"))).toBe(false);
     expect(all.some((p) => p.endsWith("/runs/:id/stream"))).toBe(false);
   });
 });

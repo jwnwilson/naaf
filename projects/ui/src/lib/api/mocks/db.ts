@@ -104,6 +104,11 @@ export const db = {
     return runs.find((r) => r.id === id) ?? null;
   },
 
+  addRun: (run: RunOut): RunOut => {
+    runs = [...runs, run];
+    return run;
+  },
+
   addMessage: (msg: Message): Message => {
     messages = [...messages, msg];
     return msg;

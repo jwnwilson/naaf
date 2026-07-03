@@ -108,6 +108,32 @@ export const liveHandlers = [
   }),
 
   // Literal sub-paths before parameterised :id
+  http.post(`${BASE}/work-items/:id/runs`, ({ params }) => {
+    const w = db.findWorkItem(params.id as string);
+    if (!w) return notFound();
+    const now = new Date().toISOString();
+    const run = {
+      id: `run-${Date.now()}`,
+      workItemId: w.id,
+      projectId: w.projectId,
+      autonomyLevel: "gated_all",
+      status: "running",
+      currentStage: "plan",
+      stages: [{ stage: "plan", status: "running", role: "lead", startedAt: now, endedAt: null }],
+      pendingGate: null,
+      createdAt: now,
+      updatedAt: now,
+      startedAt: now,
+      endedAt: null,
+      tokenUsage: 0,
+      cost: 0,
+      prUrl: null,
+    } as components["schemas"]["RunOut"];
+    db.addRun(run);
+    db.updateWorkItem(w.id, { status: "in_progress" });
+    return HttpResponse.json({ success: true, data: run, error: null, meta: null }, { status: 201 });
+  }),
+
   http.post(`${BASE}/work-items/:id/transition`, async ({ params, request }) => {
     const w = db.findWorkItem(params.id as string);
     if (!w) return notFound();
