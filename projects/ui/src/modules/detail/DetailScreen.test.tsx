@@ -32,4 +32,23 @@ describe("DetailScreen", () => {
     // Agent tab body renders (timeline/monitor or an empty-run state)
     expect(screen.getByRole("button", { name: /^Agent$/i })).toBeInTheDocument();
   });
+
+  it("opens the Edit modal pre-filled from the header Edit button", async () => {
+    const wi = seed.workItems[0];
+    server.use(
+      http.get("/api/runs", () =>
+        HttpResponse.json({ success: true, error: null, data: [], meta: { total: 0, page_size: 50, page_number: 1 } }),
+      ),
+    );
+    const router = createMemoryRouter(routes, { initialEntries: [`/projects/${wi.projectId}/items/${wi.id}`] });
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+    await waitFor(() => expect(screen.getByRole("button", { name: /^Edit$/i })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /^Edit$/i }));
+    expect(screen.getByRole("dialog")).toHaveTextContent("Edit Work Item");
+    expect((screen.getByLabelText(/title/i) as HTMLInputElement).value).toBe(wi.title);
+  });
 });

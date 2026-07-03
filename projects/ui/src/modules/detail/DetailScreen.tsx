@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useWorkItem } from "../../lib/api/hooks/useWorkItem";
 import { useWorkItemRun } from "../../lib/api/hooks/useWorkItemRun";
+import { useCreateModal } from "../create/useCreateModal";
 import { Breadcrumb } from "./Breadcrumb";
 import { ItemHeader } from "./ItemHeader";
 import { TabBar } from "./TabBar";
@@ -34,6 +35,7 @@ export function DetailScreen() {
 
   const { data: item, isLoading } = useWorkItem(itemId ?? "");
   const { data: run } = useWorkItemRun(itemId ?? "");
+  const { openEditWorkItem } = useCreateModal();
 
   if (isLoading || !item) {
     return <LoadingState />;
@@ -44,7 +46,7 @@ export function DetailScreen() {
   return (
     <div className="flex flex-col h-full">
       <Breadcrumb item={item} />
-      <ItemHeader item={item} />
+      <ItemHeader item={item} onEdit={() => openEditWorkItem(item)} />
       <TabBar
         tabs={ALL_DETAIL_TABS}
         active={activeTab}

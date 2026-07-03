@@ -7,12 +7,20 @@ import { server } from "../../lib/api/mocks/server";
 import { CreateModalProvider } from "./CreateModalProvider";
 import { useCreateModal } from "./useCreateModal";
 
+import type { components } from "../../lib/api/schema";
+
+const editItem = {
+  id: "w1", type: "task", title: "Add auth", status: "todo", priority: "medium",
+  projectId: "p1", spec: "", createdAt: "", updatedAt: "",
+} as components["schemas"]["WorkItem"];
+
 function Harness() {
-  const { openCreateProject, openCreateWorkItem } = useCreateModal();
+  const { openCreateProject, openCreateWorkItem, openEditWorkItem } = useCreateModal();
   return (
     <>
       <button onClick={() => openCreateProject()}>open project</button>
       <button onClick={() => openCreateWorkItem({ projectId: "p1" })}>open item</button>
+      <button onClick={() => openEditWorkItem(editItem)}>open edit</button>
     </>
   );
 }
@@ -43,6 +51,13 @@ test("opens the Create Work Item modal", async () => {
   renderProvider();
   await userEvent.click(screen.getByText("open item"));
   expect(screen.getByRole("dialog")).toHaveTextContent("Create Work Item");
+});
+
+test("opens the Edit Work Item modal pre-filled", async () => {
+  renderProvider();
+  await userEvent.click(screen.getByText("open edit"));
+  expect(screen.getByRole("dialog")).toHaveTextContent("Edit Work Item");
+  expect((screen.getByLabelText(/title/i) as HTMLInputElement).value).toBe("Add auth");
 });
 
 test("closing the modal removes it", async () => {

@@ -17,6 +17,15 @@ produce reviewable PRs; and update persistent memory as they work.
 
 ## Status (2026-07-03)
 
+**Edit work item (title/priority/spec) — built.** The Detail screen header gained an **Edit**
+button that opens an **Edit Work Item** modal (title · priority · spec), pre-filled from the item
+and reusing the create-modal `Modal`/form primitives + `CreateModalProvider` (new `edit-work-item`
+kind + `openEditWorkItem`). A new `useUpdateWorkItem` hook `PATCH`es `/work-items/{id}` and
+invalidates the work-item/board/project queries; `PATCH /work-items/{id}` + the MSW mock
+`db.updateWorkItem` already existed, so the write path is live-backed end to end and demoable in
+mock mode. **UI-only** — no server change. First of the **B → A+C → D** "dogfood NAAF on itself"
+sequence. Design: [superpowers/specs/2026-07-03-edit-work-item-design.md](superpowers/specs/2026-07-03-edit-work-item-design.md).
+
 **Work-item thread (agent chat) — complete.** All three phases of the thread-as-substrate design
 are shipped to `main` (Phase 1 #33 → Phase 2 #35 → Phase 3 #36): the work item is now the unit a
 conversation is scoped to, one shared `<Thread>` renders across the Detail tab / inbox / sidebar,
