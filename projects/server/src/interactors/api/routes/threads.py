@@ -151,6 +151,8 @@ def answer_question(
         raise HTTPException(status_code=404, detail="message not found") from exc
     if message.thread_id != id or message.kind is not MessageKind.QUESTION:
         raise HTTPException(status_code=404, detail="not a question in this thread")
+    if message.payload.get("resolved_option") is not None:
+        raise HTTPException(status_code=409, detail="question already resolved")
     if not is_valid_option(message.payload, body.option):
         raise HTTPException(status_code=422, detail="invalid option")
     run_id = message.payload.get("run_id")

@@ -191,8 +191,9 @@ def _finish_stage(
     event_type = EventType.STAGE_PASSED if outcome.result.passed else EventType.STAGE_FAILED
     emit(ctx, run, event_type, stage=stage, role=role,
          payload={"summary": outcome.result.summary, "tokens": outcome.result.tokens})
-    narrate(ctx, run, role=role,
-            content=f"Stage '{stage.value}' {'passed' if outcome.result.passed else 'failed'}.")
+    verdict = "passed" if outcome.result.passed else "failed"
+    summary = outcome.result.summary or "(no summary)"
+    narrate(ctx, run, role=role, content=f"{stage.value} {verdict}: {summary}")
     return outcome.result
 
 
@@ -260,7 +261,7 @@ def advance(ctx: HandlerContext, run: Run, result: StageResult) -> None:
         if isinstance(step, Finish):
             run = _save(ctx, run.model_copy(update={"status": step.status, "ended_at": utcnow()}))
             emit(ctx, run, EventType.RUN_FINISHED, payload={"status": step.status.value})
-            narrate(ctx, run, role="lead", content="Run finished.")
+            narrate(ctx, run, role="lead", content=f"Run finished: {step.status.value}.")
             couple(ctx, run)
             return
 
@@ -340,7 +341,7 @@ def handle_lead(msg: AgentMessage, ctx: HandlerContext) -> None:
         }))
         emit(ctx, run, EventType.RUN_STARTED, role="lead")
         narrate(ctx, run, role="lead",
-                content=f"Run started for '{_work_item_title(ctx, run)}'.")
+                content=f"Starting work on \"{_work_item_title(ctx, run)}\". Planning now.")
         couple(ctx, run)
         prov = _run_provision_inline(ctx, run)
         run = ctx.runs.read(run.id)

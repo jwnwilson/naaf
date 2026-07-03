@@ -112,6 +112,21 @@ def test_answer_foreign_thread_is_404(client, session_factory):
     assert res.status_code == 404
 
 
+def test_answer_already_resolved_is_409(client, session_factory):
+    from domain.messaging.question import resolve_payload
+    wid, run_id, msg_id = _seed_question(session_factory)
+    # Mark the question message as already resolved before calling /answer
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "dev-user"})
+    with uow.transaction():
+        msg = uow.messages.read(msg_id)
+        uow.messages.update(msg_id, msg.model_copy(update={
+            "payload": resolve_payload(msg.payload, "approve")
+        }))
+    res = client.post(f"/threads/{wid}/messages/{msg_id}/answer", json={"option": "approve"})
+    assert res.status_code == 409
+    assert "already resolved" in res.json()["detail"]
+
+
 def test_post_message_does_not_touch_the_bus(client, session_factory):
     # Arrange
     wid = _make_item(session_factory)

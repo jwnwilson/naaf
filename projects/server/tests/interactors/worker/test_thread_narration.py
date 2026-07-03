@@ -51,11 +51,29 @@ def test_run_narrates_lifecycle_into_thread(session_factory):
             filters={"thread_id": wid}, order_by="created_at"
         ).results
         kinds_roles = [(m.author_kind.value, m.author_role, m.kind.value) for m in msgs]
-        # lead announces the start
-        assert ("agent", "lead", "text") in kinds_roles
+        # lead announces the start with planning signal
+        start_msgs = [m for m in msgs if m.author_role == "lead" and m.kind.value == "text"
+                      and "Planning now." in m.content]
+        assert start_msgs, "expected a start narration containing 'Planning now.'"
         # at least one stage result was narrated by a non-lead role (e.g. engineer/qa)
         assert any(r in {"engineer", "qa"} for (_ak, r, _k) in kinds_roles)
-        # a run-finished line exists
-        assert any("Run finished" in m.content for m in msgs)
+        # stage narration lines include summary segment (": " followed by summary or "(no summary)")
+        stage_narrations = [
+            m for m in msgs
+            if m.author_kind.value == "agent" and m.kind.value == "text"
+            and ": " in m.content and m.author_role in {"engineer", "qa", "lead", "curator"}
+            and ("passed" in m.content or "failed" in m.content)
+        ]
+        assert stage_narrations, "expected stage narration messages with summary content"
+        for m in stage_narrations:
+            # must contain ": <summary>" or ": (no summary)"
+            assert ": " in m.content, f"stage narration missing summary segment: {m.content!r}"
+        # a run-finished line exists with status value
+        finished_msgs = [m for m in msgs if "Run finished:" in m.content]
+        assert finished_msgs, "expected a 'Run finished: <status>.' narration"
+        assert any(
+            any(status in m.content for status in ("succeeded", "failed", "cancelled"))
+            for m in finished_msgs
+        ), f"run-finished narration missing status value: {[m.content for m in finished_msgs]}"
         # every narrated message links back to the run and is thread-scoped
         assert all(m.thread_id == wid and m.run_id is not None for m in msgs)
