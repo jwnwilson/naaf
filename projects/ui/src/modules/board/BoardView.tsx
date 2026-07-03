@@ -42,12 +42,12 @@ function ColumnHeader({ status, count, onAdd }: ColumnHeaderProps) {
 }
 
 export function BoardView({ projectId }: { projectId: string }) {
-  const { data } = useProjectWorkItems(projectId);
+  const { data, isLoading } = useProjectWorkItems(projectId);
   const results = data?.results ?? [];
   const grouped = groupByStatus(results);
   const { openCreateWorkItem } = useCreateModal();
 
-  if (results.length === 0) {
+  if (!isLoading && results.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 text-text-4">
         <p className="text-[12px]">No work items yet.</p>
