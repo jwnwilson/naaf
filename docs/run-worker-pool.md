@@ -4,7 +4,6 @@
 
 ```bash
 docker compose up -d postgres redis
-# From projects/server:
 make db-upgrade
 ```
 
@@ -73,16 +72,23 @@ Once a run completes the `pr` stage, confirm:
 
 ## Scaling by role — the disjoint-roles invariant
 
-Each role may be **in-flight in at most one worker at a time**. To scale capacity, run multiple
-worker containers with **non-overlapping** `naaf_worker_roles` values. Every role must appear
-in exactly one worker.
+> **Bus dispatch roles are `lead`, `engineer`, and `qa` only.** These are the three roles the
+> run pipeline hands off to via the message bus (`lead` drives plan/gate/pr/learn,
+> `engineer` drives implement, `qa` drives verify). Roles like `architect`, `backend`,
+> `frontend`, `devops`, and `curator` are **model-selection** roles — they control which LLM
+> config is used inside an agent, but they are never bus message recipients and never appear
+> in a `naaf_worker_roles` list.
 
-**Correct — two workers with disjoint roles:**
+Each bus dispatch role may be **in-flight in at most one worker at a time**. To scale
+capacity, run multiple worker containers with **non-overlapping** `naaf_worker_roles` values
+drawn from `{lead, engineer, qa}`. Every dispatch role must appear in exactly one worker.
+
+**Correct — two workers with disjoint dispatch roles:**
 
 ```yaml
 # docker-compose.override.yml
 services:
-  worker-coding:
+  worker-engineer:
     build: .
     depends_on: [postgres, redis]
     environment:
@@ -91,12 +97,12 @@ services:
       naaf_agent_runtime: ${naaf_agent_runtime:-fake}
       naaf_anthropic_api_key: ${naaf_anthropic_api_key:-}
       naaf_workspace_root: /workspaces
-      naaf_worker_roles: "backend,frontend"
+      naaf_worker_roles: "engineer"
       GH_TOKEN: ${GH_TOKEN:-}
     volumes:
       - naaf_workspaces:/workspaces
 
-  worker-ops:
+  worker-lead-qa:
     build: .
     depends_on: [postgres, redis]
     environment:
@@ -105,7 +111,7 @@ services:
       naaf_agent_runtime: ${naaf_agent_runtime:-fake}
       naaf_anthropic_api_key: ${naaf_anthropic_api_key:-}
       naaf_workspace_root: /workspaces
-      naaf_worker_roles: "lead,architect,qa,devops,curator"
+      naaf_worker_roles: "lead,qa"
       GH_TOKEN: ${GH_TOKEN:-}
     volumes:
       - naaf_workspaces:/workspaces
@@ -126,3 +132,15 @@ docker compose up --scale worker=2
 > **Why this matters:** The advisory-lock hardening that enforces mutual exclusion at the
 > database level is not yet shipped. Until then, disjoint role sets in separate containers is
 > the only safe way to scale throughput without triggering duplicate task processing.
+
+### Scaling caveat — Celery Beat duplication
+
+The worker entrypoint runs `celery worker --beat`, so **every scaled container runs its own
+Celery Beat scheduler**. This causes duplicate periodic task firing: the
+`dispatch-subscriptions` beat task runs once per container, and because the `notifications`
+subscription is not role-partitioned, scaled workers double-drain it.
+
+**Recommendation:** Run a single worker container with empty `naaf_worker_roles` (the
+default) for all E2E and development work — one Beat, no duplication. Disjoint-role
+multi-worker mode is **advanced/experimental** until proper multi-worker Beat handling and
+per-recipient advisory locking land as a follow-up.

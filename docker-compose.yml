@@ -36,7 +36,7 @@ services:
       naaf_agent_runtime: ${naaf_agent_runtime:-fake}
       naaf_anthropic_api_key: ${naaf_anthropic_api_key:-}
       naaf_workspace_root: /workspaces
-      naaf_worker_roles: "lead,architect,backend,frontend,qa,devops,curator"
+      naaf_worker_roles: ""  # empty = drain all roles (bus dispatch roles are lead/engineer/qa; architect/backend/etc. are model-selection only)
       GH_TOKEN: ${GH_TOKEN:-}
     volumes:
       - naaf_workspaces:/workspaces
