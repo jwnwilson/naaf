@@ -487,6 +487,84 @@
   </div>
 </div>
 
+<!-- ═══════════════════════════════════
+     B2 · Create Project Modal
+     ═══════════════════════════════════ -->
+<div style="position:absolute;left:3120px;top:88px;width:1440px" data-screen-label="B2: Create Project Modal">
+  <div style="position:absolute;top:-22px;font:500 11px/1 system-ui;color:rgba(30,32,40,.55)">B2 · Create Project modal — triggered by "+ Add project" in sidebar or Projects view</div>
+  <div style="width:1440px;height:858px;border:1px solid rgba(0,0,0,.45);border-radius:9px;overflow:hidden;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.6)">
+    <div style="position:absolute;inset:0;background:#0e0f11"></div>
+    <div style="position:absolute;left:0;top:0;bottom:0;width:214px;background:#080a0d;border-right:1px solid rgba(255,255,255,0.04);opacity:.3"></div>
+    <div style="position:absolute;left:214px;right:0;top:0;height:44px;border-bottom:1px solid rgba(255,255,255,0.04);opacity:.2"></div>
+    <div style="position:absolute;left:214px;right:0;top:44px;bottom:0;display:flex;opacity:.14">
+      <div style="flex:1;border-right:1px solid rgba(255,255,255,0.04)"></div>
+      <div style="flex:1;border-right:1px solid rgba(255,255,255,0.04)"></div>
+      <div style="flex:1;background:#0c0d10;border-right:1px solid rgba(255,255,255,0.04)"></div>
+      <div style="flex:1;border-right:1px solid rgba(255,255,255,0.04)"></div>
+      <div style="flex:1"></div>
+    </div>
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.58);z-index:10"></div>
+    <div style="position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center">
+      <div style="width:560px;background:#131618;border:1px solid rgba(255,255,255,0.10);border-radius:10px;box-shadow:0 24px 64px rgba(0,0,0,.7);display:flex;flex-direction:column;overflow:hidden">
+        <div style="padding:18px 20px 16px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex:none;color:#7c6cf0"><path d="M1.5 6A1.5 1.5 0 013 4.5h3.4L8 6h5A1.5 1.5 0 0114.5 7.5V12A1.5 1.5 0 0113 13.5H3A1.5 1.5 0 011.5 12V6z" stroke="currentColor" stroke-width="1.3"/></svg>
+          <span style="font-size:13.5px;font-weight:600;color:#e2e3e8">New project</span>
+          <span style="margin-left:auto;font-size:20px;color:#35383f;line-height:1;cursor:pointer">×</span>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:16px">
+
+          <!-- project name -->
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:10px;letter-spacing:.07em;color:#2a2d34;font-family:ui-monospace,Menlo,monospace">PROJECT NAME</label>
+            <div style="padding:8px 12px;background:#0e0f11;border:1px solid rgba(255,255,255,0.09);border-radius:6px">
+              <span style="font-size:13.5px;font-weight:600;color:#e2e3e8">api-service</span>
+            </div>
+          </div>
+
+          <!-- description -->
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:10px;letter-spacing:.07em;color:#2a2d34;font-family:ui-monospace,Menlo,monospace">DESCRIPTION <span style="color:#1e2028;letter-spacing:0;font-size:9px">optional</span></label>
+            <div style="padding:9px 12px;background:#0e0f11;border:1px solid rgba(255,255,255,0.09);border-radius:6px;min-height:68px;font-size:12.5px;color:#52555e;line-height:1.65">REST API service for the naaf platform. Handles auth, agent orchestration and project management endpoints.</div>
+          </div>
+
+          <!-- git repo -->
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <label style="font-size:10px;letter-spacing:.07em;color:#2a2d34;font-family:ui-monospace,Menlo,monospace">GIT REPOSITORY</label>
+            <!-- toggle -->
+            <div style="display:flex;gap:2px;background:#0a0b0d;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:3px">
+              <div style="flex:1;padding:5px 10px;border-radius:4px;background:#131618;border:1px solid rgba(255,255,255,0.09);font-size:11.5px;color:#c4c5cb;font-weight:500;text-align:center;cursor:pointer">Remote URL</div>
+              <div style="flex:1;padding:5px 10px;border-radius:4px;font-size:11.5px;color:#42454e;text-align:center;cursor:pointer">Local path</div>
+            </div>
+            <!-- remote URL input -->
+            <div style="display:flex;align-items:center;padding:8px 12px;background:#0e0f11;border:1px solid rgba(255,255,255,0.09);border-radius:6px;gap:8px">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex:none;color:#42454e"><path d="M6.5 1.5a5 5 0 100 10 5 5 0 000-10z" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 6.5h10M6.5 1.5c-1.5 1.5-2 3.5-2 5s.5 3.5 2 5M6.5 1.5c1.5 1.5 2 3.5 2 5s-.5 3.5-2 5" stroke="currentColor" stroke-width="1.2"/></svg>
+              <span style="font-size:12.5px;color:#c4c5cb;font-family:ui-monospace,Menlo,monospace;flex:1">https://github.com/jwnwilson/api-service</span>
+              <span style="font-size:9.5px;padding:1px 6px;background:rgba(74,140,104,0.10);border:1px solid rgba(74,140,104,0.18);border-radius:3px;color:#4a8c68;font-family:ui-monospace,Menlo,monospace">Valid</span>
+            </div>
+            <!-- local path variant (shown as inactive hint) -->
+            <div style="display:flex;align-items:center;padding:8px 12px;background:#0a0b0d;border:1px solid rgba(255,255,255,0.06);border-radius:6px;gap:8px;opacity:.5">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex:none;color:#42454e"><path d="M1.5 3.5h4l1.5 2H11.5A1.5 1.5 0 0113 7V10A1.5 1.5 0 0111.5 11.5h-9A1.5 1.5 0 011 10V5A1.5 1.5 0 011.5 3.5z" stroke="currentColor" stroke-width="1.2"/></svg>
+              <span style="font-size:12px;color:#25272e;font-family:ui-monospace,Menlo,monospace;flex:1">or /absolute/local/path</span>
+            </div>
+            <div style="font-size:10.5px;color:#2e3038">Agents clone and commit to feature branches. Needs the GitHub token set in Secrets.</div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="flex:1;height:1px;background:rgba(255,255,255,0.05)"></div>
+            <span style="font-size:11px;color:#2e3038;cursor:pointer">Advanced options ▾</span>
+            <div style="flex:1;height:1px;background:rgba(255,255,255,0.05)"></div>
+          </div>
+
+        </div>
+        <div style="padding:14px 20px;border-top:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:8px">
+          <button style="padding:7px 18px;background:#7c6cf0;border:none;border-radius:6px;font-size:12.5px;font-weight:500;color:#fff;cursor:pointer">Create project</button>
+          <button style="padding:7px 14px;font-size:12.5px;color:#42454e;background:transparent;border:none;cursor:pointer;margin-left:auto">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div style="position:absolute;left:80px;top:1052px;font:600 10px/1 ui-monospace,monospace;letter-spacing:.09em;color:rgba(30,32,40,.38)">WORK ITEM DETAIL</div>
 
 <!-- ═══════════════════════════
@@ -880,7 +958,7 @@
 <!-- ═══════════════════════════════════
      D3 · Detail — Thread tab
      ═══════════════════════════════════ -->
-<div style="position:absolute;left:80px;top:3100px;width:1440px" data-screen-label="D3: Thread Tab">
+<div style="position:absolute;left:3120px;top:1078px;width:1440px" data-screen-label="D3: Thread Tab">
   <div style="position:absolute;top:-22px;font:500 11px/1 system-ui;color:rgba(30,32,40,.55)">D3 · Work Item Detail — Thread tab: scoped conversation for NAAF-42</div>
   <div style="width:1440px;height:858px;background:#0e0f11;border:1px solid rgba(0,0,0,.45);border-radius:9px;overflow:hidden;display:flex;box-shadow:0 8px 32px rgba(0,0,0,.6)">
 
@@ -1199,7 +1277,7 @@
 <!-- ═══════════════════════
      F · Settings
      ═══════════════════════ -->
-<div style="position:absolute;left:80px;top:4100px;width:1440px" data-screen-label="F: Settings">
+<div style="position:absolute;left:80px;top:3050px;width:1440px" data-screen-label="F: Settings">
   <div data-drags-parent="1" style="position:absolute;top:-22px;font:500 11px/1 system-ui;color:rgba(30,32,40,.55)">F · Settings — agent config, model selection, token limits</div>
   <div style="width:1440px;height:858px;background:#0e0f11;border:1px solid rgba(0,0,0,.45);border-radius:9px;overflow:hidden;display:flex;box-shadow:0 8px 32px rgba(0,0,0,.6)">
 
@@ -1231,6 +1309,8 @@
       <div style="padding:5px 8px;border-radius:5px;font-size:12px;color:#52555e;cursor:pointer">Usage History</div>
       <div style="font-size:9.5px;letter-spacing:.08em;color:#22252c;padding:14px 7px 5px;font-family:ui-monospace,Menlo,monospace">INTEGRATIONS</div>
       <div style="padding:5px 8px;border-radius:5px;font-size:12px;color:#52555e;cursor:pointer">GitHub</div>
+      <div style="font-size:9.5px;letter-spacing:.08em;color:#22252c;padding:14px 7px 5px;font-family:ui-monospace,Menlo,monospace">SECURITY</div>
+      <div style="padding:5px 8px;border-radius:5px;font-size:12px;color:#52555e;cursor:pointer">Secrets</div>
     </div>
 
     <!-- settings content -->
@@ -1290,7 +1370,7 @@
 <!-- ═══════════════════════════════════
      H · Create Task — modal on Board
      ═══════════════════════════════════ -->
-<div style="position:absolute;left:80px;top:5100px;width:1440px" data-screen-label="H: Create Task Modal">
+<div style="position:absolute;left:4640px;top:88px;width:1440px" data-screen-label="H: Create Task Modal">
   <div style="position:absolute;top:-22px;font:500 11px/1 system-ui;color:rgba(30,32,40,.55)">H · Create Task modal — triggered by "+ New" on Issues List or Board; "Create &amp; add another" stays open</div>
   <div style="width:1440px;height:858px;border:1px solid rgba(0,0,0,.45);border-radius:9px;overflow:hidden;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.6)">
 
@@ -1416,9 +1496,155 @@
 
 
 <!-- ═══════════════════════════════════
+     J · Settings — Secrets
+     ═══════════════════════════════════ -->
+<div style="position:absolute;left:1600px;top:3050px;width:1440px" data-screen-label="J: Secrets">
+  <div style="position:absolute;top:-22px;font:500 11px/1 system-ui;color:rgba(30,32,40,.55)">J · Settings › Secrets — GitHub token, Anthropic API key, LiteLLM API key</div>
+  <div style="width:1440px;height:858px;background:#0e0f11;border:1px solid rgba(0,0,0,.45);border-radius:9px;overflow:hidden;display:flex;box-shadow:0 8px 32px rgba(0,0,0,.6)">
+
+    <!-- sidebar -->
+    <div style="width:214px;flex:none;background:#080a0d;border-right:1px solid rgba(255,255,255,0.055);display:flex;flex-direction:column">
+      <div style="height:48px;display:flex;align-items:center;gap:9px;padding:0 13px;border-bottom:1px solid rgba(255,255,255,0.05)">
+        <div style="width:24px;height:24px;border-radius:50%;background:#1c1e26;border:1.5px solid rgba(255,255,255,0.13);font-size:9.5px;font-weight:700;color:#8a8d96;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,Menlo,monospace;flex:none">JW</div>
+        <div><div style="font-size:12.5px;font-weight:600;color:#e2e3e8;line-height:1.2">James Wilson</div><div style="font-size:9px;color:#30333c;font-family:ui-monospace,Menlo,monospace">naaf workspace</div></div>
+        <span style="margin-left:auto;color:#3a3d44;font-size:9px">▾</span>
+      </div>
+      <div style="padding:8px 10px"><div style="display:flex;align-items:center;gap:7px;height:28px;padding:0 9px;background:#101316;border:1px solid rgba(255,255,255,0.07);border-radius:5px"><svg width="11" height="11" viewBox="0 0 11 11" fill="none" style="flex:none;color:#30333c"><circle cx="4.5" cy="4.5" r="3.5" stroke="currentColor" stroke-width="1.2"/><path d="M7.5 7.5l2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg><span style="font-size:11.5px;color:#30333c;flex:1">Search…</span><span style="font-family:ui-monospace,Menlo,monospace;font-size:9px;color:#20222a">⌘K</span></div></div>
+      <div style="padding:2px 8px;display:flex;flex-direction:column;gap:1px;font-size:12.5px">
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:5px;color:#4a4d56"><svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor" style="flex:none;opacity:.75"><rect x="1" y="1" width="4.5" height="4.5" rx="1"/><rect x="7.5" y="1" width="4.5" height="4.5" rx="1"/><rect x="1" y="7.5" width="4.5" height="4.5" rx="1"/><rect x="7.5" y="7.5" width="4.5" height="4.5" rx="1"/></svg>Dashboard<span style="margin-left:auto;font-family:ui-monospace,Menlo,monospace;font-size:9px;background:#181a22;padding:1px 5px;border-radius:8px;color:#4a8c68">4 ●</span></div>
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:5px;color:#4a4d56"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex:none"><path d="M1.5 7.5h2.8l1 2h2.4l1-2H11.5V11a.5.5 0 01-.5.5h-9a.5.5 0 01-.5-.5V7.5z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M1.5 7.5L3 2h7l1.5 5.5" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>Inbox</div>
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:5px;color:#4a4d56"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex:none"><path d="M1.5 5A1.5 1.5 0 013 3.5h2.4l1.5 1.5H10A1.5 1.5 0 0111.5 6.5V10A1.5 1.5 0 0110 11.5H3A1.5 1.5 0 011.5 10V5z" stroke="currentColor" stroke-width="1.1"/></svg>Projects</div>
+      </div>
+      <div style="margin-top:auto;padding:10px 12px;border-top:1px solid rgba(255,255,255,0.05)">
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:5px;background:rgba(124,108,240,0.10);color:#bab7f6;margin-bottom:8px"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex:none"><circle cx="6.5" cy="6.5" r="1.8" stroke="currentColor" stroke-width="1.1"/><path d="M6.5 1.5v1.2M6.5 10.3v1.2M1.5 6.5h1.2M10.3 6.5h1.2M3.1 3.1l.85.85M9.05 9.05l.85.85M3.1 9.9l.85-.85M9.05 4l.85-.85" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg><span style="font-size:12.5px;font-weight:500">Settings</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:9.5px;font-family:ui-monospace,Menlo,monospace;color:#30333c">TOKEN BUDGET</span><span style="font-size:9.5px;font-family:ui-monospace,Menlo,monospace;color:#72757e">$48 / $100</span></div>
+        <div style="height:3px;background:#181a20;border-radius:2px;overflow:hidden"><div style="width:48%;height:100%;background:#7c6cf0;border-radius:2px"></div></div>
+      </div>
+    </div>
+
+    <!-- settings subnav -->
+    <div style="width:176px;flex:none;border-right:1px solid rgba(255,255,255,0.055);background:#0a0b0d;padding:16px 10px;display:flex;flex-direction:column;gap:1px">
+      <div style="font-size:9.5px;letter-spacing:.08em;color:#22252c;padding:0 7px 5px;font-family:ui-monospace,Menlo,monospace">WORKSPACE</div>
+      <div style="padding:5px 8px;border-radius:5px;font-size:12px;color:#52555e;cursor:pointer">General</div>
+      <div style="padding:5px 8px;border-radius:5px;font-size:12px;color:#52555e;cursor:pointer">Agents</div>
+      <div style="padding:5px 8px;border-radius:5px;font-size:12px;color:#52555e;cursor:pointer">Models</div>
+      <div style="padding:5px 8px;border-radius:5px;font-size:12px;color:#52555e;cursor:pointer">Tools</div>
+      <div style="font-size:9.5px;letter-spacing:.08em;color:#22252c;padding:14px 7px 5px;font-family:ui-monospace,Menlo,monospace">BILLING</div>
+      <div style="padding:5px 8px;border-radius:5px;font-size:12px;color:#52555e;cursor:pointer">Budgets &amp; Limits</div>
+      <div style="padding:5px 8px;border-radius:5px;font-size:12px;color:#52555e;cursor:pointer">Usage History</div>
+      <div style="font-size:9.5px;letter-spacing:.08em;color:#22252c;padding:14px 7px 5px;font-family:ui-monospace,Menlo,monospace">INTEGRATIONS</div>
+      <div style="padding:5px 8px;border-radius:5px;font-size:12px;color:#52555e;cursor:pointer">GitHub</div>
+      <div style="font-size:9.5px;letter-spacing:.08em;color:#22252c;padding:14px 7px 5px;font-family:ui-monospace,Menlo,monospace">SECURITY</div>
+      <div style="padding:5px 8px;border-radius:5px;font-size:12px;background:rgba(124,108,240,0.10);color:#bab7f6;font-weight:500;cursor:pointer">Secrets</div>
+    </div>
+
+    <!-- secrets content -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden">
+      <div style="padding:20px 24px 16px;border-bottom:1px solid rgba(255,255,255,0.055)">
+        <div style="font-size:15px;font-weight:600;color:#e2e3e8;margin-bottom:4px">Secrets</div>
+        <div style="font-size:12.5px;color:#42454e">API keys and access tokens used by agents. Values are encrypted at rest and never exposed after saving.</div>
+      </div>
+      <div style="flex:1;overflow:hidden;padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+
+        <!-- GitHub -->
+        <div style="background:#131618;border:1px solid rgba(255,255,255,0.07);border-radius:8px;overflow:hidden">
+          <div style="padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.055);display:flex;align-items:center;gap:10px">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="flex:none;color:#8a8d96"><path d="M9 1.5a7.5 7.5 0 00-2.371 14.615c.375.069.513-.163.513-.362v-1.269c-2.088.454-2.527-.899-2.527-.899-.341-.867-.833-1.098-.833-1.098-.681-.466.051-.456.051-.456.752.053 1.148.772 1.148.772.668 1.145 1.753.814 2.18.623.068-.484.261-.814.475-1.001-1.667-.19-3.419-.834-3.419-3.71 0-.82.293-1.49.772-2.015-.077-.19-.334-.954.074-1.99 0 0 .63-.202 2.063.769A7.18 7.18 0 019 6.978c.637.003 1.279.086 1.879.253 1.431-.971 2.061-.769 2.061-.769.409 1.036.152 1.8.075 1.99.481.525.771 1.195.771 2.015 0 2.884-1.755 3.518-3.428 3.703.27.232.51.692.51 1.395v2.067c0 .201.136.435.516.361A7.502 7.502 0 009 1.5z" fill="currentColor"/></svg>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#e2e3e8">GitHub</div>
+              <div style="font-size:10px;color:#42454e">Personal access token for repository read/write access</div>
+            </div>
+            <span style="margin-left:auto;display:flex;align-items:center;gap:5px;padding:3px 8px;background:rgba(74,140,104,0.10);border:1px solid rgba(74,140,104,0.18);border-radius:4px;font-size:9.5px;color:#4a8c68;font-family:ui-monospace,Menlo,monospace">● Connected</span>
+          </div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="font-size:10px;letter-spacing:.07em;color:#28292e;font-family:ui-monospace,Menlo,monospace">PERSONAL ACCESS TOKEN</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="flex:1;display:flex;align-items:center;padding:7px 11px;background:#0e0f11;border:1px solid rgba(255,255,255,0.09);border-radius:5px;gap:8px">
+                  <span style="font-size:12px;color:#3a3d44;font-family:ui-monospace,Menlo,monospace;flex:1;letter-spacing:.12em">ghp_••••••••••••••••••••••••••••••</span>
+                  <span style="font-size:10px;color:#42454e;cursor:pointer;border-left:1px solid rgba(255,255,255,0.07);padding-left:8px">Reveal</span>
+                </div>
+                <button style="padding:7px 12px;border:1px solid rgba(255,255,255,0.09);border-radius:5px;font-size:11.5px;color:#8a8d96;background:transparent;cursor:pointer">Rotate</button>
+                <button style="padding:7px 12px;border:1px solid rgba(180,60,60,0.2);border-radius:5px;font-size:11.5px;color:#b05848;background:transparent;cursor:pointer">Remove</button>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;font-size:11px;color:#42454e">
+              <span>Scopes: <span style="color:#7a7d86;font-family:ui-monospace,Menlo,monospace">repo, read:org</span></span>
+              <span>Added <span style="color:#7a7d86">Jun 12, 2025</span></span>
+              <span>Last used <span style="color:#7a7d86">2h ago</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Anthropic -->
+        <div style="background:#131618;border:1px solid rgba(255,255,255,0.07);border-radius:8px;overflow:hidden">
+          <div style="padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.055);display:flex;align-items:center;gap:10px">
+            <div style="width:18px;height:18px;border-radius:4px;background:#c96442;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;font-family:ui-monospace,Menlo,monospace;flex:none">A</div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#e2e3e8">Anthropic</div>
+              <div style="font-size:10px;color:#42454e">API key for Claude model access</div>
+            </div>
+            <span style="margin-left:auto;display:flex;align-items:center;gap:5px;padding:3px 8px;background:rgba(74,140,104,0.10);border:1px solid rgba(74,140,104,0.18);border-radius:4px;font-size:9.5px;color:#4a8c68;font-family:ui-monospace,Menlo,monospace">● Connected</span>
+          </div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="font-size:10px;letter-spacing:.07em;color:#28292e;font-family:ui-monospace,Menlo,monospace">API KEY</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="flex:1;display:flex;align-items:center;padding:7px 11px;background:#0e0f11;border:1px solid rgba(255,255,255,0.09);border-radius:5px;gap:8px">
+                  <span style="font-size:12px;color:#3a3d44;font-family:ui-monospace,Menlo,monospace;flex:1;letter-spacing:.12em">sk-ant-••••••••••••••••••••••••••••</span>
+                  <span style="font-size:10px;color:#42454e;cursor:pointer;border-left:1px solid rgba(255,255,255,0.07);padding-left:8px">Reveal</span>
+                </div>
+                <button style="padding:7px 12px;border:1px solid rgba(255,255,255,0.09);border-radius:5px;font-size:11.5px;color:#8a8d96;background:transparent;cursor:pointer">Rotate</button>
+                <button style="padding:7px 12px;border:1px solid rgba(180,60,60,0.2);border-radius:5px;font-size:11.5px;color:#b05848;background:transparent;cursor:pointer">Remove</button>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;font-size:11px;color:#42454e">
+              <span>Added <span style="color:#7a7d86">May 28, 2025</span></span>
+              <span>Last used <span style="color:#7a7d86">14m ago</span></span>
+              <span>Spend this month <span style="color:#7c6cf0;font-family:ui-monospace,Menlo,monospace">$48.21</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- LiteLLM -->
+        <div style="background:#131618;border:1px solid rgba(255,255,255,0.07);border-radius:8px;overflow:hidden">
+          <div style="padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.055);display:flex;align-items:center;gap:10px">
+            <div style="width:18px;height:18px;border-radius:4px;background:#2563eb;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;font-family:ui-monospace,Menlo,monospace;flex:none">LL</div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#e2e3e8">LiteLLM</div>
+              <div style="font-size:10px;color:#42454e">API key for LiteLLM proxy / model gateway</div>
+            </div>
+            <span style="margin-left:auto;display:flex;align-items:center;gap:5px;padding:3px 8px;background:rgba(30,32,40,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:4px;font-size:9.5px;color:#52555e;font-family:ui-monospace,Menlo,monospace">Not configured</span>
+          </div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="font-size:10px;letter-spacing:.07em;color:#28292e;font-family:ui-monospace,Menlo,monospace">API KEY</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="flex:1;display:flex;align-items:center;padding:7px 11px;background:#0e0f11;border:1px solid rgba(255,255,255,0.09);border-radius:5px">
+                  <span style="font-size:12px;color:#25272e;font-family:ui-monospace,Menlo,monospace;flex:1">Paste API key…</span>
+                </div>
+                <button style="padding:7px 16px;background:#7c6cf0;border:none;border-radius:5px;font-size:11.5px;font-weight:500;color:#fff;cursor:pointer">Save</button>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="font-size:10px;letter-spacing:.07em;color:#28292e;font-family:ui-monospace,Menlo,monospace">BASE URL <span style="color:#22252c;font-size:9px;letter-spacing:0">(optional)</span></div>
+              <div style="display:flex;align-items:center;padding:7px 11px;background:#0e0f11;border:1px solid rgba(255,255,255,0.09);border-radius:5px">
+                <span style="font-size:12px;color:#25272e;font-family:ui-monospace,Menlo,monospace">https://your-litellm-instance.com</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
      I · User Profile
      ═══════════════════════════════════ -->
-<div style="position:absolute;left:80px;top:6100px" data-screen-label="I: User Profile">
+<div style="position:absolute;left:80px;top:3980px" data-screen-label="I: User Profile">
   <div style="position:absolute;top:-22px;font:500 11px/1 system-ui;color:rgba(30,32,40,.55)">I · User Profile — dropdown from sidebar header ▾; shows preferences, billing, logout</div>
 
   <!-- two states side by side -->
