@@ -27,13 +27,13 @@ class BusSource:
         self._roles = roles or None
 
     def fetch_next(self, uow) -> Item | None:
-        msg = build_message_bus(uow.session).claim_next(self._roles)
+        msg = build_message_bus(uow).claim_next(self._roles)
         if msg is None:
             return None
         return Item(message=msg, owner_id=msg.owner_id, position=0)
 
     def advance(self, item: Item, uow) -> None:
-        build_message_bus(uow.session).ack(item.message)
+        build_message_bus(uow).ack(item.message)
 
     def on_poison(
         self, item: Item, exc: Exception, uow_factory: Callable[[], SqlUnitOfWork]
@@ -48,7 +48,7 @@ class BusSource:
         try:
             uow = uow_factory()
             with uow.transaction():
-                bus = build_message_bus(uow.session)
+                bus = build_message_bus(uow)
                 # (i) ack immediately — prevents re-delivery on the next claim_next
                 bus.ack(msg)
 

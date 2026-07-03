@@ -35,12 +35,12 @@ def _drain(session_factory, runtime):
 
 
 def _start(session_factory, run_id):
-    s = session_factory()
-    build_message_bus(s).publish(
-        AgentMessage(owner_id="u1", run_id=run_id, recipient=recipient_key(run_id, "lead"),
-                     role="lead", type=MessageType.START),
-    )
-    s.commit()
+    uow = SqlUnitOfWork(session_factory)
+    with uow.transaction():
+        build_message_bus(uow).publish(
+            AgentMessage(owner_id="u1", run_id=run_id, recipient=recipient_key(run_id, "lead"),
+                         role="lead", type=MessageType.START),
+        )
 
 
 def _read_run(session_factory, run_id):
@@ -85,13 +85,13 @@ def test_gated_all_pauses_at_plan_gate_then_resumes(session_factory):
     run, _ = _read_run(session_factory, run_id)
     assert run.status.value == "awaiting_gate" and run.pending_gate.kind.value == "plan"
     # approve the plan gate
-    s = session_factory()
-    build_message_bus(s).publish(
-        AgentMessage(owner_id="u1", run_id=run_id, recipient=recipient_key(run_id, "lead"),
-                     role="lead", type=MessageType.GATE_RESOLVED,
-                     payload={"decision": "approve"}),
-    )
-    s.commit()
+    uow_gate = SqlUnitOfWork(session_factory)
+    with uow_gate.transaction():
+        build_message_bus(uow_gate).publish(
+            AgentMessage(owner_id="u1", run_id=run_id, recipient=recipient_key(run_id, "lead"),
+                         role="lead", type=MessageType.GATE_RESOLVED,
+                         payload={"decision": "approve"}),
+        )
     _drain(session_factory, rt)
     run, _ = _read_run(session_factory, run_id)
     # next pause is the merge gate
@@ -113,13 +113,13 @@ def test_duplicate_gate_resolved_is_a_harmless_noop(session_factory):
 
     # Publish GATE_RESOLVED/approve TWICE — simulating a double-click
     for _ in range(2):
-        s = session_factory()
-        build_message_bus(s).publish(
-            AgentMessage(owner_id="u1", run_id=run_id, recipient=recipient_key(run_id, "lead"),
-                         role="lead", type=MessageType.GATE_RESOLVED,
-                         payload={"decision": "approve"}),
-        )
-        s.commit()
+        uow_dup = SqlUnitOfWork(session_factory)
+        with uow_dup.transaction():
+            build_message_bus(uow_dup).publish(
+                AgentMessage(owner_id="u1", run_id=run_id, recipient=recipient_key(run_id, "lead"),
+                             role="lead", type=MessageType.GATE_RESOLVED,
+                             payload={"decision": "approve"}),
+            )
 
     # Drain — worker must not raise; duplicate is a no-op
     _drain(session_factory, rt)
