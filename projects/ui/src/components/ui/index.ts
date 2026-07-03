@@ -14,3 +14,4 @@ export { ProgressBar } from "./ProgressBar";
 export { Card } from "./Card";
 export { MetricCard } from "./MetricCard";
 export { TypingIndicator } from "./TypingIndicator";
+export { Modal } from "./Modal";
