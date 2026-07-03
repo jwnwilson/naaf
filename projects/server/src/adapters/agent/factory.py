@@ -33,3 +33,16 @@ def build_runtime(settings) -> AgentRuntime:
         LocalWorkspace,
         settings.agent_max_iterations,
     )
+
+
+def build_chat_responder(settings):
+    """Return the appropriate ChatResponder for the configured runtime.
+
+    Returns EchoChatResponder for ``agent_runtime=fake`` (offline/tests); otherwise
+    returns LlmChatResponder wired to the configured LLM adapter.
+    """
+    from adapters.agent.chat.echo import EchoChatResponder
+    if settings.agent_runtime == "fake":
+        return EchoChatResponder()
+    from adapters.agent.chat.llm import LlmChatResponder
+    return LlmChatResponder(build_llm_adapter(settings))
