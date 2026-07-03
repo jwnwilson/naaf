@@ -234,33 +234,45 @@ class NotificationOut(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Messaging (threads)
+# Messaging (work-item threads)
 # ---------------------------------------------------------------------------
 
 
 class ThreadOut(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    id: str
-    agentId: str
+    id: str  # == workItemId
     workItemId: str
+    title: str
+    status: str
+    lastMessage: str | None = None
+    messageCount: int = 0
+    participants: list[str] = []
     createdAt: str
+
+
+class ThreadDetailOut(ThreadOut):
+    filesWritten: list[dict[str, Any]] = []
 
 
 class MessageOut(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     id: str
-    conversationId: str
-    role: str  # MessageRole value
-    agentId: str | None = None
+    threadId: str
+    authorKind: str
+    authorRole: str | None = None
+    model: str | None = None
+    kind: str
     content: str
+    mentions: list[str] = []
+    payload: dict[str, Any] = {}
+    runId: str | None = None
     createdAt: str
 
 
 class MessageCreate(BaseModel):
     content: str
-    agentId: str | None = None
 
     @field_validator("content")
     @classmethod
