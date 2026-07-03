@@ -17,21 +17,22 @@ class SqlMessageBus:
         ))
         self.session.flush()
 
-    def claim_next(self) -> AgentMessage | None:
+    def claim_next(self, roles: list[str] | None = None) -> AgentMessage | None:
         """Claim the next pending message for processing.
 
-        FOR UPDATE SKIP LOCKED prevents two workers from claiming the SAME row, but does not
-        prevent two workers from each claiming a DIFFERENT pending message for the same
-        recipient. Therefore, the one-in-flight-per-recipient invariant relies on a SINGLE
-        worker dispatcher loop. Hardening for concurrent workers (e.g., advisory locks on the
-        busy-recipient subquery, or recipient-level locking) is deferred until multi-worker
-        support (post-A3).
+        FOR UPDATE SKIP LOCKED prevents two workers from claiming the SAME row. The
+        one-in-flight-per-recipient invariant additionally relies on roles being
+        partitioned across workers (one role -> one worker) plus per-container
+        worker_concurrency=1; a Postgres advisory lock per recipient is the follow-up
+        for multiple workers sharing a role.
         """
-        # recipients with an in-flight (claimed) message are blocked
         busy = select(BusMessageRow.recipient).where(BusMessageRow.status == "claimed")
-        q = (select(BusMessageRow)
-             .where(BusMessageRow.status == "pending", BusMessageRow.recipient.notin_(busy))
-             .order_by(BusMessageRow.created_at).limit(1))
+        q = select(BusMessageRow).where(
+            BusMessageRow.status == "pending", BusMessageRow.recipient.notin_(busy)
+        )
+        if roles:
+            q = q.where(BusMessageRow.role.in_(roles))
+        q = q.order_by(BusMessageRow.created_at).limit(1)
         if self.session.get_bind().dialect.name != "sqlite":
             q = q.with_for_update(skip_locked=True)
         row = self.session.execute(q).scalar_one_or_none()
