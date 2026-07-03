@@ -4,6 +4,7 @@ import type { WorkItem } from "../../lib/api/hooks/useCreateWorkItem";
 export interface CreateModalContextValue {
   openCreateProject: () => void;
   openCreateWorkItem: (o: { projectId: string; status?: WorkItem["status"] }) => void;
+  openEditWorkItem: (item: WorkItem) => void;
   close: () => void;
 }
 

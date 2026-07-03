@@ -35,4 +35,6 @@ export { useCreateProject } from "./useCreateProject";
 export type { ProjectCreate } from "./useCreateProject";
 export { useCreateWorkItem } from "./useCreateWorkItem";
 export type { WorkItemCreate } from "./useCreateWorkItem";
+export { useUpdateWorkItem } from "./useUpdateWorkItem";
+export type { WorkItemUpdate } from "./useUpdateWorkItem";
 export { useAnswerQuestion } from "./useAnswerQuestion";
