@@ -26,8 +26,14 @@ def test_thread_id_is_work_item_id_and_carries_title_status():
 
 def test_participants_are_distinct_senders_and_last_message_is_newest():
     msgs = [
-        Message(owner_id="o", thread_id="wi1", content="assigning", author_kind=AuthorKind.AGENT, author_role="lead"),
-        Message(owner_id="o", thread_id="wi1", content="on it", author_kind=AuthorKind.AGENT, author_role="backend"),
+        Message(
+            owner_id="o", thread_id="wi1", content="assigning",
+            author_kind=AuthorKind.AGENT, author_role="lead",
+        ),
+        Message(
+            owner_id="o", thread_id="wi1", content="on it",
+            author_kind=AuthorKind.AGENT, author_role="backend",
+        ),
         Message(owner_id="o", thread_id="wi1", content="use option B"),  # user
     ]
     view = thread_from_work_item(_item(), msgs)
