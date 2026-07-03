@@ -1,3 +1,4 @@
+from adapters.database.orm import BusMessageRow
 from adapters.database.uow import SqlUnitOfWork
 from domain.work_item import WorkItem, WorkItemKind, WorkItemStatus
 
@@ -60,3 +61,17 @@ def test_thread_detail_returns_files_written(client, session_factory):
     assert body["success"]
     assert body["data"]["id"] == wid
     assert body["data"]["filesWritten"] == []
+
+
+def test_post_message_does_not_touch_the_bus(client, session_factory):
+    # Arrange
+    wid = _make_item(session_factory)
+
+    # Act — @mention should be stored but must NOT dispatch to the bus (Phase 3)
+    res = client.post(f"/threads/{wid}/messages", json={"content": "@backend do it"})
+    assert res.status_code == 201
+
+    # Assert — zero rows in bus_messages
+    with session_factory() as session:
+        count = session.query(BusMessageRow).count()
+    assert count == 0

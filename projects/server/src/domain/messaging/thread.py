@@ -38,31 +38,3 @@ def thread_from_work_item(item: WorkItem, messages: list[Message]) -> ThreadView
         message_count=len(ordered),
         created_at=item.created_at,
     )
-
-
-# ---------------------------------------------------------------------------
-# Backward-compat shim — preserved so the old threads.py route can still
-# import this name without crashing. Removed once threads.py is replaced
-# in the Task 6 commit.
-# ---------------------------------------------------------------------------
-
-from domain.runs.run import Run  # noqa: E402
-
-
-class _LegacyThreadView(BaseModel):
-    id: str
-    agent_id: str
-    work_item_id: str
-    created_at: datetime | None
-
-
-THREAD_LEAD_ROLE = "lead"
-
-
-def thread_from_run(run: Run) -> _LegacyThreadView:
-    return _LegacyThreadView(
-        id=run.id,
-        agent_id=THREAD_LEAD_ROLE,
-        work_item_id=run.work_item_id,
-        created_at=run.created_at,
-    )

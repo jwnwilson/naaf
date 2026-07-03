@@ -134,7 +134,7 @@ class MessageRow(_Timestamped, Base):
     __tablename__ = "messages"
     __table_args__ = (Index("ix_messages_owner_thread", "owner_id", "thread_id"),)
     thread_id: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
-    author_kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    author_kind: Mapped[str] = mapped_column(String(8), default="user", nullable=False)
     author_role: Mapped[str | None] = mapped_column(String(32), nullable=True)
     model_alias: Mapped[str | None] = mapped_column(String(128), nullable=True)
     kind: Mapped[str] = mapped_column(String(16), default="text", nullable=False)
