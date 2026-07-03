@@ -2,7 +2,7 @@ from uuid import UUID
 
 from adapters.database.uow import SqlUnitOfWork
 from crud_router import Envelope, ok
-from domain.messaging.message import Message, MessageRole
+from domain.messaging.message import AuthorKind, Message
 from domain.messaging.thread import thread_from_run
 from fastapi import APIRouter, Depends
 
@@ -25,8 +25,8 @@ def _message_out(m: Message) -> MessageOut:
     return MessageOut(
         id=m.id,
         conversationId=m.thread_id,
-        role=m.role,
-        agentId=m.agent_id,
+        role=m.author_kind.value,
+        agentId=None,  # TODO: align with new agent model
         content=m.content,
         createdAt=iso(m.created_at),
     )
@@ -83,9 +83,8 @@ def post_message(
         Message(
             owner_id="",
             thread_id=id.hex,
-            role=MessageRole.USER,
+            author_kind=AuthorKind.USER,
             content=payload.content,
-            agent_id=payload.agentId,
         )
     )
     return ok(_message_out(created))
