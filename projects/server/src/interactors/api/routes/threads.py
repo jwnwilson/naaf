@@ -1,19 +1,24 @@
+from adapters.bus.ports import MessageBus
 from adapters.database.uow import SqlUnitOfWork
 from crud_router import Envelope, ok
 from domain.errors import RecordNotFound
 from domain.messaging.mentions import parse_mentions
 from domain.messaging.message import AuthorKind, Message, MessageKind
+from domain.messaging.question import is_valid_option
 from domain.messaging.thread import ThreadView, thread_from_work_item
+from domain.runs.messages import AgentMessage, MessageType, recipient_key
 from fastapi import APIRouter, Depends, HTTPException
 
+from interactors.api.auth import get_owner_id
 from interactors.api.contract import (
+    AnswerIn,
     MessageCreate,
     MessageOut,
     ThreadDetailOut,
     ThreadOut,
     iso,
 )
-from interactors.api.deps import get_uow
+from interactors.api.deps import get_bus, get_uow
 
 router = APIRouter(prefix="/threads", tags=["threads"])
 
@@ -128,3 +133,37 @@ def post_message(
         mentions=parse_mentions(payload.content),
     ))
     return ok(_message_out(created))
+
+
+@router.post("/{id}/messages/{msg_id}/answer", response_model=Envelope[MessageOut])
+def answer_question(
+    id: str,
+    msg_id: str,
+    body: AnswerIn,
+    uow: SqlUnitOfWork = Depends(get_uow),  # noqa: B008
+    owner_id: str = Depends(get_owner_id),  # noqa: B008
+    bus: MessageBus = Depends(get_bus),  # noqa: B008
+):
+    _read_item_or_404(uow, id)  # owner-scoped thread existence
+    try:
+        message = uow.messages.read(msg_id)
+    except RecordNotFound as exc:
+        raise HTTPException(status_code=404, detail="message not found") from exc
+    if message.thread_id != id or message.kind is not MessageKind.QUESTION:
+        raise HTTPException(status_code=404, detail="not a question in this thread")
+    if message.payload.get("resolved_option") is not None:
+        raise HTTPException(status_code=409, detail="question already resolved")
+    if not is_valid_option(message.payload, body.option):
+        raise HTTPException(status_code=422, detail="invalid option")
+    run_id = message.payload.get("run_id")
+    if run_id:
+        uow.runs.read(run_id)  # owner-scoped 404 if foreign
+        bus.publish(AgentMessage(
+            owner_id=owner_id,
+            run_id=run_id,
+            recipient=recipient_key(run_id, "lead"),
+            role="lead",
+            type=MessageType.GATE_RESOLVED,
+            payload={"decision": body.option},
+        ))
+    return ok(_message_out(message))

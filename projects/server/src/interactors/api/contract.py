@@ -280,3 +280,14 @@ class MessageCreate(BaseModel):
         if not v.strip():
             raise ValueError("content must not be empty")
         return v
+
+
+class AnswerIn(BaseModel):
+    option: str
+
+    @field_validator("option")
+    @classmethod
+    def _non_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("option must not be empty")
+        return v

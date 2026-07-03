@@ -37,6 +37,7 @@ def run_subscription(
     """
     from adapters.bus.factory import build_message_bus
     from adapters.database.repositories import (
+        MessageRepository,
         NotificationRepository,
         ProjectRepository,
         RunEventRepository,
@@ -82,6 +83,7 @@ def run_subscription(
             run_events=RunEventRepository(uow.session, required_filters=scope),
             work_items=WorkItemRepository(uow.session, required_filters=scope),
             notifications=NotificationRepository(uow.session, required_filters=scope),
+            messages=MessageRepository(uow.session, required_filters=scope),
             bus=build_message_bus(uow),
             runtime=runtime,
             projects=ProjectRepository(uow.session, required_filters=scope),

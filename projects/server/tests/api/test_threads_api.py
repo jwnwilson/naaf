@@ -1,5 +1,8 @@
 from adapters.database.orm import BusMessageRow
 from adapters.database.uow import SqlUnitOfWork
+from domain.messaging.message import AuthorKind, Message, MessageKind
+from domain.messaging.question import question_payload
+from domain.runs.run import Run
 from domain.work_item import WorkItem, WorkItemKind, WorkItemStatus
 
 
@@ -61,6 +64,67 @@ def test_thread_detail_returns_files_written(client, session_factory):
     assert body["success"]
     assert body["data"]["id"] == wid
     assert body["data"]["filesWritten"] == []
+
+
+def _seed_question(session_factory, owner="dev-user"):
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": owner})
+    with uow.transaction():
+        wi = uow.work_items.create(WorkItem(
+            owner_id="", project_id="p1", kind=WorkItemKind.TASK,
+            title="Gated task", status=WorkItemStatus.IN_PROGRESS,
+        ))
+        run = uow.runs.create(Run(
+            owner_id="", work_item_id=wi.id, project_id="p1", autonomy_level="gated_all"
+        ))
+        msg = uow.messages.create(Message(
+            owner_id="",
+            thread_id=wi.id,
+            author_kind=AuthorKind.AGENT,
+            author_role="lead",
+            kind=MessageKind.QUESTION,
+            content="Plan gate — review and approve to continue.",
+            payload=question_payload(run.id, "plan"),
+            run_id=run.id,
+        ))
+    return wi.id, run.id, msg.id
+
+
+def test_answer_question_publishes_gate_resolution(client, session_factory):
+    wid, run_id, msg_id = _seed_question(session_factory)
+    res = client.post(f"/threads/{wid}/messages/{msg_id}/answer", json={"option": "approve"})
+    assert res.status_code == 200
+    with session_factory() as s:
+        rows = s.query(BusMessageRow).filter(BusMessageRow.run_id == run_id).all()
+    assert any(r.type == "gate_resolved" and r.payload.get("decision") == "approve" for r in rows)
+
+
+def test_answer_rejects_unknown_option(client, session_factory):
+    wid, _run_id, msg_id = _seed_question(session_factory)
+    res = client.post(f"/threads/{wid}/messages/{msg_id}/answer", json={"option": "banana"})
+    assert res.status_code == 422
+
+
+def test_answer_foreign_thread_is_404(client, session_factory):
+    other_wid, _r, msg_id = _seed_question(session_factory, owner="someone-else")
+    res = client.post(
+        f"/threads/{other_wid}/messages/{msg_id}/answer", json={"option": "approve"}
+    )
+    assert res.status_code == 404
+
+
+def test_answer_already_resolved_is_409(client, session_factory):
+    from domain.messaging.question import resolve_payload
+    wid, run_id, msg_id = _seed_question(session_factory)
+    # Mark the question message as already resolved before calling /answer
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "dev-user"})
+    with uow.transaction():
+        msg = uow.messages.read(msg_id)
+        uow.messages.update(msg_id, msg.model_copy(update={
+            "payload": resolve_payload(msg.payload, "approve")
+        }))
+    res = client.post(f"/threads/{wid}/messages/{msg_id}/answer", json={"option": "approve"})
+    assert res.status_code == 409
+    assert "already resolved" in res.json()["detail"]
 
 
 def test_post_message_does_not_touch_the_bus(client, session_factory):

@@ -3,7 +3,7 @@ import type { Message } from "../../lib/api/hooks";
 
 type FileWritePayload = { path: string; lines?: number };
 type QuestionOption = { id: string; label: string };
-type QuestionPayload = { options: QuestionOption[] };
+type QuestionPayload = { options: QuestionOption[]; resolved_option?: string | null };
 
 function isFileWritePayload(p: unknown): p is FileWritePayload {
   return typeof p === "object" && p !== null && "path" in p;
@@ -20,9 +20,11 @@ function isQuestionPayload(p: unknown): p is QuestionPayload {
 
 interface MessageItemProps {
   message: Message;
+  onAnswer?: (msgId: string, option: string) => void;
+  answering?: boolean;
 }
 
-export function MessageItem({ message }: MessageItemProps) {
+export function MessageItem({ message, onAnswer, answering }: MessageItemProps) {
   const isUser = message.authorKind === "user";
 
   if (message.kind === "file_write" && isFileWritePayload(message.payload)) {
@@ -49,6 +51,7 @@ export function MessageItem({ message }: MessageItemProps) {
   }
 
   if (message.kind === "question" && isQuestionPayload(message.payload)) {
+    const payload = message.payload;
     return (
       <div className="mb-3">
         <div
@@ -62,20 +65,29 @@ export function MessageItem({ message }: MessageItemProps) {
         >
           <p className="mb-2">{message.content}</p>
           <div className="flex flex-wrap gap-1.5">
-            {message.payload.options.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                className="rounded-[4px] px-2.5 py-1 text-[11px] font-medium"
-                style={{
-                  background: "rgba(124,108,240,0.12)",
-                  border: "1px solid rgba(124,108,240,0.24)",
-                  color: "#bab7f6",
-                }}
-              >
-                {option.label}
-              </button>
-            ))}
+            {payload.options.map((option) => {
+              const isResolved = option.id === payload.resolved_option;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  disabled={payload.resolved_option != null || answering}
+                  onClick={() => onAnswer?.(message.id, option.id)}
+                  className="rounded-[4px] px-2.5 py-1 text-[11px] font-medium"
+                  style={{
+                    background: isResolved
+                      ? "rgba(124,108,240,0.30)"
+                      : "rgba(124,108,240,0.12)",
+                    border: isResolved
+                      ? "1px solid rgba(124,108,240,0.60)"
+                      : "1px solid rgba(124,108,240,0.24)",
+                    color: "#bab7f6",
+                  }}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

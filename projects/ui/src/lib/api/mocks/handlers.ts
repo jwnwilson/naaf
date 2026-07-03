@@ -196,6 +196,13 @@ export const liveHandlers = [
     return ok(msgs, pageMeta(msgs));
   }),
 
+  http.post(`${BASE}/threads/:id/messages/:msgId/answer`, async ({ params, request }) => {
+    const body = (await request.json()) as { option: string };
+    const msg = db.resolveQuestion(params.msgId as string, body.option);
+    if (!msg) return notFound();
+    return ok(msg);
+  }),
+
   http.post(`${BASE}/threads/:id/messages`, async ({ params, request }) => {
     const body = (await request.json()) as { content: string };
     const workItemId = params.id as string;
