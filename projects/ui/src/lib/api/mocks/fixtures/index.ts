@@ -459,6 +459,27 @@ const messages: Message[] = [
     runId: "run-1",
     createdAt: "2026-06-29T13:05:00Z",
   },
+  {
+    id: "msg-gate-1",
+    threadId: "wi-task-3",
+    authorKind: "agent",
+    authorRole: "lead",
+    model: "claude-sonnet-4-6",
+    kind: "question",
+    content: "Plan gate: approve to proceed with implementation or reject to revise.",
+    mentions: [],
+    payload: {
+      options: [
+        { id: "approve", label: "Approve" },
+        { id: "reject", label: "Reject" },
+      ],
+      run_id: "run-1",
+      gate_kind: "plan",
+      resolved_option: null,
+    },
+    runId: "run-1",
+    createdAt: "2026-06-29T13:10:30Z",
+  },
 
   // ── wi-task-4 thread ─────────────────────────────────────────────────────────
   {

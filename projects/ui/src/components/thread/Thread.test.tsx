@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Message } from "../../lib/api/hooks";
 import { MessageItem } from "./MessageItem";
 
@@ -51,6 +51,48 @@ describe("MessageItem", () => {
     );
     expect(screen.getByRole("button", { name: "Option A" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Option B" })).toBeInTheDocument();
+  });
+
+  it("marks the chosen option resolved", () => {
+    render(
+      <MessageItem
+        message={msg({
+          kind: "question",
+          content: "Plan gate",
+          payload: {
+            options: [
+              { id: "approve", label: "Approve" },
+              { id: "reject", label: "Reject" },
+            ],
+            resolved_option: "approve",
+          },
+        })}
+      />,
+    );
+    const approve = screen.getByRole("button", { name: /Approve/ });
+    expect(approve).toBeDisabled();
+  });
+
+  it("calls onAnswer when an option is clicked", () => {
+    const onAnswer = vi.fn();
+    render(
+      <MessageItem
+        message={msg({
+          id: "q1",
+          kind: "question",
+          payload: {
+            options: [
+              { id: "approve", label: "Approve" },
+              { id: "reject", label: "Reject" },
+            ],
+            resolved_option: null,
+          },
+        })}
+        onAnswer={onAnswer}
+      />,
+    );
+    screen.getByRole("button", { name: /Approve/ }).click();
+    expect(onAnswer).toHaveBeenCalledWith("q1", "approve");
   });
 
   it("model badge appears for agent messages", () => {

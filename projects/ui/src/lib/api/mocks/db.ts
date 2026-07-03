@@ -109,6 +109,17 @@ export const db = {
     return msg;
   },
 
+  resolveQuestion: (msgId: string, option: string): Message | null => {
+    const existing = messages.find((m) => m.id === msgId);
+    if (!existing) return null;
+    messages = messages.map((m) =>
+      m.id === msgId
+        ? { ...m, payload: { ...(m.payload ?? {}), resolved_option: option } }
+        : m,
+    );
+    return messages.find((m) => m.id === msgId) ?? null;
+  },
+
   // ─── Reset (restore all stores to seed state) ─────────────────────────────
 
   reset: (): void => {
