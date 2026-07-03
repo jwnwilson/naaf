@@ -8,6 +8,7 @@ from domain.agent.runtime import AgentEvent, AgentRuntime, StageOutcome, StageRe
 from domain.base import utcnow
 from domain.errors import RecordNotFound
 from domain.messaging.message import AuthorKind, Message, MessageKind
+from domain.messaging.question import question_payload, resolve_payload
 from domain.runs.coupling import work_item_status_for
 from domain.runs.events import EventType, RunEvent
 from domain.runs.messages import AgentMessage, MessageType, recipient_key
@@ -124,6 +125,25 @@ def narrate(
         payload=payload or {},
         run_id=run.id,
     ))
+
+
+def _resolve_question(ctx: HandlerContext, run: Run, option: str) -> None:
+    """Mark the run's latest unresolved question message with the chosen option."""
+    if ctx.messages is None:
+        return
+    rows = ctx.messages.read_multi(
+        filters={"thread_id": run.work_item_id}, order_by="created_at"
+    ).results
+    for m in reversed(rows):
+        if (
+            m.kind.value == "question"
+            and m.payload.get("run_id") == run.id
+            and m.payload.get("resolved_option") is None
+        ):
+            ctx.messages.update(
+                m.id, m.model_copy(update={"payload": resolve_payload(m.payload, option)})
+            )
+            return
 
 
 def couple(ctx: HandlerContext, run: Run) -> None:
@@ -253,6 +273,12 @@ def advance(ctx: HandlerContext, run: Run, result: StageResult) -> None:
             }))
             emit(ctx, run, EventType.GATE_REQUESTED, role="lead",
                  payload={"kind": step.kind.value})
+            narrate(
+                ctx, run, role="lead",
+                kind=MessageKind.QUESTION,
+                content=f"{step.kind.value.capitalize()} gate — review and approve to continue.",
+                payload=question_payload(run.id, step.kind.value),
+            )
             couple(ctx, run)
             return
 
@@ -344,6 +370,9 @@ def handle_lead(msg: AgentMessage, ctx: HandlerContext) -> None:
             }))
             emit(ctx, run, EventType.GATE_RESOLVED, role="lead",
                  payload={"decision": "approve"})
+            _resolve_question(ctx, run, "approve")
+            narrate(ctx, run, role="lead",
+                    content="Gate approved — continuing.")
             advance(ctx, run, StageResult(passed=True))
         else:
             run = _save(ctx, run.model_copy(update={
@@ -354,6 +383,9 @@ def handle_lead(msg: AgentMessage, ctx: HandlerContext) -> None:
             emit(ctx, run, EventType.GATE_RESOLVED, role="lead",
                  payload={"decision": "reject"})
             emit(ctx, run, EventType.RUN_FINISHED, payload={"status": "cancelled"})
+            _resolve_question(ctx, run, "reject")
+            narrate(ctx, run, role="lead",
+                    content="Gate rejected — stopping.")
             couple(ctx, run)
 
 
