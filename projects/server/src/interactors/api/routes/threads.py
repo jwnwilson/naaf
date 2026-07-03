@@ -2,11 +2,12 @@ from adapters.bus.ports import MessageBus
 from adapters.database.uow import SqlUnitOfWork
 from crud_router import Envelope, ok
 from domain.errors import RecordNotFound
+from domain.messaging.dispatch import plan_dispatch
 from domain.messaging.mentions import parse_mentions
 from domain.messaging.message import AuthorKind, Message, MessageKind
 from domain.messaging.question import is_valid_option
 from domain.messaging.thread import ThreadView, thread_from_work_item
-from domain.runs.messages import AgentMessage, MessageType, recipient_key
+from domain.runs.messages import AgentMessage, MessageType, chat_recipient, recipient_key
 from fastapi import APIRouter, Depends, HTTPException
 
 from interactors.api.auth import get_owner_id
@@ -122,6 +123,8 @@ def post_message(
     id: str,
     payload: MessageCreate,
     uow: SqlUnitOfWork = Depends(get_uow),  # noqa: B008
+    bus: MessageBus = Depends(get_bus),  # noqa: B008
+    owner_id: str = Depends(get_owner_id),  # noqa: B008
 ):
     _read_item_or_404(uow, id)
     created = uow.messages.create(Message(
@@ -132,6 +135,15 @@ def post_message(
         content=payload.content,
         mentions=parse_mentions(payload.content),
     ))
+    for role in plan_dispatch(payload.content, 0):
+        bus.publish(AgentMessage(
+            owner_id=owner_id,
+            run_id="",
+            recipient=chat_recipient(id, role),
+            role=role,
+            type=MessageType.CHAT,
+            payload={"work_item_id": id, "depth": 0, "trigger_message_id": created.id},
+        ))
     return ok(_message_out(created))
 
 

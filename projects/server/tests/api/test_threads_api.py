@@ -127,15 +127,32 @@ def test_answer_already_resolved_is_409(client, session_factory):
     assert "already resolved" in res.json()["detail"]
 
 
-def test_post_message_does_not_touch_the_bus(client, session_factory):
+def test_post_message_dispatches_chat_to_mentioned_roles(client, session_factory):
     # Arrange
     wid = _make_item(session_factory)
 
-    # Act — @mention should be stored but must NOT dispatch to the bus (Phase 3)
-    res = client.post(f"/threads/{wid}/messages", json={"content": "@backend do it"})
-    assert res.status_code == 201
+    # Act
+    client.post(f"/threads/{wid}/messages", json={"content": "@backend please check auth"})
 
-    # Assert — zero rows in bus_messages
-    with session_factory() as session:
-        count = session.query(BusMessageRow).count()
-    assert count == 0
+    # Assert — one CHAT bus row for backend at depth 0
+    with session_factory() as s:
+        rows = s.query(BusMessageRow).all()
+    chat = [r for r in rows if r.type == "chat"]
+    assert len(chat) == 1
+    assert chat[0].role == "backend"
+    assert chat[0].recipient == f"wi:{wid}:backend"
+    assert chat[0].payload.get("work_item_id") == wid
+    assert chat[0].payload.get("depth") == 0
+
+
+def test_post_message_with_no_mention_dispatches_to_lead(client, session_factory):
+    # Arrange
+    wid = _make_item(session_factory)
+
+    # Act
+    client.post(f"/threads/{wid}/messages", json={"content": "status?"})
+
+    # Assert — one CHAT bus row for lead (default)
+    with session_factory() as s:
+        chat = [r for r in s.query(BusMessageRow).all() if r.type == "chat"]
+    assert [r.role for r in chat] == ["lead"]
