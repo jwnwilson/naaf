@@ -7,6 +7,7 @@ from domain.agent.context import StageContext, WorkItemBrief
 from domain.agent.runtime import AgentEvent, AgentRuntime, StageOutcome, StageResult
 from domain.base import utcnow
 from domain.errors import RecordNotFound
+from domain.messaging.message import AuthorKind, Message, MessageKind
 from domain.runs.coupling import work_item_status_for
 from domain.runs.events import EventType, RunEvent
 from domain.runs.messages import AgentMessage, MessageType, recipient_key
@@ -90,6 +91,41 @@ def emit(ctx: HandlerContext, run: Run, type_: EventType, *, stage: Stage | None
     ))
 
 
+def _work_item_title(ctx: HandlerContext, run: Run) -> str:
+    try:
+        wi = ctx.work_items.read(run.work_item_id)
+        return getattr(wi, "title", "") or run.work_item_id
+    except RecordNotFound:
+        return run.work_item_id
+
+
+def narrate(
+    ctx: HandlerContext,
+    run: Run,
+    *,
+    role: str,
+    content: str,
+    kind: MessageKind = MessageKind.TEXT,
+    payload: dict | None = None,
+) -> None:
+    """Post a human-readable message into the run's work-item thread.
+
+    Additive to RunEvents; no-ops on the dead-letter path where messages is None.
+    """
+    if ctx.messages is None:
+        return
+    ctx.messages.create(Message(
+        owner_id="",  # stamped from required_filters
+        thread_id=run.work_item_id,
+        author_kind=AuthorKind.AGENT,
+        author_role=role,
+        kind=kind,
+        content=content,
+        payload=payload or {},
+        run_id=run.id,
+    ))
+
+
 def couple(ctx: HandlerContext, run: Run) -> None:
     """Sync the work item status to match the run's current state."""
     target_value = work_item_status_for(run)
@@ -135,6 +171,8 @@ def _finish_stage(
     event_type = EventType.STAGE_PASSED if outcome.result.passed else EventType.STAGE_FAILED
     emit(ctx, run, event_type, stage=stage, role=role,
          payload={"summary": outcome.result.summary, "tokens": outcome.result.tokens})
+    narrate(ctx, run, role=role,
+            content=f"Stage '{stage.value}' {'passed' if outcome.result.passed else 'failed'}.")
     return outcome.result
 
 
@@ -202,6 +240,7 @@ def advance(ctx: HandlerContext, run: Run, result: StageResult) -> None:
         if isinstance(step, Finish):
             run = _save(ctx, run.model_copy(update={"status": step.status, "ended_at": utcnow()}))
             emit(ctx, run, EventType.RUN_FINISHED, payload={"status": step.status.value})
+            narrate(ctx, run, role="lead", content="Run finished.")
             couple(ctx, run)
             return
 
@@ -274,6 +313,8 @@ def handle_lead(msg: AgentMessage, ctx: HandlerContext) -> None:
             "status": RunStatus.RUNNING, "started_at": utcnow()
         }))
         emit(ctx, run, EventType.RUN_STARTED, role="lead")
+        narrate(ctx, run, role="lead",
+                content=f"Run started for '{_work_item_title(ctx, run)}'.")
         couple(ctx, run)
         prov = _run_provision_inline(ctx, run)
         run = ctx.runs.read(run.id)
