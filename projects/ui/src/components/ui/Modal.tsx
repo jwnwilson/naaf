@@ -11,7 +11,9 @@ export function Modal({ title, onClose, footer, children }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    panelRef.current?.focus();
+    if (!panelRef.current?.contains(document.activeElement)) {
+      panelRef.current?.focus();
+    }
   }, []);
 
   useEffect(() => {

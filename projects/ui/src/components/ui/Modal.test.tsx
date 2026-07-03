@@ -36,3 +36,8 @@ test("focuses the panel on open", () => {
   render(<Modal title="T" onClose={() => {}}>b</Modal>);
   expect(screen.getByRole("dialog")).toHaveFocus();
 });
+
+test("does not steal focus from an autofocused child", () => {
+  render(<Modal title="T" onClose={() => {}}><input aria-label="field" autoFocus /></Modal>);
+  expect(screen.getByLabelText("field")).toHaveFocus();
+});
