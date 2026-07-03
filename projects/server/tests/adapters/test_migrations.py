@@ -145,7 +145,8 @@ def test_migration_creates_messages(tmp_path):
     tables = {row[0] for row in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert "messages" in tables
     cols = {r[1] for r in con.execute("PRAGMA table_info(messages)")}
-    assert {"id", "owner_id", "thread_id", "role", "agent_id", "content"} <= cols
+    assert {"id", "owner_id", "thread_id", "author_kind", "kind", "content",
+             "mentions", "payload"} <= cols
 
 
 def test_migration_adds_run_token_usage(tmp_path):

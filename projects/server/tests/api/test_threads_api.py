@@ -1,65 +1,77 @@
+from adapters.database.orm import BusMessageRow
 from adapters.database.uow import SqlUnitOfWork
-from domain.runs.run import Run
+from domain.work_item import WorkItem, WorkItemKind, WorkItemStatus
 
 
-def _make_run(session_factory, owner="dev-user", wid="w1") -> str:
+def _make_item(session_factory, owner="dev-user", wid="wi1", title="OAuth refresh") -> str:
     uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": owner})
     with uow.transaction():
-        run = uow.runs.create(
-            Run(owner_id="", work_item_id=wid, project_id="p1", autonomy_level="gated_all")
-        )
-    return run.id
+        item = uow.work_items.create(WorkItem(
+            id=wid, owner_id="", project_id="p1", kind=WorkItemKind.TASK,
+            title=title, status=WorkItemStatus.IN_PROGRESS,
+        ))
+    return item.id
 
 
-def test_list_threads_projects_runs(client, session_factory):
-    run_id = _make_run(session_factory)
+def test_list_threads_are_work_items(client, session_factory):
+    wid = _make_item(session_factory)
     body = client.get("/threads").json()
     assert body["success"]
-    row = next(t for t in body["data"] if t["id"] == run_id)
-    assert row["agentId"] == "lead"
-    assert row["workItemId"] == "w1"
+    row = next(t for t in body["data"] if t["id"] == wid)
+    assert row["workItemId"] == wid
+    assert row["title"] == "OAuth refresh"
+    assert row["status"] == "in_progress"
     assert "owner_id" not in row
 
 
 def test_post_then_list_messages_oldest_first(client, session_factory):
-    run_id = _make_run(session_factory)
-    client.post(f"/threads/{run_id}/messages", json={"content": "first"})
-    client.post(f"/threads/{run_id}/messages", json={"content": "second"})
-    body = client.get(f"/threads/{run_id}/messages").json()
-    assert body["success"]
+    wid = _make_item(session_factory)
+    client.post(f"/threads/{wid}/messages", json={"content": "first"})
+    client.post(f"/threads/{wid}/messages", json={"content": "second"})
+    body = client.get(f"/threads/{wid}/messages").json()
     assert [m["content"] for m in body["data"]] == ["first", "second"]
-    assert body["data"][0]["role"] == "user"
-    assert body["data"][0]["conversationId"] == run_id
+    assert body["data"][0]["authorKind"] == "user"
+    assert body["data"][0]["threadId"] == wid
 
 
-def test_post_message_returns_201_and_created(client, session_factory):
-    run_id = _make_run(session_factory)
-    res = client.post(f"/threads/{run_id}/messages", json={"content": "hi", "agentId": "lead"})
+def test_post_parses_mentions_and_defaults_author_user(client, session_factory):
+    wid = _make_item(session_factory)
+    res = client.post(f"/threads/{wid}/messages", json={"content": "@backend do the thing"})
     assert res.status_code == 201
     data = res.json()["data"]
-    assert data["content"] == "hi"
-    assert data["agentId"] == "lead"
-    assert data["role"] == "user"
+    assert data["authorKind"] == "user"
+    assert data["kind"] == "text"
+    assert data["mentions"] == ["backend"]
 
 
 def test_empty_content_is_rejected(client, session_factory):
-    run_id = _make_run(session_factory)
-    res = client.post(f"/threads/{run_id}/messages", json={"content": "   "})
-    assert res.status_code == 422
+    wid = _make_item(session_factory)
+    assert client.post(f"/threads/{wid}/messages", json={"content": "   "}).status_code == 422
 
 
 def test_foreign_thread_is_404(client, session_factory):
-    # a run owned by someone else
-    other_run = _make_run(session_factory, owner="someone-else", wid="w9")
-    assert client.get(f"/threads/{other_run}/messages").status_code == 404
-    assert client.post(f"/threads/{other_run}/messages", json={"content": "x"}).status_code == 404
+    other = _make_item(session_factory, owner="someone-else", wid="wi9")
+    assert client.get(f"/threads/{other}/messages").status_code == 404
+    assert client.post(f"/threads/{other}/messages", json={"content": "x"}).status_code == 404
 
 
-def test_messages_do_not_touch_the_bus(client, session_factory):
-    run_id = _make_run(session_factory)
-    client.post(f"/threads/{run_id}/messages", json={"content": "hi"})
-    # persist-only: no bus_messages row was written by the chat send
-    from sqlalchemy import text
-    with session_factory() as s:
-        count = s.execute(text("SELECT COUNT(*) FROM bus_messages")).scalar_one()
+def test_thread_detail_returns_files_written(client, session_factory):
+    wid = _make_item(session_factory)
+    body = client.get(f"/threads/{wid}").json()
+    assert body["success"]
+    assert body["data"]["id"] == wid
+    assert body["data"]["filesWritten"] == []
+
+
+def test_post_message_does_not_touch_the_bus(client, session_factory):
+    # Arrange
+    wid = _make_item(session_factory)
+
+    # Act — @mention should be stored but must NOT dispatch to the bus (Phase 3)
+    res = client.post(f"/threads/{wid}/messages", json={"content": "@backend do it"})
+    assert res.status_code == 201
+
+    # Assert — zero rows in bus_messages
+    with session_factory() as session:
+        count = session.query(BusMessageRow).count()
     assert count == 0

@@ -5,11 +5,11 @@ import type { components } from "../schema";
 
 export type Message = components["schemas"]["Message"];
 
-export function useThreadMessages(threadId?: string) {
+export function useThreadMessages(workItemId?: string) {
   return useQuery({
-    queryKey: queryKeys.threadMessages(threadId),
-    queryFn: () => apiList<Message>(`/threads/${threadId!}/messages`),
-    enabled: Boolean(threadId),
+    queryKey: queryKeys.threadMessages(workItemId),
+    queryFn: () => apiList<Message>(`/threads/${workItemId!}/messages`),
+    enabled: Boolean(workItemId),
     select: (page) => page.results,
   });
 }

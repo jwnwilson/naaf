@@ -25,6 +25,8 @@ export type { RunOut, RunEventOut } from "./useRun";
 export { useResolveGate } from "./useResolveGate";
 export type { AgentDefinition } from "./useAgentDefinitions";
 
+export { useThread } from "./useThread";
+export type { ThreadDetail } from "./useThread";
 export { useThreadMessages } from "./useThreadMessages";
 export type { Message } from "./useThreadMessages";
 export { useSendMessage } from "./useSendMessage";

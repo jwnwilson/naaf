@@ -25,9 +25,23 @@ describe("app integration", () => {
   });
   it("renders the inbox", async () => {
     await renderAt("/inbox");
-    // seed thread-1: agentId "agent-1" rendered by NotificationItem
+    // seed thread wi-task-3: title rendered by NotificationItem
     await waitFor(() =>
-      expect(screen.getAllByText("agent-1").length).toBeGreaterThan(0),
+      expect(
+        screen.getAllByText("Implement Docker sandbox container").length,
+      ).toBeGreaterThan(0),
+    );
+  });
+  it("inbox auto-selects first thread and shows its messages", async () => {
+    // Regression guard: thread.id must equal workItemId so useThreadMessages
+    // fetches the right messages (thread-1 / thread-2 IDs caused zero messages).
+    await renderAt("/inbox");
+    // First thread (wi-task-3) is auto-selected; ConversationPane loads its messages.
+    // msg-2 is a text message from that thread.
+    await waitFor(() =>
+      expect(
+        screen.getAllByText("I'll start by analysing the existing architecture and then implement the sandbox.").length,
+      ).toBeGreaterThan(0),
     );
   });
   it("renders settings", async () => {

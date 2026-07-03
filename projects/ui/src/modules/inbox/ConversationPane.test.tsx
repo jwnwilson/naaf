@@ -16,23 +16,30 @@ function renderPane(threadId: string) {
   );
 }
 
+function makeMsg(overrides: Partial<Message> = {}): Message {
+  return {
+    id: "m0",
+    threadId: "r1",
+    authorKind: "agent",
+    authorRole: "engineer",
+    model: null,
+    kind: "text",
+    content: "existing message",
+    mentions: [],
+    payload: null,
+    runId: null,
+    createdAt: "2026-01-01T00:00:00Z",
+    ...overrides,
+  };
+}
+
 describe("ConversationPane", () => {
   it("renders thread messages", async () => {
     server.use(
       http.get("/api/threads/r1/messages", () =>
         HttpResponse.json({
           success: true,
-          data: [
-            {
-              id: "m0",
-              conversationId: "r1",
-              role: "agent",
-              agentId: "agent-1",
-              content: "existing message",
-              attachments: null,
-              createdAt: "2026-01-01T00:00:00Z",
-            },
-          ],
+          data: [makeMsg()],
           error: null,
           meta: null,
         }),
@@ -50,15 +57,7 @@ describe("ConversationPane", () => {
       ),
       http.post("/api/threads/r1/messages", async ({ request }) => {
         const body = (await request.json()) as { content: string };
-        const msg: Message = {
-          id: "m1",
-          conversationId: "r1",
-          role: "user",
-          agentId: null,
-          content: body.content,
-          attachments: null,
-          createdAt: new Date().toISOString(),
-        };
+        const msg = makeMsg({ id: "m1", authorKind: "user", content: body.content });
         stored.push(msg);
         return HttpResponse.json(
           { success: true, data: msg, error: null, meta: null },
@@ -67,7 +66,7 @@ describe("ConversationPane", () => {
       }),
     );
     renderPane("r1");
-    await userEvent.type(screen.getByPlaceholderText("Reply to agent…"), "looks good");
+    await userEvent.type(screen.getByPlaceholderText("Reply…"), "looks good");
     await userEvent.click(screen.getByRole("button", { name: /send/i }));
     expect(await screen.findByText("looks good")).toBeInTheDocument();
   });

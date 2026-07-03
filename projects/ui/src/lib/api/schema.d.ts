@@ -137,6 +137,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/work-items/{id}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** Get the active agent run for a work item (or null) */
+        get: operations["getActiveRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/agents": {
         parameters: {
             query?: never;
@@ -233,10 +252,101 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** Get a run by id (RunOut: status, stages, pendingGate, tokenUsage, cost) */
+        /** Get an agent run by id (steps, logLines, tokenUsage, cost, status) */
         get: operations["getRun"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{id}/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** SSE stream of incremental log lines and step transitions for a run */
+        get: operations["streamRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List inbox items */
+        get: operations["listInbox"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inbox/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** Get an inbox item with its conversation */
+        get: operations["getInboxItem"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inbox/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark an inbox item as read */
+        post: operations["markInboxItemRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inbox/mark-all-read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark all inbox items as read */
+        post: operations["markAllInboxRead"];
         delete?: never;
         options?: never;
         head?: never;
@@ -252,6 +362,25 @@ export interface paths {
         };
         /** List chat threads */
         get: operations["listThreads"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/threads/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** Get thread detail for a work item */
+        get: operations["getThread"];
         put?: never;
         post?: never;
         delete?: never;
@@ -483,47 +612,112 @@ export interface components {
             systemPrompt?: string;
             enabled?: boolean;
         };
+        InboxItem: {
+            id: string;
+            /** @enum {string} */
+            type: "action_needed" | "review_needed" | "info" | "resolved";
+            title: string;
+            preview: string;
+            agentId: string;
+            workItemId: string;
+            conversationId: string;
+            /** Format: date-time */
+            createdAt: string;
+            read: boolean;
+        };
         Message: {
             id: string;
-            conversationId: string;
+            threadId: string;
             /** @enum {string} */
-            role: "user" | "agent" | "lead_agent";
-            agentId?: string | null;
+            authorKind: "user" | "agent";
+            authorRole?: string | null;
+            model?: string | null;
+            /** @enum {string} */
+            kind: "text" | "file_write" | "question" | "event";
             content: string;
-            attachments?: components["schemas"]["Attachment"][] | null;
+            mentions: string[];
+            payload?: {
+                [key: string]: unknown;
+            } | null;
+            runId?: string | null;
             /** Format: date-time */
             createdAt: string;
         };
         Thread: {
             id: string;
-            agentId: string;
-            workItemId?: string | null;
+            workItemId: string;
+            title: string;
+            status: string;
+            lastMessage?: string | null;
+            messageCount: number;
+            participants: string[];
             /** Format: date-time */
             createdAt: string;
+        };
+        ThreadDetail: components["schemas"]["Thread"] & {
+            filesWritten: {
+                [key: string]: unknown;
+            }[];
+        };
+        RunStep: {
+            index: number;
+            /** @enum {string} */
+            label: "Plan" | "Read" | "Analyze" | "Generate" | "Test" | "PR";
+            /** @enum {string} */
+            status: "done" | "active" | "pending";
+        };
+        LogLine: {
+            /** Format: date-time */
+            timestamp: string;
+            /** @enum {string} */
+            type: "tool_call" | "result" | "status";
+            tool?: string | null;
+            target?: string | null;
+            message?: string | null;
+        };
+        AgentRun: {
+            id: string;
+            agentId: string;
+            workItemId: string;
+            /** @enum {string} */
+            status: "running" | "paused" | "complete" | "failed";
+            steps: components["schemas"]["RunStep"][];
+            logLines: components["schemas"]["LogLine"][];
+            tokenUsage: number;
+            tokenLimit: number;
+            cost: number;
+            /** Format: date-time */
+            startedAt: string;
         };
         StageStateOut: {
             stage: string;
             status: string;
             role?: string | null;
+            /** Format: date-time */
             startedAt?: string | null;
+            /** Format: date-time */
             endedAt?: string | null;
-        };
-        GateOut: {
-            kind: string;
-            stage: string;
         };
         RunOut: {
             id: string;
             workItemId: string;
             projectId: string;
             autonomyLevel: string;
-            status: string;
-            currentStage?: string | null;
+            /** @enum {string} */
+            status: "running" | "awaiting_gate" | "failed" | "succeeded" | "cancelled";
+            currentStage: string;
             stages: components["schemas"]["StageStateOut"][];
-            pendingGate?: components["schemas"]["GateOut"] | null;
+            pendingGate?: {
+                kind?: string;
+                stage?: string;
+            } | null;
+            /** Format: date-time */
             createdAt: string;
+            /** Format: date-time */
             updatedAt: string;
-            startedAt?: string | null;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
             endedAt?: string | null;
             tokenUsage: number;
             cost: number;
@@ -532,10 +726,13 @@ export interface components {
             id: string;
             runId: string;
             seq: number;
-            stage?: string | null;
+            stage: string;
             role?: string | null;
             type: string;
-            payload: Record<string, unknown>;
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
             createdAt: string;
         };
         DashboardMetrics: {
@@ -874,6 +1071,30 @@ export interface operations {
             };
         };
     };
+    getActiveRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"] & {
+                        data?: components["schemas"]["AgentRun"] | null;
+                    };
+                };
+            };
+        };
+    };
     listAgents: {
         parameters: {
             query?: never;
@@ -987,7 +1208,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope"] & {
-                        data?: components["schemas"]["RunOut"][];
+                        data?: components["schemas"]["AgentRun"][];
                         meta?: components["schemas"]["Meta"];
                     };
                 };
@@ -1012,8 +1233,124 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope"] & {
-                        data?: components["schemas"]["RunOut"];
+                        data?: components["schemas"]["AgentRun"];
                     };
+                };
+            };
+        };
+    };
+    streamRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description SSE stream */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    listInbox: {
+        parameters: {
+            query?: {
+                type?: "action_needed" | "review_needed" | "info" | "resolved";
+                unread?: boolean;
+                page_size?: number;
+                page_number?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"] & {
+                        data?: components["schemas"]["InboxItem"][];
+                        meta?: components["schemas"]["Meta"];
+                    };
+                };
+            };
+        };
+    };
+    getInboxItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"] & {
+                        data?: components["schemas"]["InboxItem"];
+                    };
+                };
+            };
+        };
+    };
+    markInboxItemRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+        };
+    };
+    markAllInboxRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
                 };
             };
         };
@@ -1035,6 +1372,30 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Envelope"] & {
                         data?: components["schemas"]["Thread"][];
+                    };
+                };
+            };
+        };
+    };
+    getThread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"] & {
+                        data?: components["schemas"]["ThreadDetail"];
                     };
                 };
             };

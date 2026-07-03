@@ -3,11 +3,12 @@ export const queryKeys = {
   board: (projectId: string) => ["board", projectId] as const,
   workItem: (id: string) => ["work-item", id] as const,
   threads: () => ["threads"] as const,
+  thread: (workItemId?: string) => ["threads", workItemId ?? "none"] as const,
   dashboard: () => ["dashboard"] as const,
   agents: () => ["agents"] as const,
   budget: () => ["budget"] as const,
   agentDefinitions: () => ["agent-definitions"] as const,
   run: (id: string) => ["run", id] as const,
   runEvents: (runId: string) => ["run", runId, "events"] as const,
-  threadMessages: (threadId?: string) => ["threads", threadId ?? "none", "messages"] as const,
+  threadMessages: (workItemId?: string) => ["threads", workItemId ?? "none", "messages"] as const,
 };

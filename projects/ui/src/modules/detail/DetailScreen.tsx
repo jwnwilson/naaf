@@ -7,9 +7,10 @@ import { ItemHeader } from "./ItemHeader";
 import { TabBar } from "./TabBar";
 import type { DetailTab } from "./TabBar";
 
-const ALL_DETAIL_TABS: DetailTab[] = ["Spec", "Attachments", "Activity", "Agent", "Subagents"];
+const ALL_DETAIL_TABS: DetailTab[] = ["Spec", "Attachments", "Activity", "Agent", "Thread"];
 import { SpecTab } from "./SpecTab";
 import { AgentMonitor } from "./AgentMonitor";
+import { Thread } from "../../components/thread";
 
 function LoadingState() {
   return (
@@ -59,7 +60,7 @@ export function DetailScreen() {
         )}
         {activeTab === "Attachments" && <EmptyBody message="No attachments" />}
         {activeTab === "Activity" && <EmptyBody message="No activity yet" />}
-        {activeTab === "Subagents" && <EmptyBody message="No subagents" />}
+        {activeTab === "Thread" && <Thread workItemId={itemId ?? ""} showRail />}
       </div>
     </div>
   );

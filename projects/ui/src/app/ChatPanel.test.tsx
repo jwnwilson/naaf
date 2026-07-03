@@ -10,8 +10,27 @@ import { ChatPanel } from "./ChatPanel";
 
 function renderPanel() {
   render(
-    <QueryClientProvider client={createQueryClient()}><ChatPanel /></QueryClientProvider>,
+    <QueryClientProvider client={createQueryClient()}>
+      <ChatPanel />
+    </QueryClientProvider>,
   );
+}
+
+function makeMsg(overrides: Partial<Message> = {}): Message {
+  return {
+    id: "m0",
+    threadId: "w1",
+    authorKind: "user",
+    authorRole: null,
+    model: null,
+    kind: "text",
+    content: "hi",
+    mentions: [],
+    payload: null,
+    runId: null,
+    createdAt: "2026-01-01T00:00:00Z",
+    ...overrides,
+  };
 }
 
 describe("ChatPanel", () => {
@@ -19,40 +38,40 @@ describe("ChatPanel", () => {
 
   it("collapses and re-expands, persisting the state", async () => {
     renderPanel();
-    // open by default: the collapse control is present
     const collapse = await screen.findByRole("button", { name: /collapse/i });
     await userEvent.click(collapse);
-    // collapsed strip shows the CHAT label and an expand control
     await waitFor(() => expect(screen.getByRole("button", { name: /expand|chat/i })).toBeInTheDocument());
     expect(JSON.parse(localStorage.getItem("naaf.chat.open")!)).toBe(false);
   });
 
   it("sends a message from the sidebar", async () => {
-    // Per-test handlers: thread r1 with empty message list that persists POSTs
     const stored: Message[] = [];
     server.use(
       http.get("/api/threads", () =>
         HttpResponse.json({
           success: true,
-          data: [{ id: "r1", agentId: "lead", workItemId: "w1", createdAt: "2026-01-01T00:00:00Z" }],
+          data: [
+            {
+              id: "thread-1",
+              workItemId: "w1",
+              title: "Test Thread",
+              status: "open",
+              lastMessage: null,
+              messageCount: 0,
+              participants: ["user"],
+              createdAt: "2026-01-01T00:00:00Z",
+            },
+          ],
           error: null,
           meta: null,
         }),
       ),
-      http.get("/api/threads/r1/messages", () =>
+      http.get("/api/threads/w1/messages", () =>
         HttpResponse.json({ success: true, data: stored, error: null, meta: null }),
       ),
-      http.post("/api/threads/r1/messages", async ({ request }) => {
+      http.post("/api/threads/w1/messages", async ({ request }) => {
         const body = (await request.json()) as { content: string };
-        const msg: Message = {
-          id: "m1",
-          conversationId: "r1",
-          role: "user",
-          agentId: null,
-          content: body.content,
-          attachments: null,
-          createdAt: new Date().toISOString(),
-        };
+        const msg = makeMsg({ id: "m1", content: body.content });
         stored.push(msg);
         return HttpResponse.json({ success: true, data: msg, error: null, meta: null }, { status: 201 });
       }),
@@ -61,7 +80,7 @@ describe("ChatPanel", () => {
     renderPanel();
     const input = await screen.findByPlaceholderText("Message…");
     await userEvent.type(input, "ship it");
-    await userEvent.click(screen.getByLabelText("send"));
+    await userEvent.click(screen.getByRole("button", { name: /send/i }));
     expect(await screen.findByText("ship it")).toBeInTheDocument();
   });
 });
