@@ -25,9 +25,11 @@ describe("app integration", () => {
   });
   it("renders the inbox", async () => {
     await renderAt("/inbox");
-    // seed thread-1: agentId "agent-1" rendered by NotificationItem
+    // seed thread-1: title rendered by NotificationItem
     await waitFor(() =>
-      expect(screen.getAllByText("agent-1").length).toBeGreaterThan(0),
+      expect(
+        screen.getAllByText("Implement Docker sandbox container").length,
+      ).toBeGreaterThan(0),
     );
   });
   it("renders settings", async () => {

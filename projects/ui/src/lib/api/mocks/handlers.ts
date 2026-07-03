@@ -184,30 +184,49 @@ export const liveHandlers = [
   }),
 
   // ── Threads ───────────────────────────────────────────────────────────────────
-  // Backed by the real backend (Task 5). In live mode these pass through to /api.
+  // Backed by the real backend (A3+). In live mode these pass through to /api.
+  // More-specific paths (/messages) must be listed before the bare /:id catch-all.
 
   http.get(`${BASE}/threads`, () => ok(seed.threads)),
 
   http.get(`${BASE}/threads/:id/messages`, ({ params }) => {
     const msgs = db.messagesForThread(params.id as string);
-    return ok(msgs);
+    return ok(msgs, pageMeta(msgs));
   }),
 
   http.post(`${BASE}/threads/:id/messages`, async ({ params, request }) => {
     const body = (await request.json()) as { content: string };
+    const workItemId = params.id as string;
+    const mentions = [...body.content.matchAll(/@([\w-]+)/g)].map((m) => m[1]);
     const msg: components["schemas"]["Message"] = {
       id: `msg-${Date.now()}`,
-      conversationId: `conv-${String(params.id).replace("thread-", "")}`,
-      role: "user",
-      agentId: null,
+      threadId: workItemId,
+      authorKind: "user",
+      authorRole: null,
+      model: null,
+      kind: "text",
       content: body.content,
-      attachments: null,
+      mentions,
+      payload: null,
+      runId: null,
       createdAt: new Date().toISOString(),
     };
+    db.addMessage(msg);
     return HttpResponse.json(
       { success: true, data: msg, error: null, meta: null },
       { status: 201 },
     );
+  }),
+
+  http.get(`${BASE}/threads/:id`, ({ params }) => {
+    const workItemId = params.id as string;
+    const thread = db.findThread(workItemId);
+    if (!thread) return notFound();
+    const filesWritten = db
+      .messagesForThread(workItemId)
+      .filter((m) => m.kind === "file_write")
+      .map((m) => (m.payload ?? {}));
+    return ok({ ...thread, filesWritten });
   }),
 ];
 

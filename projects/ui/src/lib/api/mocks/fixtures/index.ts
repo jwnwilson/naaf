@@ -398,116 +398,94 @@ const runEvents: RunEventOut[] = [
 const threads: Thread[] = [
   {
     id: "thread-1",
-    agentId: "agent-1",
     workItemId: "wi-task-3",
+    title: "Implement Docker sandbox container",
+    status: "open",
+    lastMessage: "I've analysed the codebase. Plan: 1) Create a Docker image...",
+    messageCount: 3,
+    participants: ["agent-1", "user"],
     createdAt: "2026-06-29T13:00:00Z",
+  },
+  {
+    id: "thread-2",
+    workItemId: "wi-task-4",
+    title: "Implement network egress proxy",
+    status: "open",
+    lastMessage: "Please make sure the allowlist is loaded from config.",
+    messageCount: 2,
+    participants: ["agent-3", "user"],
+    createdAt: "2026-06-28T16:00:00Z",
   },
 ];
 
-// Map threadId → conversationId for message lookup.
-// inbox-2/3/4 use their conversationId directly as the thread ID (self-mapped).
-export const threadConversationMap: Record<string, string> = {
-  "thread-1": "conv-1",
-  "conv-2": "conv-2",
-  "conv-3": "conv-3",
-  "conv-4": "conv-4",
-};
-
 const messages: Message[] = [
-  // ── conv-1: Docker sandbox PR (inbox-1) ──────────────────────────────────────
+  // ── wi-task-3 thread ─────────────────────────────────────────────────────────
   {
     id: "msg-1",
-    conversationId: "conv-1",
-    role: "user",
-    agentId: null,
-    content:
-      "Please implement the Docker sandbox container for wi-task-3. Focus on security and isolation.",
-    attachments: null,
+    threadId: "wi-task-3",
+    authorKind: "user",
+    authorRole: null,
+    model: null,
+    kind: "text",
+    content: "Please implement the Docker sandbox container for wi-task-3. Focus on security and isolation.",
+    mentions: [],
+    payload: null,
+    runId: null,
     createdAt: "2026-06-29T13:00:00Z",
   },
   {
     id: "msg-2",
-    conversationId: "conv-1",
-    role: "lead_agent",
-    agentId: "agent-1",
-    content:
-      "I'll start by analysing the existing architecture and then implement the sandbox. Give me a moment to read the codebase.",
-    attachments: null,
+    threadId: "wi-task-3",
+    authorKind: "agent",
+    authorRole: "lead",
+    model: "claude-sonnet-4-6",
+    kind: "text",
+    content: "I'll start by analysing the existing architecture and then implement the sandbox.",
+    mentions: [],
+    payload: null,
+    runId: "run-1",
     createdAt: "2026-06-29T13:00:30Z",
   },
   {
     id: "msg-3",
-    conversationId: "conv-1",
-    role: "agent",
-    agentId: "agent-1",
-    content:
-      "I've analysed the codebase. Plan: 1) Create a Docker image based on python:3.12-slim, 2) Add a non-root user, 3) Mount workspace read-only, 4) Restrict network access.",
-    attachments: null,
-    createdAt: "2026-06-29T13:02:00Z",
+    threadId: "wi-task-3",
+    authorKind: "agent",
+    authorRole: "engineer",
+    model: "claude-sonnet-4-6",
+    kind: "file_write",
+    content: "Wrote docker/sandbox/Dockerfile",
+    mentions: [],
+    payload: { path: "docker/sandbox/Dockerfile", lines: 42 },
+    runId: "run-1",
+    createdAt: "2026-06-29T13:05:00Z",
   },
 
-  // ── conv-2: Egress proxy review (inbox-2) ────────────────────────────────────
+  // ── wi-task-4 thread ─────────────────────────────────────────────────────────
   {
     id: "msg-4",
-    conversationId: "conv-2",
-    role: "agent",
-    agentId: "agent-3",
-    content:
-      "The network egress proxy implementation is ready for review. I changed 3 files (+247 lines). The proxy intercepts outbound requests and validates them against the allowlist before forwarding.",
-    attachments: null,
+    threadId: "wi-task-4",
+    authorKind: "agent",
+    authorRole: "engineer",
+    model: "claude-haiku-4-5",
+    kind: "question",
+    content: "Should the allowlist be loaded from environment variables or a config file?",
+    mentions: [],
+    payload: { options: ["Environment variables", "Config file", "Both"] },
+    runId: "run-2",
     createdAt: "2026-06-28T16:00:00Z",
   },
   {
     id: "msg-5",
-    conversationId: "conv-2",
-    role: "user",
-    agentId: null,
-    content:
-      "Thanks. Please make sure the allowlist is loaded from config, not hardcoded. Otherwise looks good.",
-    attachments: null,
+    threadId: "wi-task-4",
+    authorKind: "user",
+    authorRole: null,
+    model: null,
+    kind: "text",
+    content: "Please make sure the allowlist is loaded from config, not hardcoded.",
+    mentions: [],
+    payload: null,
+    runId: null,
     createdAt: "2026-06-28T16:20:00Z",
-  },
-
-  // ── conv-3: Integration tests run complete (inbox-3) ─────────────────────────
-  {
-    id: "msg-6",
-    conversationId: "conv-3",
-    role: "agent",
-    agentId: "agent-2",
-    content:
-      "Run complete for wi-task-5. All 24 integration tests are passing. Token usage: 15,000. The sandbox test suite covers container startup, file-system isolation, and network egress blocking.",
-    attachments: null,
-    createdAt: "2026-06-25T12:00:00Z",
-  },
-  {
-    id: "msg-7",
-    conversationId: "conv-3",
-    role: "user",
-    agentId: null,
-    content: "Great work. Marking this task as done.",
-    attachments: null,
-    createdAt: "2026-06-25T12:05:00Z",
-  },
-
-  // ── conv-4: Board kanban feature resolved (inbox-4) ──────────────────────────
-  {
-    id: "msg-8",
-    conversationId: "conv-4",
-    role: "agent",
-    agentId: "agent-2",
-    content:
-      "Feature wi-feat-3 (Board Kanban View) is complete. PR #42 has been merged. All drag-and-drop columns are functional and the design matches the spec.",
-    attachments: null,
-    createdAt: "2026-06-26T14:00:00Z",
-  },
-  {
-    id: "msg-9",
-    conversationId: "conv-4",
-    role: "user",
-    agentId: null,
-    content: "Confirmed — closing the feature. Nice work on the drop animations.",
-    attachments: null,
-    createdAt: "2026-06-26T14:10:00Z",
   },
 ];
 

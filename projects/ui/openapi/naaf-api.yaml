@@ -830,6 +830,57 @@ components:
         cost: { type: number }
         startedAt: { type: string, format: date-time }
 
+    StageStateOut:
+      type: object
+      required: [stage, status]
+      properties:
+        stage: { type: string }
+        status: { type: string }
+        role: { type: string, nullable: true }
+        startedAt: { type: string, format: date-time, nullable: true }
+        endedAt: { type: string, format: date-time, nullable: true }
+
+    RunOut:
+      type: object
+      required: [id, workItemId, projectId, autonomyLevel, status, currentStage, stages, createdAt, updatedAt, startedAt, tokenUsage, cost]
+      properties:
+        id: { type: string }
+        workItemId: { type: string }
+        projectId: { type: string }
+        autonomyLevel: { type: string }
+        status: { type: string, enum: [running, awaiting_gate, failed, succeeded, cancelled] }
+        currentStage: { type: string }
+        stages:
+          type: array
+          items: { $ref: "#/components/schemas/StageStateOut" }
+        pendingGate:
+          type: object
+          nullable: true
+          properties:
+            kind: { type: string }
+            stage: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        startedAt: { type: string, format: date-time }
+        endedAt: { type: string, format: date-time, nullable: true }
+        tokenUsage: { type: integer }
+        cost: { type: number }
+
+    RunEventOut:
+      type: object
+      required: [id, runId, seq, stage, type, payload, createdAt]
+      properties:
+        id: { type: string }
+        runId: { type: string }
+        seq: { type: integer }
+        stage: { type: string }
+        role: { type: string, nullable: true }
+        type: { type: string }
+        payload:
+          type: object
+          additionalProperties: true
+        createdAt: { type: string, format: date-time }
+
     DashboardMetrics:
       type: object
       required: [activeAgents, totalSpend, totalTokens, projectCount, workItemCount]

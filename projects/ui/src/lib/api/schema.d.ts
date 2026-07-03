@@ -690,6 +690,52 @@ export interface components {
             /** Format: date-time */
             startedAt: string;
         };
+        StageStateOut: {
+            stage: string;
+            status: string;
+            role?: string | null;
+            /** Format: date-time */
+            startedAt?: string | null;
+            /** Format: date-time */
+            endedAt?: string | null;
+        };
+        RunOut: {
+            id: string;
+            workItemId: string;
+            projectId: string;
+            autonomyLevel: string;
+            /** @enum {string} */
+            status: "running" | "awaiting_gate" | "failed" | "succeeded" | "cancelled";
+            currentStage: string;
+            stages: components["schemas"]["StageStateOut"][];
+            pendingGate?: {
+                kind?: string;
+                stage?: string;
+            } | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            endedAt?: string | null;
+            tokenUsage: number;
+            cost: number;
+        };
+        RunEventOut: {
+            id: string;
+            runId: string;
+            seq: number;
+            stage: string;
+            role?: string | null;
+            type: string;
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            createdAt: string;
+        };
         DashboardMetrics: {
             activeAgents: number;
             totalSpend: number;
