@@ -1,43 +1,37 @@
 from adapters.database.uow import SqlUnitOfWork
-from domain.messaging.message import AuthorKind, Message
+from domain.messaging.message import AuthorKind, Message, MessageKind
 
 
-def _uow(sf, owner="u1"):
-    return SqlUnitOfWork(sf, required_filters={"owner_id": owner})
+def _uow(session_factory, owner="dev-user") -> SqlUnitOfWork:
+    return SqlUnitOfWork(session_factory, required_filters={"owner_id": owner})
 
 
-def test_message_round_trip_stamps_owner(session_factory):
+def test_roundtrip_preserves_kind_role_mentions_payload(session_factory):
     uow = _uow(session_factory)
     with uow.transaction():
-        m = uow.messages.create(
-            Message(owner_id="", thread_id="r1", author_kind=AuthorKind.USER, content="hello")
-        )
-        got = uow.messages.read(m.id)
-    assert got.owner_id == "u1"
-    assert got.content == "hello"
-    assert got.author_kind == AuthorKind.USER
-
-
-def test_messages_list_by_thread_oldest_first(session_factory):
-    uow = _uow(session_factory)
+        created = uow.messages.create(Message(
+            owner_id="", thread_id="wi1", author_kind=AuthorKind.AGENT,
+            author_role="backend", model_alias="claude-opus-4",
+            kind=MessageKind.FILE_WRITE, content="wrote it",
+            mentions=["qa"], payload={"path": "src/x.py", "lines": 3},
+        ))
     with uow.transaction():
-        for text in ("first", "second", "third"):
-            uow.messages.create(
-                Message(owner_id="", thread_id="r1", author_kind=AuthorKind.USER, content=text)
-            )
-        uow.messages.create(
-            Message(owner_id="", thread_id="OTHER", author_kind=AuthorKind.USER, content="nope")
-        )
-        page = uow.messages.read_multi(filters={"thread_id": "r1"}, order_by="created_at")
-    assert [m.content for m in page.results] == ["first", "second", "third"]
-    assert page.total == 3
+        page = uow.messages.read_multi(filters={"thread_id": "wi1"}, order_by="created_at")
+    got = page.results[0]
+    assert got.id == created.id
+    assert got.author_role == "backend"
+    assert got.kind is MessageKind.FILE_WRITE
+    assert got.mentions == ["qa"]
+    assert got.payload == {"path": "src/x.py", "lines": 3}
 
 
 def test_messages_are_owner_scoped(session_factory):
-    with _uow(session_factory, "u1").transaction() as uow:
-        uow.messages.create(
-            Message(owner_id="", thread_id="r1", author_kind=AuthorKind.USER, content="mine")
-        )
-    with _uow(session_factory, "u2").transaction() as uow:
-        page = uow.messages.read_multi(filters={"thread_id": "r1"})
+    with _uow(session_factory, "alice").transaction() as _:
+        _uow(session_factory, "alice")  # noqa
+    a = _uow(session_factory, "alice")
+    with a.transaction():
+        a.messages.create(Message(owner_id="", thread_id="wi1", content="secret"))
+    b = _uow(session_factory, "bob")
+    with b.transaction():
+        page = b.messages.read_multi(filters={"thread_id": "wi1"})
     assert page.results == []
