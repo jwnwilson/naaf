@@ -21,9 +21,10 @@ function isQuestionPayload(p: unknown): p is QuestionPayload {
 interface MessageItemProps {
   message: Message;
   onAnswer?: (msgId: string, option: string) => void;
+  answering?: boolean;
 }
 
-export function MessageItem({ message, onAnswer }: MessageItemProps) {
+export function MessageItem({ message, onAnswer, answering }: MessageItemProps) {
   const isUser = message.authorKind === "user";
 
   if (message.kind === "file_write" && isFileWritePayload(message.payload)) {
@@ -70,7 +71,7 @@ export function MessageItem({ message, onAnswer }: MessageItemProps) {
                 <button
                   key={option.id}
                   type="button"
-                  disabled={payload.resolved_option != null}
+                  disabled={payload.resolved_option != null || answering}
                   onClick={() => onAnswer?.(message.id, option.id)}
                   className="rounded-[4px] px-2.5 py-1 text-[11px] font-medium"
                   style={{

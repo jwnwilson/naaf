@@ -20,8 +20,8 @@ export function Thread({
   composerPlaceholder,
 }: ThreadProps) {
   const { data: messages = [], isLoading } = useThreadMessages(workItemId);
-  const { mutate: answerQuestion } = useAnswerQuestion(workItemId);
-  const handleAnswer = (msgId: string, option: string) => { answerQuestion({ msgId, option }); };
+  const answer = useAnswerQuestion(workItemId);
+  const handleAnswer = (msgId: string, option: string) => { answer.mutate({ msgId, option }); };
 
   return (
     <div className="flex flex-col h-full flex-1 overflow-hidden">
@@ -36,7 +36,7 @@ export function Thread({
               <p className="text-[11px] text-[#30333c]">No messages yet</p>
             )}
             {messages.map((msg) => (
-              <MessageItem key={msg.id} message={msg} onAnswer={handleAnswer} />
+              <MessageItem key={msg.id} message={msg} onAnswer={handleAnswer} answering={answer.isPending} />
             ))}
           </div>
           <ThreadComposer

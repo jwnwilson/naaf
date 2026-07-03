@@ -71,6 +71,7 @@ describe("MessageItem", () => {
     );
     const approve = screen.getByRole("button", { name: /Approve/ });
     expect(approve).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Reject/ })).toBeDisabled();
   });
 
   it("calls onAnswer when an option is clicked", () => {
