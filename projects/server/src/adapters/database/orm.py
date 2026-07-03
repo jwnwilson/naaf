@@ -117,7 +117,8 @@ class NotificationRow(_Timestamped, Base):
     source_seq: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
-# accessed directly by the SqlMessageBus adapter, not via a UoW repository
+# persisted via BusMessageRepository (adapters/database); the SqlMessageBus
+# adapter delegates to uow.bus_messages
 class BusMessageRow(_Timestamped, Base):
     __tablename__ = "bus_messages"
     run_id: Mapped[str] = mapped_column(String(32), index=True, nullable=False)

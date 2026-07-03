@@ -82,7 +82,7 @@ def run_subscription(
             run_events=RunEventRepository(uow.session, required_filters=scope),
             work_items=WorkItemRepository(uow.session, required_filters=scope),
             notifications=NotificationRepository(uow.session, required_filters=scope),
-            bus=build_message_bus(uow.session),
+            bus=build_message_bus(uow),
             runtime=runtime,
             projects=ProjectRepository(uow.session, required_filters=scope),
             workspace_root=_s.workspace_root,

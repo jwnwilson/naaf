@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from adapters.database.repositories import (
     AgentDefinitionRepository,
+    BusMessageRepository,
     MessageRepository,
     NotificationRepository,
     ProjectRepository,
@@ -86,3 +87,7 @@ class SqlUnitOfWork:
     @property
     def messages(self) -> MessageRepository:
         return self._repo("messages", MessageRepository)
+
+    @property
+    def bus_messages(self) -> BusMessageRepository:
+        return self._repo("bus_messages", BusMessageRepository)

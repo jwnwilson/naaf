@@ -9,7 +9,7 @@ Parity assertions are preserved:
 - poison (bogus role) → dead-lettered, not re-delivered, run marked failed
 """
 from adapters.agent.runtime.fake import FakeAgentRuntime
-from adapters.bus.sql import SqlMessageBus
+from adapters.bus.factory import build_message_bus
 from adapters.database.uow import SqlUnitOfWork
 from domain.project import Project
 from domain.runs.messages import AgentMessage, MessageType, recipient_key
@@ -46,18 +46,17 @@ def test_run_subscription_handles_a_start_message(session_factory):
         )
 
     # Publish a START message targeting the lead
-    session = session_factory()
-    SqlMessageBus(session).publish(
-        AgentMessage(
-            owner_id="u1",
-            run_id=run.id,
-            recipient=recipient_key(run.id, "lead"),
-            role="lead",
-            type=MessageType.START,
-        ),
-    )
-    session.commit()
-    session.close()
+    uow_pub = SqlUnitOfWork(session_factory)
+    with uow_pub.transaction():
+        build_message_bus(uow_pub).publish(
+            AgentMessage(
+                owner_id="u1",
+                run_id=run.id,
+                recipient=recipient_key(run.id, "lead"),
+                role="lead",
+                type=MessageType.START,
+            ),
+        )
 
     # Act
     result = run_subscription("agent-bus", session_factory, FakeAgentRuntime())
@@ -92,18 +91,17 @@ def test_run_subscription_isolates_poison_message_without_crashing(session_facto
         )
 
     # Publish a message with a bogus role — dispatch raises ValueError("unknown role")
-    session = session_factory()
-    SqlMessageBus(session).publish(
-        AgentMessage(
-            owner_id="u1",
-            run_id=run.id,
-            recipient="u1:" + run.id + ":bogus",
-            role="bogus",
-            type=MessageType.START,
-        ),
-    )
-    session.commit()
-    session.close()
+    uow_pub = SqlUnitOfWork(session_factory)
+    with uow_pub.transaction():
+        build_message_bus(uow_pub).publish(
+            AgentMessage(
+                owner_id="u1",
+                run_id=run.id,
+                recipient="u1:" + run.id + ":bogus",
+                role="bogus",
+                type=MessageType.START,
+            ),
+        )
 
     # Act — must NOT raise
     result = run_subscription("agent-bus", session_factory, FakeAgentRuntime())

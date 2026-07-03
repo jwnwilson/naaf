@@ -26,11 +26,10 @@ def _sys_uow(session_factory):
 def test_fetch_next_returns_item_and_advance_acks(session_factory):
     """fetch_next claims a pending message as Item; advance acks it so second fetch is None."""
     # Arrange
-    s = session_factory()
     msg = _msg()
-    build_message_bus(s).publish(msg)
-    s.commit()
-    s.close()
+    uow_pub = SqlUnitOfWork(session_factory)
+    with uow_pub.transaction():
+        build_message_bus(uow_pub).publish(msg)
 
     src = BusSource()
 
@@ -83,8 +82,7 @@ def test_on_poison_fails_run_acks_message_returns_continue(session_factory):
             )
         )
 
-    # Publish and claim a message so we have an Item
-    s = session_factory()
+    # Publish a message
     msg = AgentMessage(
         owner_id="u1",
         run_id=run.id,
@@ -92,14 +90,14 @@ def test_on_poison_fails_run_acks_message_returns_continue(session_factory):
         role="lead",
         type=MessageType.START,
     )
-    build_message_bus(s).publish(msg)
-    s.commit()
-    s.close()
+    uow_pub = SqlUnitOfWork(session_factory)
+    with uow_pub.transaction():
+        build_message_bus(uow_pub).publish(msg)
 
-    s2 = session_factory()
-    claimed = build_message_bus(s2).claim_next()
-    s2.commit()
-    s2.close()
+    # Claim the message so we have an Item in "claimed" state
+    uow_claim = SqlUnitOfWork(session_factory)
+    with uow_claim.transaction():
+        claimed = build_message_bus(uow_claim).claim_next()
 
     item = Item(message=claimed, owner_id=claimed.owner_id, position=0)
 
@@ -130,11 +128,10 @@ def test_on_poison_fails_run_acks_message_returns_continue(session_factory):
 
 def test_bus_source_only_fetches_configured_roles(session_factory):
     def _publish(role):
-        s = session_factory()
-        build_message_bus(s).publish(AgentMessage(owner_id="u1", run_id="r1",
-            recipient=recipient_key("r1", role), role=role, type=MessageType.START))
-        s.commit()
-        s.close()
+        uow = SqlUnitOfWork(session_factory)
+        with uow.transaction():
+            build_message_bus(uow).publish(AgentMessage(owner_id="u1", run_id="r1",
+                recipient=recipient_key("r1", role), role=role, type=MessageType.START))
 
     _publish("lead")
     _publish("backend")
