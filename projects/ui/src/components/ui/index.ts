@@ -15,3 +15,7 @@ export { Card } from "./Card";
 export { MetricCard } from "./MetricCard";
 export { TypingIndicator } from "./TypingIndicator";
 export { Modal } from "./Modal";
+export { FormField } from "./FormField";
+export { TextInput } from "./TextInput";
+export { Textarea } from "./Textarea";
+export { Select } from "./Select";
