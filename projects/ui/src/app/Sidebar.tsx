@@ -13,6 +13,7 @@ import { useBudget } from "../lib/api/hooks/useBudget";
 import { useDashboard } from "../lib/api/hooks/useDashboard";
 import { useProjects } from "../lib/api/hooks/useProjects";
 import type { Project } from "../lib/api/hooks/useProjects";
+import { useCreateModal } from "../modules/create/useCreateModal";
 
 // ── NavItem ────────────────────────────────────────────────────────────────────
 
@@ -81,6 +82,7 @@ export function Sidebar() {
   const projectsQuery = useProjects();
   const budgetQuery = useBudget();
   const dashboardQuery = useDashboard();
+  const { openCreateProject } = useCreateModal();
 
   const projects = projectsQuery.data?.results ?? [];
   const budget = budgetQuery.data;
@@ -139,8 +141,16 @@ export function Sidebar() {
 
       {/* Projects section */}
       <div className="mt-[14px] flex flex-col gap-[2px] px-[6px]">
-        <div className="px-[7px] pb-[4px] font-mono text-[9.5px] tracking-[0.08em] text-[#20222a]">
-          PROJECTS
+        <div className="flex items-center justify-between px-[7px] pb-[4px]">
+          <span className="font-mono text-[9.5px] tracking-[0.08em] text-[#20222a]">PROJECTS</span>
+          <button
+            type="button"
+            aria-label="New project"
+            onClick={() => openCreateProject()}
+            className="text-[#20222a] hover:text-[#8a8d96] text-[13px] leading-none"
+          >
+            +
+          </button>
         </div>
         {projects.map((project) => (
           <ProjectRow key={project.id} project={project} />

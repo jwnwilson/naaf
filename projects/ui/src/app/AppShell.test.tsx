@@ -17,7 +17,7 @@ describe("AppShell", () => {
     await waitFor(() => expect(screen.getByText(/In Progress/i)).toBeInTheDocument());
     // "Projects" appears in both sidebar nav + topbar title — getAllByText tolerates both
     expect(screen.getAllByText(/Projects/)[0]).toBeInTheDocument();           // sidebar nav
-    expect(screen.getByRole("button", { name: /new/i })).toBeInTheDocument(); // topbar
+    expect(screen.getByRole("button", { name: /^new$/i })).toBeInTheDocument(); // topbar
     expect(screen.getByRole("button", { name: /collapse|chat/i })).toBeInTheDocument(); // chat
   });
 
@@ -42,7 +42,7 @@ describe("AppShell", () => {
     );
     // Wait for the board to render (projects data loaded via MSW)
     await waitFor(() => expect(screen.getByText(/In Progress/i)).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: /new/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^new$/i }));
     expect(await screen.findByRole("dialog")).toHaveTextContent("Create Work Item");
   });
 });
