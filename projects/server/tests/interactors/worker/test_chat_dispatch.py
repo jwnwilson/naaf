@@ -1,20 +1,19 @@
-"""Tests for handle_chat — verifies agent replies are posted and the depth guard terminates chains."""
+"""Tests for handle_chat.
+
+Verifies agent replies are posted and the depth guard terminates chains.
+"""
 
 from dataclasses import dataclass, field
-
-import pytest
 
 from adapters.agent.chat.echo import EchoChatResponder
 from domain.base import new_id, utcnow
 from domain.errors import RecordNotFound
-from domain.messaging.chat import ChatTurn
 from domain.messaging.dispatch import MAX_FANOUT_DEPTH
-from domain.messaging.message import AuthorKind, Message, MessageKind
+from domain.messaging.message import AuthorKind, Message
 from domain.runs.messages import AgentMessage, MessageType, chat_recipient
 from domain.work_item import WorkItem, WorkItemKind, WorkItemStatus
 from interactors.worker import handlers
 from interactors.worker.handlers import HandlerContext
-
 
 OWNER = "dev-user"
 
@@ -163,7 +162,6 @@ def test_chat_fanout_stops_at_max_depth():
         m for m in messages.saved.values()
         if m.author_kind == AuthorKind.AGENT and m.thread_id == wid
     ]
-    assert len(agent_msgs) <= MAX_FANOUT_DEPTH + 1, (
-        f"Expected <= {MAX_FANOUT_DEPTH + 1} agent messages, got {len(agent_msgs)}"
+    assert len(agent_msgs) == MAX_FANOUT_DEPTH, (
+        f"Expected exactly {MAX_FANOUT_DEPTH} agent messages, got {len(agent_msgs)}"
     )
-    assert len(agent_msgs) > 0, "Expected at least one agent reply before guard kicked in"

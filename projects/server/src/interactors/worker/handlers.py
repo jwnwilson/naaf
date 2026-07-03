@@ -471,7 +471,7 @@ def handle_chat(msg: AgentMessage, ctx: HandlerContext) -> None:
     The depth guard in plan_dispatch ensures the fan-out terminates at
     MAX_FANOUT_DEPTH hops so agent->agent chains cannot loop forever.
     """
-    if ctx.chat_responder is None:
+    if ctx.chat_responder is None or ctx.messages is None:
         return
 
     work_item_id: str = msg.payload["work_item_id"]
