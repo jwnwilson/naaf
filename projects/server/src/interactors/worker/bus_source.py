@@ -23,8 +23,11 @@ class BusSource:
                   returning PoisonOutcome.CONTINUE so the engine keeps running.
     """
 
+    def __init__(self, roles: list[str] | None = None) -> None:
+        self._roles = roles or None
+
     def fetch_next(self, uow) -> Item | None:
-        msg = build_message_bus(uow.session).claim_next()
+        msg = build_message_bus(uow.session).claim_next(self._roles)
         if msg is None:
             return None
         return Item(message=msg, owner_id=msg.owner_id, position=0)

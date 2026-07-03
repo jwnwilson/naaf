@@ -126,3 +126,20 @@ def test_on_poison_fails_run_acks_message_returns_continue(session_factory):
     uow = _sys_uow(session_factory)
     with uow.transaction():
         assert src.fetch_next(uow) is None
+
+
+def test_bus_source_only_fetches_configured_roles(session_factory):
+    def _publish(role):
+        s = session_factory()
+        build_message_bus(s).publish(AgentMessage(owner_id="u1", run_id="r1",
+            recipient=recipient_key("r1", role), role=role, type=MessageType.START))
+        s.commit()
+        s.close()
+
+    _publish("lead")
+    _publish("backend")
+    source = BusSource(roles=["backend"])
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
+    with uow.transaction():
+        item = source.fetch_next(uow)
+    assert item is not None and item.message.role == "backend"
