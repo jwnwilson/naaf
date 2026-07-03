@@ -1,7 +1,7 @@
 # Work-Item Thread as the Conversation Substrate (Design)
 
 **Date:** 2026-07-03
-**Status:** Approved (design) — ready for implementation plan
+**Status:** ✅ Shipped — all three phases merged to `main` (Phase 1 #33 · Phase 2 #35 · Phase 3 #36)
 **Phase:** A6 messaging (extends the merged messaging foundation) + pulls forward agent↔agent dispatch
 
 ## Summary
@@ -188,16 +188,24 @@ The DB migration **repurposes** `messages.thread_id` from run_id → work_item_i
 the message store is new (`0007`) and only user posts exist today, this is treated as a
 **reshape with no real data to preserve** (drop/recreate semantics), not a careful backfill.
 
-## Shippable phasing (each a mergeable PR)
+## Shippable phasing (each a mergeable PR) — all shipped ✅
 
-1. **Work-item thread model + API + FE unification** — reshape `Message` (migration),
-   work-item-scoped `/threads`, the shared `<Thread>` component wired into the Detail tab +
-   inbox + sidebar. Humans can post; agents don't reply yet. *Delivers the whole visible
+1. ✅ **Work-item thread model + API + FE unification** (PR #33) — reshaped `Message` (migration
+   `0009`), work-item-scoped `/threads`, the shared `<Thread>` component wired into the Detail tab +
+   inbox + sidebar. Humans can post; agents don't reply yet. *Delivered the whole visible
    redesign.*
-2. **Runs narrate into the thread** — the pipeline emits `text`/`file_write`/`question`
-   messages; run gates render + resolve as questions in the thread/inbox.
-3. **`@mention` dispatch** — chat message → bus (`wi:{id}:{role}`) → role-agent replies into the
-   thread, with the loop guards. *Delivers autonomous agent↔agent chat.*
+2. ✅ **Runs narrate into the thread** (PR #35) — the pipeline emits role-attributed `text`
+   messages + `question` messages; run gates render + resolve as questions in the thread/inbox
+   (new `POST /threads/{id}/messages/{msgId}/answer`, same `GATE_RESOLVED` bus path). *(Structured
+   `file_write` cards stayed deferred — see Out of scope.)*
+3. ✅ **`@mention` dispatch** (PR #36) — a thread post dispatches its `@mentions` (or `@lead`)
+   onto the bus (`wi:{id}:{role}`, `type=CHAT`); the worker's `handle_chat` wakes the role-agent via
+   a `ChatResponder` port (`EchoChatResponder` / `LlmChatResponder`), posts its reply, and
+   re-dispatches the reply's *explicit* mentions — bounded by `MAX_FANOUT_DEPTH` (`plan_fanout`,
+   mentions-only so a mention-less reply never cascades to lead). *Delivered autonomous agent↔agent
+   chat.*
+
+See [docs/project-history.md](../../project-history.md) for the shipped-state summary.
 
 ## Out of scope (deferred)
 
