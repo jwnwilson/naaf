@@ -449,6 +449,24 @@ paths:
                     properties:
                       data: { type: array, items: { $ref: "#/components/schemas/Thread" } }
 
+  /threads/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getThread
+      summary: Get thread detail for a work item
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/ThreadDetail" }
+
   /threads/{id}/messages:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
@@ -729,27 +747,51 @@ components:
 
     Message:
       type: object
-      required: [id, conversationId, role, content, createdAt]
+      required: [id, threadId, authorKind, kind, content, mentions, createdAt]
       properties:
         id: { type: string }
-        conversationId: { type: string }
-        role: { type: string, enum: [user, agent, lead_agent] }
-        agentId: { type: string, nullable: true }
+        threadId: { type: string }
+        authorKind: { type: string, enum: [user, agent] }
+        authorRole: { type: string, nullable: true }
+        model: { type: string, nullable: true }
+        kind: { type: string, enum: [text, file_write, question, event] }
         content: { type: string }
-        attachments:
+        mentions:
           type: array
-          items: { $ref: "#/components/schemas/Attachment" }
+          items: { type: string }
+        payload:
+          type: object
+          additionalProperties: true
           nullable: true
+        runId: { type: string, nullable: true }
         createdAt: { type: string, format: date-time }
 
     Thread:
       type: object
-      required: [id, agentId, createdAt]
+      required: [id, workItemId, title, status, messageCount, participants, createdAt]
       properties:
         id: { type: string }
-        agentId: { type: string }
-        workItemId: { type: string, nullable: true }
+        workItemId: { type: string }
+        title: { type: string }
+        status: { type: string, enum: [open, closed] }
+        lastMessage: { type: string, nullable: true }
+        messageCount: { type: integer }
+        participants:
+          type: array
+          items: { type: string }
         createdAt: { type: string, format: date-time }
+
+    ThreadDetail:
+      allOf:
+        - $ref: "#/components/schemas/Thread"
+        - type: object
+          required: [filesWritten]
+          properties:
+            filesWritten:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
 
     RunStep:
       type: object
