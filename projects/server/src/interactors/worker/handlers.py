@@ -7,11 +7,13 @@ from domain.agent.context import StageContext, WorkItemBrief
 from domain.agent.runtime import AgentEvent, AgentRuntime, StageOutcome, StageResult
 from domain.base import utcnow
 from domain.errors import RecordNotFound
+from domain.messaging.chat import ChatTurn
+from domain.messaging.dispatch import plan_dispatch
 from domain.messaging.message import AuthorKind, Message, MessageKind
 from domain.messaging.question import question_payload, resolve_payload
 from domain.runs.coupling import work_item_status_for
 from domain.runs.events import EventType, RunEvent
-from domain.runs.messages import AgentMessage, MessageType, recipient_key
+from domain.runs.messages import AgentMessage, MessageType, chat_recipient, recipient_key
 from domain.runs.pipeline import Finish, GateStep, Retry, next_step
 from domain.runs.run import Gate, Run, RunStatus, Stage, StageState, StageStatus
 from domain.team import AgentDefinition, AgentRole
@@ -35,6 +37,7 @@ class HandlerContext:
     role_aliases: dict[str, str] | None = field(default=None)
     projects: Any = None
     messages: Any = None  # MessageRepository | None — None in dead-letter cleanup
+    chat_responder: Any = None  # ChatResponder | None — None in dead-letter cleanup
 
 
 _ROLE_MAP = {
@@ -422,7 +425,81 @@ def _report(ctx: HandlerContext, run: Run, result: StageResult) -> None:
 _HANDLERS = {"lead": handle_lead, "engineer": handle_engineer, "qa": handle_qa}
 
 
+def _work_item_title_by_id(ctx: HandlerContext, work_item_id: str) -> str:
+    """Return the work-item title (or its id as fallback) without requiring a Run."""
+    try:
+        wi = ctx.work_items.read(work_item_id)
+        return getattr(wi, "title", "") or work_item_id
+    except RecordNotFound:
+        return work_item_id
+
+
+def _post_agent_message(
+    ctx: HandlerContext, work_item_id: str, role: str, content: str
+) -> None:
+    """Persist a plain TEXT message from a role-agent into the thread (no run)."""
+    if ctx.messages is None:
+        return
+    ctx.messages.create(Message(
+        owner_id="",  # stamped from required_filters on the live path
+        thread_id=work_item_id,
+        author_kind=AuthorKind.AGENT,
+        author_role=role,
+        kind=MessageKind.TEXT,
+        content=content,
+        run_id=None,
+    ))
+
+
+def _publish_chat(
+    ctx: HandlerContext, work_item_id: str, owner_id: str, role: str, depth: int
+) -> None:
+    """Publish a CHAT bus message directed at ``role`` in the given work-item thread."""
+    ctx.bus.publish(AgentMessage(
+        owner_id=owner_id,
+        run_id="",
+        recipient=chat_recipient(work_item_id, role),
+        role=role,
+        type=MessageType.CHAT,
+        payload={"work_item_id": work_item_id, "depth": depth},
+    ))
+
+
+def handle_chat(msg: AgentMessage, ctx: HandlerContext) -> None:
+    """Handle an agent-chat message: respond in the thread and fan out @mentions.
+
+    The depth guard in plan_dispatch ensures the fan-out terminates at
+    MAX_FANOUT_DEPTH hops so agent->agent chains cannot loop forever.
+    """
+    if ctx.chat_responder is None:
+        return
+
+    work_item_id: str = msg.payload["work_item_id"]
+    depth: int = msg.payload.get("depth", 0)
+    role: str = msg.role
+
+    # Build the conversation history for the responder
+    history_rows = ctx.messages.read_multi(
+        filters={"thread_id": work_item_id}, order_by="created_at"
+    ).results
+    history = [
+        ChatTurn(role=(m.author_role or "user"), content=m.content)
+        for m in history_rows
+    ]
+
+    title = _work_item_title_by_id(ctx, work_item_id)
+    reply_text = ctx.chat_responder.respond(role, history, title)
+
+    _post_agent_message(ctx, work_item_id, role, reply_text)
+
+    for target in plan_dispatch(reply_text, depth + 1):
+        _publish_chat(ctx, work_item_id, msg.owner_id, target, depth + 1)
+
+
 def dispatch(msg: AgentMessage, ctx: HandlerContext) -> None:
+    if msg.type is MessageType.CHAT:
+        handle_chat(msg, ctx)
+        return
     handler = _HANDLERS.get(msg.role)
     if handler is None:
         raise ValueError(f"unknown role: {msg.role!r}")
