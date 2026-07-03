@@ -127,6 +127,25 @@ class BusMessageRepository:
         self.session.flush()
 
     def claim_next(self, roles: list[str] | None = None) -> AgentMessage | None:
+        """Atomically claim the oldest pending message for the given roles.
+
+        Concurrency safety has two layers:
+
+        1. ``FOR UPDATE SKIP LOCKED`` (Postgres only — omitted on SQLite) prevents
+           two concurrent workers from claiming the *same row*: the second worker
+           skips any row already locked by the first and moves on to the next
+           eligible candidate.
+
+        2. The one-in-flight-per-recipient invariant is enforced by the
+           ``recipient NOT IN (busy)`` sub-query, which excludes any recipient
+           that already has a ``claimed`` message outstanding.  This invariant
+           relies on the deployment contract that each role is handled by exactly
+           one worker process and that each worker process runs with
+           ``worker_concurrency=1``.  If multiple workers ever need to share a
+           role, the sub-query alone is insufficient (TOCTOU race between the
+           read and the status update); a per-recipient advisory lock
+           (``pg_try_advisory_xact_lock``) would be required as a follow-up.
+        """
         busy = select(BusMessageRow.recipient).where(BusMessageRow.status == "claimed")
         q = select(BusMessageRow).where(
             BusMessageRow.status == "pending", BusMessageRow.recipient.notin_(busy)
