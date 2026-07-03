@@ -1,6 +1,6 @@
 import { PulseDot } from "../../components/ui";
 
-export type DetailTab = "Spec" | "Attachments" | "Activity" | "Agent" | "Subagents";
+export type DetailTab = "Spec" | "Attachments" | "Activity" | "Agent" | "Thread";
 
 
 interface TabBarProps {

@@ -26,6 +26,8 @@ describe("DetailScreen", () => {
       </QueryClientProvider>,
     );
     await waitFor(() => expect(screen.getByRole("button", { name: /^Spec$/i })).toBeInTheDocument());
+    // Thread tab exists (renamed from Subagents)
+    expect(screen.getByRole("button", { name: /^Thread$/i })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /^Agent$/i }));
     // Agent tab body renders (timeline/monitor or an empty-run state)
     expect(screen.getByRole("button", { name: /^Agent$/i })).toBeInTheDocument();
