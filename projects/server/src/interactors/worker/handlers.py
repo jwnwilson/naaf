@@ -490,6 +490,9 @@ def handle_chat(msg: AgentMessage, ctx: HandlerContext) -> None:
     title = _work_item_title_by_id(ctx, work_item_id)
     reply_text = ctx.chat_responder.respond(role, history, title)
 
+    if not reply_text.strip():
+        return
+
     _post_agent_message(ctx, work_item_id, role, reply_text)
 
     for target in plan_dispatch(reply_text, depth + 1):
