@@ -15,9 +15,10 @@ describe("InboxScreen", () => {
         <RouterProvider router={router} />
       </QueryClientProvider>,
     );
-    // seed thread-1: agentId "agent-1" — NotificationItem renders it as title
-    // (getAllByText: ChatPanel sidebar also renders the same agentId)
-    await waitFor(() => expect(screen.getAllByText("agent-1").length).toBeGreaterThan(0));
+    // seed thread-1 title rendered by NotificationItem
+    await waitFor(() =>
+      expect(screen.getAllByText("Implement Docker sandbox container").length).toBeGreaterThan(0),
+    );
   });
 
   it("shows 'No conversations' when threads list is empty", async () => {

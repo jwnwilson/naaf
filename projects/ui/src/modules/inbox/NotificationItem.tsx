@@ -7,11 +7,8 @@ interface NotificationItemProps {
   onSelect: (id: string) => void;
 }
 
-function agentInitials(agentId: string): string {
-  return agentId.replace("agent-", "A").toUpperCase();
-}
-
 export function NotificationItem({ item, selected, onSelect }: NotificationItemProps) {
+  const participant = item.participants[0] ?? "user";
   return (
     <div
       role="button"
@@ -26,10 +23,12 @@ export function NotificationItem({ item, selected, onSelect }: NotificationItemP
       }}
     >
       <div className="flex items-center gap-1.5 mb-1">
-        <Avatar initials={agentInitials(item.agentId)} variant="agent" size={16} />
-        <p className="text-[12.5px] font-medium text-[#e2e3e8]">{item.agentId}</p>
+        <Avatar initials={participant.slice(0, 2).toUpperCase()} variant="agent" size={16} />
+        <p className="text-[12.5px] font-medium text-[#e2e3e8] truncate">{item.title}</p>
       </div>
-      <p className="text-[11px] text-[#52555e] font-mono truncate">{item.workItemId}</p>
+      {item.lastMessage && (
+        <p className="text-[11px] text-[#52555e] truncate">{item.lastMessage}</p>
+      )}
     </div>
   );
 }

@@ -11,8 +11,9 @@ describe("InboxList", () => {
         <InboxList onSelect={() => {}} />
       </QueryClientProvider>,
     );
-    // seed.threads[0]: agentId "agent-1", workItemId "wi-task-3"
-    await waitFor(() => expect(screen.getByText("agent-1")).toBeInTheDocument());
-    expect(screen.getByText("wi-task-3")).toBeInTheDocument();
+    // seed.threads[0]: title "Implement Docker sandbox container"
+    await waitFor(() =>
+      expect(screen.getByText("Implement Docker sandbox container")).toBeInTheDocument(),
+    );
   });
 });
