@@ -397,7 +397,7 @@ const runEvents: RunEventOut[] = [
 
 const threads: Thread[] = [
   {
-    id: "thread-1",
+    id: "wi-task-3",
     workItemId: "wi-task-3",
     title: "Implement Docker sandbox container",
     status: "open",
@@ -407,7 +407,7 @@ const threads: Thread[] = [
     createdAt: "2026-06-29T13:00:00Z",
   },
   {
-    id: "thread-2",
+    id: "wi-task-4",
     workItemId: "wi-task-4",
     title: "Implement network egress proxy",
     status: "open",
@@ -470,7 +470,7 @@ const messages: Message[] = [
     kind: "question",
     content: "Should the allowlist be loaded from environment variables or a config file?",
     mentions: [],
-    payload: { options: ["Environment variables", "Config file", "Both"] },
+    payload: { options: [{ id: "env", label: "Environment variables" }, { id: "config", label: "Config file" }, { id: "both", label: "Both" }] },
     runId: "run-2",
     createdAt: "2026-06-28T16:00:00Z",
   },

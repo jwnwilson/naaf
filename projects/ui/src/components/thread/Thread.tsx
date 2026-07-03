@@ -9,7 +9,6 @@ interface ThreadProps {
   showRail?: boolean;
   /** Documented no-op / tight-padding hint */
   compact?: boolean;
-  header?: ReactNode;
   banner?: ReactNode;
   composerPlaceholder?: string;
 }

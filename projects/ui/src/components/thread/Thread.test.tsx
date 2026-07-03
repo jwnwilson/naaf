@@ -40,12 +40,17 @@ describe("MessageItem", () => {
         message={msg({
           kind: "question",
           content: "Which approach?",
-          payload: { options: ["Option A", "Option B"] },
+          payload: {
+            options: [
+              { id: "a", label: "Option A" },
+              { id: "b", label: "Option B" },
+            ],
+          },
         })}
       />,
     );
-    expect(screen.getByText("Option A")).toBeInTheDocument();
-    expect(screen.getByText("Option B")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Option A" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Option B" })).toBeInTheDocument();
   });
 
   it("model badge appears for agent messages", () => {

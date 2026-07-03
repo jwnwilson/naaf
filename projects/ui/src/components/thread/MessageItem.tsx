@@ -2,7 +2,8 @@ import { Avatar } from "../ui/Avatar";
 import type { Message } from "../../lib/api/hooks";
 
 type FileWritePayload = { path: string; lines?: number };
-type QuestionPayload = { options: string[] };
+type QuestionOption = { id: string; label: string };
+type QuestionPayload = { options: QuestionOption[] };
 
 function isFileWritePayload(p: unknown): p is FileWritePayload {
   return typeof p === "object" && p !== null && "path" in p;
@@ -63,7 +64,7 @@ export function MessageItem({ message }: MessageItemProps) {
           <div className="flex flex-wrap gap-1.5">
             {message.payload.options.map((option) => (
               <button
-                key={option}
+                key={option.id}
                 type="button"
                 className="rounded-[4px] px-2.5 py-1 text-[11px] font-medium"
                 style={{
@@ -72,7 +73,7 @@ export function MessageItem({ message }: MessageItemProps) {
                   color: "#bab7f6",
                 }}
               >
-                {option}
+                {option.label}
               </button>
             ))}
           </div>
