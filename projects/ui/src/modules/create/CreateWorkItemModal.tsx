@@ -29,16 +29,15 @@ interface FormState {
 }
 
 function buildBody(form: FormState): WorkItemCreate {
-  const body: WorkItemCreate = {
+  return {
     type: form.type,
     title: form.title.trim(),
     status: form.status,
     priority: form.priority,
+    ...(form.spec.trim() ? { spec: form.spec.trim() } : {}),
+    ...(form.type !== "epic" && form.epicId ? { epicId: form.epicId } : {}),
+    ...(form.type === "task" && form.featureId ? { featureId: form.featureId } : {}),
   };
-  if (form.spec.trim()) body.spec = form.spec.trim();
-  if (form.type !== "epic" && form.epicId) body.epicId = form.epicId;
-  if (form.type === "task" && form.featureId) body.featureId = form.featureId;
-  return body;
 }
 
 export function CreateWorkItemModal({ projectId, initialStatus, onClose }: Props) {
@@ -63,7 +62,11 @@ export function CreateWorkItemModal({ projectId, initialStatus, onClose }: Props
   }
 
   async function submit(addAnother: boolean) {
-    await mutation.mutateAsync(buildBody(form));
+    try {
+      await mutation.mutateAsync(buildBody(form));
+    } catch {
+      return; // error is surfaced via mutation.isError
+    }
     if (addAnother) {
       setForm((f) => ({ ...f, title: "", spec: "" }));
     } else {
@@ -144,7 +147,7 @@ export function CreateWorkItemModal({ projectId, initialStatus, onClose }: Props
       </FormField>
 
       {mutation.isError && (
-        <p className="text-[10.5px] text-[#e5686b]">{(mutation.error as Error).message}</p>
+        <p className="text-[10.5px] text-[#e5686b]">{mutation.error instanceof Error ? mutation.error.message : String(mutation.error)}</p>
       )}
     </Modal>
   );

@@ -8,7 +8,11 @@ export function CreateProjectModal({ onClose }: { onClose: () => void }) {
   const canSubmit = form.name.trim().length > 0 && !mutation.isPending;
 
   async function submit() {
-    await mutation.mutateAsync({ name: form.name.trim(), repoUrl: form.repoUrl.trim() });
+    try {
+      await mutation.mutateAsync({ name: form.name.trim(), repoUrl: form.repoUrl.trim() });
+    } catch {
+      return; // error is surfaced via mutation.isError
+    }
     onClose();
   }
 
@@ -46,7 +50,7 @@ export function CreateProjectModal({ onClose }: { onClose: () => void }) {
         />
       </FormField>
       {mutation.isError && (
-        <p className="text-[10.5px] text-[#e5686b]">{(mutation.error as Error).message}</p>
+        <p className="text-[10.5px] text-[#e5686b]">{mutation.error instanceof Error ? mutation.error.message : String(mutation.error)}</p>
       )}
     </Modal>
   );
