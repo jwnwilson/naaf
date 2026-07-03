@@ -51,6 +51,7 @@ export const liveHandlers = [
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+    db.addProject(created);
     return HttpResponse.json(
       { success: true, data: created, error: null, meta: null },
       { status: 201 },
@@ -68,6 +69,7 @@ export const liveHandlers = [
       updatedAt: new Date().toISOString(),
       ...body,
     };
+    db.addWorkItem(created as unknown as components["schemas"]["WorkItem"]);
     return HttpResponse.json(
       { success: true, data: created, error: null, meta: null },
       { status: 201 },

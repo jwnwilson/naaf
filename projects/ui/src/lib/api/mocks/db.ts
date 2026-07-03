@@ -70,6 +70,21 @@ export const db = {
 
   // ─── Mutations (immutable pattern: replace the array, never mutate items) ──
 
+  // Append a new project (immutable: replace the array)
+  addProject: (project: Project): Project => {
+    projects = [...projects, project];
+    return project;
+  },
+
+  // Append a new work item and bump its parent project's itemCount
+  addWorkItem: (item: WorkItem): WorkItem => {
+    workItems = [...workItems, item];
+    projects = projects.map((p) =>
+      p.id === item.projectId ? { ...p, itemCount: p.itemCount + 1 } : p,
+    );
+    return item;
+  },
+
   updateWorkItem: (
     id: string,
     patch: Partial<WorkItem>,
