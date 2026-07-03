@@ -32,6 +32,7 @@ class HandlerContext:
     workspace_root: str = ""
     role_aliases: dict[str, str] | None = field(default=None)
     projects: Any = None
+    messages: Any = None  # MessageRepository | None — None in dead-letter cleanup
 
 
 _ROLE_MAP = {
