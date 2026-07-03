@@ -1,7 +1,7 @@
 import pytest
 from adapters.database.orm import Base
 from adapters.database.repositories import BusMessageRepository
-from domain.runs.messages import AgentMessage, MessageStatus, MessageType, recipient_key
+from domain.runs.messages import AgentMessage, MessageType, recipient_key
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -47,7 +47,8 @@ def test_claim_next_is_cross_owner(session):
 
 def test_busy_recipient_excluded(session):
     repo = BusMessageRepository(session)
-    _pub(repo, "lead"); _pub(repo, "lead")  # same recipient run:r1:lead
+    _pub(repo, "lead")  # same recipient run:r1:lead
+    _pub(repo, "lead")
     first = repo.claim_next()
     assert first is not None
     # second message for the same recipient is blocked while the first is claimed
