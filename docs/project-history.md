@@ -17,6 +17,13 @@ produce reviewable PRs; and update persistent memory as they work.
 
 ## Status (2026-07-03)
 
+**Work-item thread (agent chat) — complete.** All three phases of the thread-as-substrate design
+are shipped to `main` (Phase 1 #33 → Phase 2 #35 → Phase 3 #36): the work item is now the unit a
+conversation is scoped to, one shared `<Thread>` renders across the Detail tab / inbox / sidebar,
+runs narrate into the thread with gates as resolvable questions, and `@mention`s dispatch through
+the bus so role-agents reply and coordinate agent↔agent (depth-guarded). Details in the entries
+below; design: [superpowers/specs/2026-07-03-work-item-thread-substrate-design.md](superpowers/specs/2026-07-03-work-item-thread-substrate-design.md).
+
 **A1 control plane — built.** Backend spine: Project + unified WorkItem (epic/feature/task)
 with domain-enforced hierarchy and a status transition machine; owner-scoped
 Repository/UnitOfWork (ported from hexrepo); envelope-aware CrudRouter; nested-create,
