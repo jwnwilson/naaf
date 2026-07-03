@@ -75,6 +75,8 @@ projects/
 ## Dev commands
 
 ```bash
+make dev                   # ⭐ one command: Postgres+Redis + migrate/seed + API (:8000) + worker + UI (:5173, live). Ctrl-C stops all. (needs Docker + a one-time `cd projects/ui && pnpm install`)
+
 uv sync
 docker compose up -d postgres redis
 make db-upgrade            # alembic upgrade head
