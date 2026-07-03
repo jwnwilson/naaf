@@ -9,7 +9,7 @@ export function BoardScreen() {
   const view = params.get("view") === "list" ? "list" : "board";
 
   const { data: projectsData, isLoading } = useProjects();
-  const projectId = routeProjectId ?? projectsData?.results[0]?.id;
+  const projectId = routeProjectId ?? params.get("project") ?? projectsData?.results[0]?.id;
 
   if (isLoading || !projectId) {
     return null;

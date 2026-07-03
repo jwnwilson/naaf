@@ -1,14 +1,20 @@
 import { MemoryRouter } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { createQueryClient } from "../lib/api/queryClient";
+import { CreateModalProvider } from "../modules/create/CreateModalProvider";
 import { Sidebar } from "./Sidebar";
 
 function renderSidebar() {
   render(
     <QueryClientProvider client={createQueryClient()}>
-      <MemoryRouter><Sidebar /></MemoryRouter>
+      <MemoryRouter>
+        <CreateModalProvider>
+          <Sidebar />
+        </CreateModalProvider>
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -28,11 +34,16 @@ describe("Sidebar", () => {
 
   it("shows the green running indicator dot and active-agent count next to Dashboard", async () => {
     renderSidebar();
-    // mock dashboard metrics report activeAgents = 1 (> 0)
     await waitFor(() =>
       expect(screen.getByTestId("dashboard-running-dot")).toBeInTheDocument(),
     );
     const dot = screen.getByTestId("dashboard-running-dot");
     expect(dot.parentElement).toHaveTextContent("1");
+  });
+
+  it("New project button opens Create Project", async () => {
+    renderSidebar();
+    await userEvent.click(screen.getByRole("button", { name: /new project/i }));
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Create Project");
   });
 });
