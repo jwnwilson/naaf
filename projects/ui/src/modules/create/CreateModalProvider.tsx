@@ -22,14 +22,12 @@ export function CreateModalProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const close = () => setState({ kind: "none" });
-
   return (
     <CreateModalContext.Provider value={value}>
       {children}
-      {state.kind === "project" && <CreateProjectModal onClose={close} />}
+      {state.kind === "project" && <CreateProjectModal onClose={value.close} />}
       {state.kind === "work-item" && (
-        <CreateWorkItemModal projectId={state.projectId} initialStatus={state.status} onClose={close} />
+        <CreateWorkItemModal projectId={state.projectId} initialStatus={state.status} onClose={value.close} />
       )}
     </CreateModalContext.Provider>
   );

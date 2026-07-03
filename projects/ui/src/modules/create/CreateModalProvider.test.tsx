@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { server } from "../../lib/api/mocks/server";
 import { CreateModalProvider } from "./CreateModalProvider";
 import { useCreateModal } from "./useCreateModal";
@@ -50,4 +50,10 @@ test("closing the modal removes it", async () => {
   await userEvent.click(screen.getByText("open project"));
   await userEvent.keyboard("{Escape}");
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+test("useCreateModal throws when used outside the provider", () => {
+  const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+  expect(() => render(<Harness />)).toThrow("useCreateModal must be used within CreateModalProvider");
+  spy.mockRestore();
 });
