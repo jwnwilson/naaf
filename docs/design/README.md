@@ -705,8 +705,56 @@ SVG source for all icons is available in the HTML reference file — each icon i
 
 | File | Purpose |
 |------|---------|
-| `NAAF Hi-Fi.dc.html` | **Primary reference** — all 7 screens hi-fi, pannable canvas |
+| `NAAF Hi-Fi.dc.html` | **Primary reference** — all screens hi-fi, pannable canvas |
 | `NAAF Wireframes.dc.html` | Structural reference — earlier iteration, useful for layout intent |
 | `README.md` | This document |
 
 Open the HTML files in any modern browser. Use trackpad/scroll to pan, pinch or scroll+cmd to zoom.
+
+---
+
+## Changelog — Latest Updates
+
+### Canvas layout (final)
+| Frame | Position | Description |
+|-------|----------|-------------|
+| A | Row 1 | Issues list view |
+| B | Row 1 | Board view (primary shell) |
+| D | Row 2 | Work item detail — Spec tab (default) |
+| E | Row 2 | Dashboard |
+| D2 | Row 2 | Work item detail — Agent monitor tab |
+| D3 | Row 2 | Work item detail — Thread tab |
+| G | Row 3 | Inbox |
+| F | Row 4 | Settings — agent config, models, billing |
+| H | Row 5 | Create work item modal (Task / Feature / Epic) |
+| I | Row 6 | User profile dropdown — open & closed states |
+
+### Sidebar
+- Agents nav item removed; agent count moved to Dashboard as green `4 ●` badge
+- User profile (JW avatar) replaces "Lead Agent" in top-left
+
+### Work Item Detail (D / D2 / D3)
+- "Subagents" tab renamed to **Thread**
+- Linear-style type badge + parent chain above title: Task · in · Epic › Feature (all clickable)
+- **Agent tab** (D2): agent header, 6-step timeline, streaming log, token meter
+- **Thread tab** (D3): full scoped conversation — user, Lead Agent, subagents with model badges, @mentions, inline file write cards, right rail with participants + files written
+
+### Inbox (G)
+- Conversation pane now uses thread-style bubbles matching D3
+- Task link banner: status circle + task ID + title + breadcrumb + ↗
+- Quick action buttons (Option A / B) for ACTION NEEDED items
+
+### Create Work Item (H)
+- Modal overlaid on ghosted Board background
+- Three type tabs: Epic / Feature / Task (fields adapt per type)
+- Task fields: Status, Priority, Parent Feature, Parent Epic, Assign Agent, Label, Spec/Description
+- Footer: **Create [type]** · **Create & add another** · Cancel
+
+### Settings (F)
+- Lead Agent card: model selector, token limit, system prompt textarea
+- Subagents table: per-agent model selector, token limit, enable/disable toggle
+- Subnav: General · Agents · Models · Tools · Budgets & Limits · Usage History · GitHub
+
+### User Profile (I)
+- Dropdown from sidebar ▾: Preferences, API Keys, Usage & Billing ($48), Settings, workspace switcher, Log out (red)
+- Two states shown: Open and Closed
