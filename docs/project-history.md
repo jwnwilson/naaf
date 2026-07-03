@@ -17,6 +17,20 @@ produce reviewable PRs; and update persistent memory as they work.
 
 ## Status (2026-07-03)
 
+**Dogfood setup + UI run controls (A+C) — built.** NAAF can now be driven end-to-end on its own
+repo from the UI. **Start run** control on the Detail screen (header + Agent-tab empty-state CTA)
+starts a run via `POST /work-items/{id}/runs` — shown only for **Task/Feature**, disabled (with a
+tooltip) unless the item is startable and has no active run, gated behind a confirm dialog, with
+409s surfaced inline (`useStartRun` hook + `StartRunButton`). The run's opened PR is now
+**first-class**: a nullable `pr_url` column persists on `Run` (migration `0010`), `_capture_pr_url`
+stamps it (preserved through Finish via the post-PR re-read), `RunOut.prUrl` exposes it, and the
+run monitor renders a **View PR** link. A [dogfooding runbook](../dogfooding.md) documents running
+against `https://github.com/jwnwilson/naaf` with `make dev NAAF_AGENT_RUNTIME=claude_code` +
+`naaf_anthropic_api_key`/`GH_TOKEN`, with a validation checklist. Mock mode gained a start-run
+handler + `addRun` and a succeeded seed run with a `prUrl` so the whole flow is demoable offline.
+Second of the **B → A+C → D** sequence. Design:
+[superpowers/specs/2026-07-03-dogfood-run-controls-design.md](superpowers/specs/2026-07-03-dogfood-run-controls-design.md).
+
 **Edit work item (title/priority/spec) — built.** The Detail screen header gained an **Edit**
 button that opens an **Edit Work Item** modal (title · priority · spec), pre-filled from the item
 and reusing the create-modal `Modal`/form primitives + `CreateModalProvider` (new `edit-work-item`

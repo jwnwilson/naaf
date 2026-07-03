@@ -67,6 +67,7 @@ def _run_out(run: Run) -> RunOut:
         endedAt=run.ended_at.isoformat() if run.ended_at else None,
         tokenUsage=run.token_usage,
         cost=round(run.token_usage / 1000 * COST_PER_1K_TOKENS, 4),
+        prUrl=run.pr_url,
     )
 
 

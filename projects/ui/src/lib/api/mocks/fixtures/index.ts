@@ -357,6 +357,29 @@ const runs: RunOut[] = [
     tokenUsage: 2200,
     cost: 0.0066,
   },
+  {
+    id: "run-3",
+    workItemId: "wi-task-5",
+    projectId: "proj-1",
+    autonomyLevel: "supervised",
+    status: "succeeded",
+    currentStage: "learn",
+    stages: [
+      { stage: "plan", status: "passed", role: "lead", startedAt: "2026-06-27T09:00:00Z", endedAt: "2026-06-27T09:05:00Z" },
+      { stage: "implement", status: "passed", role: "engineer", startedAt: "2026-06-27T09:05:00Z", endedAt: "2026-06-27T09:20:00Z" },
+      { stage: "verify", status: "passed", role: "qa", startedAt: "2026-06-27T09:20:00Z", endedAt: "2026-06-27T09:25:00Z" },
+      { stage: "pr", status: "passed", role: "lead", startedAt: "2026-06-27T09:25:00Z", endedAt: "2026-06-27T09:27:00Z" },
+      { stage: "learn", status: "passed", role: "curator", startedAt: "2026-06-27T09:27:00Z", endedAt: "2026-06-27T09:28:00Z" },
+    ],
+    pendingGate: null,
+    createdAt: "2026-06-27T09:00:00Z",
+    updatedAt: "2026-06-27T09:28:00Z",
+    startedAt: "2026-06-27T09:00:00Z",
+    endedAt: "2026-06-27T09:28:00Z",
+    tokenUsage: 18700,
+    cost: 0.0561,
+    prUrl: "https://github.com/jwnwilson/naaf/pull/123",
+  },
 ];
 
 // run events: a log event and a stage_passed event (with tokens payload) for run-1

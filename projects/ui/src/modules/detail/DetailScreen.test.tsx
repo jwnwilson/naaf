@@ -51,4 +51,23 @@ describe("DetailScreen", () => {
     expect(screen.getByRole("dialog")).toHaveTextContent("Edit Work Item");
     expect((screen.getByLabelText(/title/i) as HTMLInputElement).value).toBe(wi.title);
   });
+
+  it("shows a Start run control in the header and empty-state CTA for a startable task", async () => {
+    const task = seed.workItems.find((w) => w.type === "task" && w.status === "todo")!;
+    server.use(
+      http.get("/api/runs", () =>
+        HttpResponse.json({ success: true, error: null, data: [], meta: { total: 0, page_size: 50, page_number: 1 } }),
+      ),
+    );
+    const router = createMemoryRouter(routes, { initialEntries: [`/projects/${task.projectId}/items/${task.id}`] });
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+    await waitFor(() => expect(screen.getByRole("button", { name: /^Start run$/i })).toBeEnabled());
+    await userEvent.click(screen.getByRole("button", { name: /^Agent$/i }));
+    // Agent tab empty state also offers a Start run CTA (two total: header + CTA)
+    expect(screen.getAllByRole("button", { name: /^Start run$/i }).length).toBeGreaterThanOrEqual(2);
+  });
 });

@@ -48,6 +48,17 @@ export function AgentMonitor({ runId }: { runId: string }) {
           {isStreaming && <PulseDot size={6} />}
           <StatusBadge kind={isStreaming ? "running" : "idle"} />
         </div>
+        {run.prUrl && (
+          <a
+            href={run.prUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="ml-2 rounded-[5px] px-2 py-1 text-[10px] text-accent"
+            style={{ background: "rgba(124,108,240,0.18)" }}
+          >
+            View PR ↗
+          </a>
+        )}
         <div className="flex flex-col items-end ml-auto" style={{ gap: 2 }}>
           <span className="font-mono text-[10px] text-text-1">
             {formatTokens(run.tokenUsage)} tok

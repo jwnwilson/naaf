@@ -721,6 +721,7 @@ export interface components {
             endedAt?: string | null;
             tokenUsage: number;
             cost: number;
+            prUrl?: string | null;
         };
         RunEventOut: {
             id: string;

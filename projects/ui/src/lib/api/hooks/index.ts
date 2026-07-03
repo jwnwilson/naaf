@@ -23,6 +23,7 @@ export { useAgentDefinitions } from "./useAgentDefinitions";
 export { useRun } from "./useRun";
 export type { RunOut, RunEventOut } from "./useRun";
 export { useResolveGate } from "./useResolveGate";
+export { useStartRun } from "./useStartRun";
 export type { AgentDefinition } from "./useAgentDefinitions";
 
 export { useThread } from "./useThread";

@@ -64,5 +64,6 @@ class Run(Entity):
     verify_attempts: int = 0
     max_verify_loops: int = 3
     token_usage: int = 0
+    pr_url: str | None = None
     started_at: datetime | None = None
     ended_at: datetime | None = None

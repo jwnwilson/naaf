@@ -90,6 +90,22 @@ def test_capture_pr_url_emits_event_with_url():
     assert "PR opened" in ev.payload["message"]
 
 
+def test_capture_pr_url_persists_url_on_run():
+    """_capture_pr_url stamps run.pr_url so it survives to the finished run (not just an event)."""
+    # Arrange
+    ctx, runs, _bus = _make_ctx()
+    run = Run(owner_id="u", work_item_id="w", project_id="p", autonomy_level="full_auto",
+              status=RunStatus.RUNNING, current_stage=Stage.PR)
+    runs.create(run)
+    result = StageResult(passed=True, summary="Done. https://github.com/acme/app/pull/42")
+
+    # Act
+    _capture_pr_url(ctx, run, result)
+
+    # Assert
+    assert runs.read(run.id).pr_url == "https://github.com/acme/app/pull/42"
+
+
 def test_capture_pr_url_noop_without_url():
     """_capture_pr_url emits no event when the summary contains no GitHub PR URL."""
     # Arrange

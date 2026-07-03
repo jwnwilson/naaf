@@ -193,6 +193,7 @@ class RunOut(BaseModel):
     endedAt: str | None = None
     tokenUsage: int
     cost: float
+    prUrl: str | None = None
 
 
 class RunEventOut(BaseModel):

@@ -30,6 +30,14 @@ def test_start_run_returns_camelcase_run(client):
     assert "owner_id" not in d
 
 
+def test_run_out_exposes_pr_url_field(client):
+    """RunOut carries prUrl (null until the PR stage stamps it)."""
+    _, wid = _project_and_item(client)
+    d = client.post(f"/work-items/{wid}/runs").json()["data"]
+    assert "prUrl" in d
+    assert d["prUrl"] is None
+
+
 def test_start_run_transitions_work_item_to_in_progress(client):
     """Starting a run moves the work item status to in_progress."""
     _, wid = _project_and_item(client)
