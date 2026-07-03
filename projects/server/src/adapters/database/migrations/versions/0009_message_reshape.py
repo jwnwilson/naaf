@@ -35,4 +35,20 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.drop_index("ix_messages_owner_thread", table_name="messages")
     op.drop_table("messages")
+    op.create_table(
+        "messages",
+        sa.Column("thread_id", sa.String(32), nullable=False),
+        sa.Column("role", sa.String(16), nullable=False),
+        sa.Column("agent_id", sa.String(128), nullable=True),
+        sa.Column("content", sa.String(), nullable=False),
+        sa.Column("id", sa.String(32), nullable=False),
+        sa.Column("owner_id", sa.String(64), nullable=False),
+        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index(op.f("ix_messages_owner_id"), "messages", ["owner_id"], unique=False)
+    op.create_index(op.f("ix_messages_thread_id"), "messages", ["thread_id"], unique=False)
+    op.create_index("ix_messages_owner_thread", "messages", ["owner_id", "thread_id"], unique=False)

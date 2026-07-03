@@ -773,7 +773,7 @@ components:
         id: { type: string }
         workItemId: { type: string }
         title: { type: string }
-        status: { type: string, enum: [open, closed] }
+        status: { type: string }
         lastMessage: { type: string, nullable: true }
         messageCount: { type: integer }
         participants:

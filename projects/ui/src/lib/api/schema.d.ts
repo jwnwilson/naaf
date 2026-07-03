@@ -647,8 +647,7 @@ export interface components {
             id: string;
             workItemId: string;
             title: string;
-            /** @enum {string} */
-            status: "open" | "closed";
+            status: string;
             lastMessage?: string | null;
             messageCount: number;
             participants: string[];

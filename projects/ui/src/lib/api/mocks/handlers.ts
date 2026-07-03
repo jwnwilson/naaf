@@ -197,7 +197,15 @@ export const liveHandlers = [
   http.post(`${BASE}/threads/:id/messages`, async ({ params, request }) => {
     const body = (await request.json()) as { content: string };
     const workItemId = params.id as string;
-    const mentions = [...body.content.matchAll(/@([\w-]+)/g)].map((m) => m[1]);
+    const KNOWN_ROLES = ["lead", "architect", "backend", "frontend", "qa", "devops"];
+    const seen = new Set<string>();
+    const mentions = [...body.content.matchAll(/@([\w-]+)/g)]
+      .map((m) => m[1])
+      .filter((r) => {
+        if (!KNOWN_ROLES.includes(r) || seen.has(r)) return false;
+        seen.add(r);
+        return true;
+      });
     const msg: components["schemas"]["Message"] = {
       id: `msg-${Date.now()}`,
       threadId: workItemId,
