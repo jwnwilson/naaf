@@ -25,5 +25,21 @@ services:
   #   environment:
   #     ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
   #     OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  worker:
+    build: .
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      naaf_db_url: postgresql+psycopg://naaf:naaf@postgres:5432/naaf
+      naaf_celery_broker_url: redis://redis:6379/0
+      naaf_agent_runtime: ${naaf_agent_runtime:-fake}
+      naaf_anthropic_api_key: ${naaf_anthropic_api_key:-}
+      naaf_workspace_root: /workspaces
+      naaf_worker_roles: ""  # empty = drain all roles (bus dispatch roles are lead/engineer/qa; architect/backend/etc. are model-selection only)
+      GH_TOKEN: ${GH_TOKEN:-}
+    volumes:
+      - naaf_workspaces:/workspaces
 volumes:
   naaf_pg:
+  naaf_workspaces:

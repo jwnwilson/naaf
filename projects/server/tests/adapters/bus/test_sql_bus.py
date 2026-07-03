@@ -1,5 +1,46 @@
+import pytest
 from adapters.bus.sql import SqlMessageBus
+from adapters.database.orm import Base
 from domain.runs.messages import AgentMessage, MessageStatus, MessageType, recipient_key
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+
+@pytest.fixture
+def bus_session():
+    engine = create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
+    Base.metadata.create_all(engine)
+    with sessionmaker(bind=engine)() as s:
+        yield s
+
+
+def _publish(bus, role):
+    bus.publish(AgentMessage(owner_id="u1", run_id="r1", recipient=recipient_key("r1", role),
+                             role=role, type=MessageType.START))
+
+
+def test_claim_next_filters_by_role(bus_session):
+    bus = SqlMessageBus(bus_session)
+    _publish(bus, "lead")
+    _publish(bus, "backend")
+    claimed = bus.claim_next(["backend"])
+    assert claimed is not None and claimed.role == "backend"
+
+
+def test_claim_next_no_roles_claims_any(bus_session):
+    bus = SqlMessageBus(bus_session)
+    _publish(bus, "lead")
+    claimed = bus.claim_next()
+    assert claimed is not None and claimed.role == "lead"
+
+
+def test_claim_next_returns_none_when_no_matching_role(bus_session):
+    bus = SqlMessageBus(bus_session)
+    _publish(bus, "lead")
+    assert bus.claim_next(["qa"]) is None
 
 
 def _msg(run="r1", role="lead", **kw):

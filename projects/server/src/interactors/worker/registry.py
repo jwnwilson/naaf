@@ -18,6 +18,7 @@ from typing import Any
 from adapters.database.event_log_source import EventLogSource
 from domain.messaging.subscribers.notifications import NotificationSubscriber
 
+from interactors.api.settings import Settings
 from interactors.worker.agent_subscriber import AgentSubscriber
 from interactors.worker.bus_source import BusSource
 
@@ -39,7 +40,7 @@ class Subscription:
 SUBSCRIPTIONS: list[Subscription] = [
     Subscription(
         name="agent-bus",
-        source_factory=BusSource,
+        source_factory=lambda: BusSource(Settings().worker_roles_list or None),
         subscribers=[AgentSubscriber()],
     ),
     Subscription(
