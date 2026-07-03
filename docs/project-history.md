@@ -15,7 +15,7 @@ produce reviewable PRs; and update persistent memory as they work.
 - Architecture & patterns: [architecture.md](architecture.md)
 - ADRs: [adr/](adr/)
 
-## Status (2026-06-30)
+## Status (2026-07-03)
 
 **A1 control plane — built.** Backend spine: Project + unified WorkItem (epic/feature/task)
 with domain-enforced hierarchy and a status transition machine; owner-scoped
@@ -24,6 +24,8 @@ transition, and board APIs; config-only Team + AgentDefinition with a seed; Post
 SQLite in tests; dev auth. See [superpowers/plans/2026-06-29-a1-control-plane.md](superpowers/plans/2026-06-29-a1-control-plane.md).
 
 **A2 UI (mock-data SPA) — built (merged to `main`).** All 7 screens (Dashboard/Inbox/Board/List/Detail/Agent-Monitor/Settings) render from an OpenAPI-typed MSW mock layer; live-API swap deferred (A2-4). See [superpowers/plans/2026-06-29-a2-foundation.md](superpowers/plans/2026-06-29-a2-foundation.md) (+ the other `a2-*` plans).
+
+**Creation modals (board write path) — built (merged to `main`, #32).** The board can now create work — the previously no-op **New** button is wired, plus board column `+` (seeded with that column's status), a board empty-state CTA, and a Sidebar **New project** button. Two modals ship: **Create Project** (name + repo URL) and **Create Work Item** with **Epic/Feature/Task** type tabs whose fields adapt per type (status, priority, parent epic/feature, spec) and a *Create & add another* action. Built on a new hand-rolled `Modal` design-system primitive + form primitives (`FormField`/`TextInput`/`Textarea`/`Select`), a `CreateModalProvider` React context that hosts the active modal, and `useCreateProject`/`useCreateWorkItem` mutation hooks that invalidate the board + work-items + projects queries so the board and sidebar counts refresh. Backend `POST /projects` and `POST /projects/{id}/work-items` (with hierarchy validation) already existed and are `liveHandlers`, so the write path is live-backed end to end; the MSW mock store was updated to persist created rows (and bump project `itemCount`) so mock mode reflects creates too. **Scope note:** Assign-Agent and Label at creation are deferred (the create API doesn't accept them). Design + plan: [superpowers/specs/2026-07-03-creation-modals-design.md](superpowers/specs/2026-07-03-creation-modals-design.md) · [superpowers/plans/2026-07-03-creation-modals.md](superpowers/plans/2026-07-03-creation-modals.md).
 
 **Messaging foundation (A6 first slice) — built.** A conversational `Message` store + run-thread API: `GET /threads` (a thread = a run), `GET /threads/{id}/messages`, and `POST /threads/{id}/messages` (user→agent, **persist-only** — no bus publish yet). The inbox and the sidebar chat now share one live data source; the old `/inbox`/`InboxItem` mock is retired; notifications stay the separate alert channel. **Agents producing chat + the chat→bus bridge are deferred to the A5 runtime.** See [superpowers/plans/2026-07-02-messaging-foundation.md](superpowers/plans/2026-07-02-messaging-foundation.md).
 
