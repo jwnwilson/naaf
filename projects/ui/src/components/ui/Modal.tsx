@@ -11,11 +11,14 @@ export function Modal({ title, onClose, footer, children }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    panelRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
     document.addEventListener("keydown", onKey);
-    panelRef.current?.focus();
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
@@ -30,6 +33,7 @@ export function Modal({ title, onClose, footer, children }: ModalProps) {
       <div
         ref={panelRef}
         role="dialog"
+        aria-modal="true"
         aria-label={title}
         tabIndex={-1}
         className="w-[440px] max-w-[92vw] rounded-[8px] border border-border bg-bg-surface text-text-1 shadow-xl outline-none"

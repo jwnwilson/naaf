@@ -31,3 +31,8 @@ test("closes on the header close button", async () => {
   await userEvent.click(screen.getByRole("button", { name: /close/i }));
   expect(onClose).toHaveBeenCalledOnce();
 });
+
+test("focuses the panel on open", () => {
+  render(<Modal title="T" onClose={() => {}}>b</Modal>);
+  expect(screen.getByRole("dialog")).toHaveFocus();
+});
