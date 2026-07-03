@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { HttpHandler } from "msw";
-import { apiFetch, apiList } from "../client";
+import { apiFetch, apiList, apiPost } from "../client";
 import { mockOnlyHandlers, liveHandlers } from "./handlers";
+
+type ProjectRow = { id: string; itemCount: number };
+type WorkItemRow = { id: string };
 
 // MSW node server is started globally in src/test/setup.ts
 describe("mock handlers", () => {
@@ -60,5 +63,41 @@ describe("handler split", () => {
     const all = [...liveHandlers, ...mockOnlyHandlers].map((h) => String(h.info.path));
     expect(all.some((p) => p.includes("/work-items/:id/run"))).toBe(false);
     expect(all.some((p) => p.endsWith("/runs/:id/stream"))).toBe(false);
+  });
+});
+
+describe("create handlers persist to the mock store", () => {
+  it("persists a created work item so the board list returns it", async () => {
+    const before = await apiList<WorkItemRow>("/work-items", { project: "proj-1" });
+    const created = await apiPost<WorkItemRow>("/projects/proj-1/work-items", {
+      type: "task",
+      title: "Persisted task",
+      status: "todo",
+      priority: "medium",
+    });
+    const after = await apiList<WorkItemRow>("/work-items", { project: "proj-1" });
+    expect(after.results.length).toBe(before.results.length + 1);
+    expect(after.results.some((w) => w.id === created.id)).toBe(true);
+  });
+
+  it("bumps the parent project's itemCount when a work item is created", async () => {
+    const findProj = (rows: ProjectRow[]) => rows.find((p) => p.id === "proj-1")!;
+    const before = findProj((await apiList<ProjectRow>("/projects")).results);
+    await apiPost("/projects/proj-1/work-items", {
+      type: "task",
+      title: "Counts",
+      status: "todo",
+      priority: "medium",
+    });
+    const after = findProj((await apiList<ProjectRow>("/projects")).results);
+    expect(after.itemCount).toBe(before.itemCount + 1);
+  });
+
+  it("persists a created project so the project list returns it", async () => {
+    const before = await apiList<ProjectRow>("/projects");
+    const created = await apiPost<ProjectRow>("/projects", { name: "New proj", repoUrl: "" });
+    const after = await apiList<ProjectRow>("/projects");
+    expect(after.results.length).toBe(before.results.length + 1);
+    expect(after.results.some((p) => p.id === created.id)).toBe(true);
   });
 });

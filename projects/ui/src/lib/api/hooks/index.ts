@@ -28,3 +28,8 @@ export type { AgentDefinition } from "./useAgentDefinitions";
 export { useThreadMessages } from "./useThreadMessages";
 export type { Message } from "./useThreadMessages";
 export { useSendMessage } from "./useSendMessage";
+
+export { useCreateProject } from "./useCreateProject";
+export type { ProjectCreate } from "./useCreateProject";
+export { useCreateWorkItem } from "./useCreateWorkItem";
+export type { WorkItemCreate } from "./useCreateWorkItem";
