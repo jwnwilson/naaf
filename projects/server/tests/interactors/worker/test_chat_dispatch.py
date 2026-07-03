@@ -172,6 +172,35 @@ def test_chat_empty_reply_is_not_posted_or_dispatched():
     assert len(bus.published) == 0, f"Expected 0 bus messages, got {len(bus.published)}"
 
 
+def test_no_mention_reply_does_not_cascade_to_lead():
+    """An agent reply with no @mention must NOT fan out (no default-to-lead cascade).
+
+    Regression: fan-out previously used route_targets (mentions OR default lead),
+    so a mention-less reply like "[backend] ack" re-dispatched to @lead, and lead's
+    reply did the same — cascading to the depth cap. Draining the bus must yield
+    exactly one agent reply (the backend ack) and zero lead messages.
+    """
+    wid = "wi-chat-no-cascade"
+    wi = WorkItem(id=wid, owner_id=OWNER, project_id="p1", kind=WorkItemKind.TASK,
+                  title="No cascade task", status=WorkItemStatus.IN_PROGRESS)
+    # EchoChatResponder() replies "[backend] ack" — no @mention
+    ctx, work_items, messages, bus = _make_ctx(EchoChatResponder())
+    work_items.create(wi)
+
+    bus.published.append(_make_chat_msg(wid, "backend", depth=0))
+    _drain(bus, ctx)
+
+    agent_msgs = [
+        m for m in messages.saved.values()
+        if m.author_kind == AuthorKind.AGENT and m.thread_id == wid
+    ]
+    assert len(agent_msgs) == 1, (
+        f"expected 1 reply, got {len(agent_msgs)}: {[m.author_role for m in agent_msgs]}"
+    )
+    assert agent_msgs[0].author_role == "backend"
+    assert not any(m.author_role == "lead" for m in agent_msgs)
+
+
 def test_chat_fanout_stops_at_max_depth():
     """The depth guard terminates a would-be-infinite echo ping-pong chain."""
     wid = "wi-chat-2"

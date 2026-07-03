@@ -8,7 +8,7 @@ from domain.agent.runtime import AgentEvent, AgentRuntime, StageOutcome, StageRe
 from domain.base import utcnow
 from domain.errors import RecordNotFound
 from domain.messaging.chat import ChatTurn
-from domain.messaging.dispatch import plan_dispatch
+from domain.messaging.dispatch import plan_fanout
 from domain.messaging.message import AuthorKind, Message, MessageKind
 from domain.messaging.question import question_payload, resolve_payload
 from domain.runs.coupling import work_item_status_for
@@ -468,8 +468,9 @@ def _publish_chat(
 def handle_chat(msg: AgentMessage, ctx: HandlerContext) -> None:
     """Handle an agent-chat message: respond in the thread and fan out @mentions.
 
-    The depth guard in plan_dispatch ensures the fan-out terminates at
-    MAX_FANOUT_DEPTH hops so agent->agent chains cannot loop forever.
+    Fan-out uses plan_fanout (EXPLICIT mentions only — an agent reply that
+    mentions no one addresses no one, so it must not default to lead). The depth
+    guard in plan_fanout terminates agent->agent chains at MAX_FANOUT_DEPTH hops.
     """
     if ctx.chat_responder is None or ctx.messages is None:
         return
@@ -495,7 +496,7 @@ def handle_chat(msg: AgentMessage, ctx: HandlerContext) -> None:
 
     _post_agent_message(ctx, work_item_id, role, reply_text)
 
-    for target in plan_dispatch(reply_text, depth + 1):
+    for target in plan_fanout(reply_text, depth + 1):
         _publish_chat(ctx, work_item_id, msg.owner_id, target, depth + 1)
 
 
