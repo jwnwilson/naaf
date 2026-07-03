@@ -11,6 +11,7 @@ class MessageType(StrEnum):
     RUN_STAGE = "run_stage"
     STAGE_REPORT = "stage_report"
     GATE_RESOLVED = "gate_resolved"
+    CHAT = "chat"
 
 
 class MessageStatus(StrEnum):
@@ -21,6 +22,11 @@ class MessageStatus(StrEnum):
 
 def recipient_key(run_id: str, role: str) -> str:
     return f"run:{run_id}:{role}"
+
+
+def chat_recipient(work_item_id: str, role: str) -> str:
+    """Recipient key for a direct chat message to a team role in a work-item thread."""
+    return f"wi:{work_item_id}:{role}"
 
 
 class AgentMessage(BaseModel):

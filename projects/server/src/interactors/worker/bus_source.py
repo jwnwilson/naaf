@@ -79,6 +79,7 @@ class BusSource:
                         messages=None,
                         bus=bus,
                         runtime=None,
+                        chat_responder=None,
                     )
                     try:
                         couple(ctx, run)

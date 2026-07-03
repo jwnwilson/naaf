@@ -17,6 +17,7 @@ def run_subscription(
     name: str,
     session_factory: sessionmaker,
     runtime: AgentRuntime,
+    chat_responder: object | None = None,
     max_items: int = 1000,
 ) -> int:
     """Find subscription *name* in the registry, wire its factories, and drain it.
@@ -89,6 +90,7 @@ def run_subscription(
             projects=ProjectRepository(uow.session, required_filters=scope),
             workspace_root=_s.workspace_root,
             role_aliases=_s.role_model_aliases,
+            chat_responder=chat_responder,
         )
 
     return process_subscription(bound, uow_factory, ctx_factory, max_items=max_items)
