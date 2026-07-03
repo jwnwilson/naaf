@@ -1,4 +1,3 @@
-// src/app/AppShell.tsx  (full replacement)
 import { Outlet, useLocation, useSearchParams } from "react-router-dom";
 import { CreateModalProvider } from "../modules/create/CreateModalProvider";
 import { useCreateModal } from "../modules/create/useCreateModal";
