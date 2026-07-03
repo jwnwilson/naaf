@@ -22,6 +22,7 @@ Local tool for running a **virtual dev team** — role-based AI agents (team lea
 - `main` only advances by merging a reviewed PR — no direct commits, no bundled auto-commits with junk titles.
 - One PR = one focused change: a clear `<type>: <description>` title, a summary, and a test plan. Keep unrelated edits out.
 - Before opening the PR, get `make coverage` (80% gate) and `make lint` green, then `git push -u origin <branch>` and open the PR with `gh pr create`.
+- **Finishing a branch = always push + open a PR.** When work is complete and gates are green, go straight to `git push -u origin <branch>` + `gh pr create` (focused title, summary, test plan). Never merge to `main` locally and never leave the branch unshipped — don't stop to ask which finish action to take. Keep the worktree alive for review iteration.
 
 ## Stack
 
