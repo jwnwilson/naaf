@@ -29,6 +29,22 @@ def iso(dt: datetime | None) -> str:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Attachment
+# ---------------------------------------------------------------------------
+
+
+class AttachmentOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str
+    filename: str
+    contentType: str
+    size: int
+    url: str
+    createdAt: str
+
+
 class WorkItemOut(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 

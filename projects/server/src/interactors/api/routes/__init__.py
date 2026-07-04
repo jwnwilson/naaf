@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from interactors.api.routes.attachments import router as attachments_router
 from interactors.api.routes.notifications import router as notifications_router
 from interactors.api.routes.projects import router as projects_router
 from interactors.api.routes.runs import router as runs_router
@@ -20,3 +21,4 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(run_start_router)
     app.include_router(notifications_router)
     app.include_router(threads_router)
+    app.include_router(attachments_router)
