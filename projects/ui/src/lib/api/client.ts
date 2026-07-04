@@ -66,7 +66,12 @@ export const apiDelete = (path: string) => apiFetch<void>(path, { method: "DELET
 export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { method: "POST", body: form });
   const raw = await res.text().catch(() => "");
-  const body = JSON.parse(raw) as { success: boolean; data: T; error: string | null };
+  let body: { success: boolean; data: T; error: string | null };
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    throw new ApiError(raw || `upload failed (${res.status})`, res.status);
+  }
   if (!res.ok || !body.success) {
     throw new ApiError(body.error ?? `upload failed (${res.status})`, res.status);
   }
