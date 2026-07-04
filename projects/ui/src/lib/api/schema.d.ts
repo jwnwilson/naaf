@@ -662,10 +662,20 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        ThreadParticipant: {
+            /** @enum {string} */
+            kind: "user" | "agent";
+            role: string;
+            name: string;
+            model?: string | null;
+            /** @enum {string|null} */
+            status?: "running" | "idle" | null;
+        };
         ThreadDetail: components["schemas"]["Thread"] & {
             filesWritten: {
                 [key: string]: unknown;
             }[];
+            participantDetails: components["schemas"]["ThreadParticipant"][];
         };
         RunStep: {
             index: number;

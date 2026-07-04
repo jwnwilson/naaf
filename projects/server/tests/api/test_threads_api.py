@@ -66,6 +66,47 @@ def test_thread_detail_returns_files_written(client, session_factory):
     assert body["data"]["filesWritten"] == []
 
 
+def _seed_agent_message(session_factory, wid, role, content, model=None, owner="dev-user"):
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": owner})
+    with uow.transaction():
+        uow.messages.create(Message(
+            owner_id="", thread_id=wid, author_kind=AuthorKind.AGENT,
+            author_role=role, model_alias=model, content=content,
+        ))
+
+
+def test_thread_detail_enriches_participants_with_name_and_model(client, session_factory):
+    wid = _make_item(session_factory)
+    _seed_agent_message(session_factory, wid, "lead", "assigning")
+    _seed_agent_message(session_factory, wid, "backend", "on it", model="claude-opus-4")
+    client.post(f"/threads/{wid}/messages", json={"content": "use option B"})  # user
+
+    data = client.get(f"/threads/{wid}").json()["data"]
+    by_role = {p["role"]: p for p in data["participantDetails"]}
+    assert by_role["lead"]["name"] == "Lead Agent"
+    assert by_role["backend"]["model"] == "claude-opus-4"
+    assert by_role["backend"]["status"] == "idle"  # no active run
+    assert by_role["user"]["kind"] == "user"
+    assert by_role["user"]["model"] is None
+
+
+def test_thread_detail_marks_participant_running_from_active_run_stage(client, session_factory):
+    from domain.runs.run import RunStatus, Stage, StageState, StageStatus
+    wid = _make_item(session_factory, wid="wi_run")
+    _seed_agent_message(session_factory, wid, "backend", "working")
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "dev-user"})
+    with uow.transaction():
+        uow.runs.create(Run(
+            owner_id="", work_item_id=wid, project_id="p1", autonomy_level="gated_all",
+            status=RunStatus.RUNNING,
+            stages=[StageState(stage=Stage.IMPLEMENT, status=StageStatus.RUNNING, role="backend")],
+        ))
+
+    data = client.get(f"/threads/{wid}").json()["data"]
+    backend = next(p for p in data["participantDetails"] if p["role"] == "backend")
+    assert backend["status"] == "running"
+
+
 def _seed_question(session_factory, owner="dev-user"):
     uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": owner})
     with uow.transaction():

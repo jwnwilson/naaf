@@ -793,17 +793,30 @@ components:
           items: { type: string }
         createdAt: { type: string, format: date-time }
 
+    ThreadParticipant:
+      type: object
+      required: [kind, role, name]
+      properties:
+        kind: { type: string, enum: [user, agent] }
+        role: { type: string }
+        name: { type: string }
+        model: { type: string, nullable: true }
+        status: { type: string, enum: [running, idle], nullable: true }
+
     ThreadDetail:
       allOf:
         - $ref: "#/components/schemas/Thread"
         - type: object
-          required: [filesWritten]
+          required: [filesWritten, participantDetails]
           properties:
             filesWritten:
               type: array
               items:
                 type: object
                 additionalProperties: true
+            participantDetails:
+              type: array
+              items: { $ref: "#/components/schemas/ThreadParticipant" }
 
     RunStep:
       type: object

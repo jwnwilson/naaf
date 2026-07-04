@@ -24,6 +24,7 @@ from domain.runs.messages import (
     project_chat_recipient,
     recipient_key,
 )
+from domain.runs.run import RunStatus, StageStatus
 from fastapi import APIRouter, Depends, HTTPException
 
 from interactors.api.auth import get_owner_id
@@ -33,6 +34,7 @@ from interactors.api.contract import (
     MessageOut,
     ThreadDetailOut,
     ThreadOut,
+    ThreadParticipantOut,
     iso,
 )
 from interactors.api.deps import get_bus, get_uow
@@ -110,6 +112,32 @@ def _files_written(messages: list[Message]) -> list[dict]:
     ]
 
 
+def _active_roles(uow: SqlUnitOfWork, work_item_id: str) -> set[str]:
+    """Agent roles with a currently-running stage in an active run for this item."""
+    if not work_item_id:
+        return set()
+    page = uow.runs.read_multi(
+        filters={"work_item_id": work_item_id}, page_size=100, page_number=1
+    )
+    roles: set[str] = set()
+    for run in page.results:
+        if run.status is not RunStatus.RUNNING:
+            continue
+        for stage in run.stages:
+            if stage.status is StageStatus.RUNNING and stage.role:
+                roles.add(stage.role)
+    return roles
+
+
+def _participant_details_out(view: ThreadView) -> list[ThreadParticipantOut]:
+    return [
+        ThreadParticipantOut(
+            kind=p.kind, role=p.role, name=p.name, model=p.model, status=p.status
+        )
+        for p in view.participant_details
+    ]
+
+
 @router.get("", response_model=Envelope[list[ThreadOut]])
 def list_threads(
     page_size: int = 50,
@@ -130,10 +158,15 @@ def list_threads(
 def get_thread(id: str, uow: SqlUnitOfWork = Depends(get_uow)):  # noqa: B008
     messages = _messages_for(uow, id)
     if is_project_thread(id):
-        base = _thread_out(thread_from_project(_read_project_or_404(uow, id), messages))
+        view = thread_from_project(_read_project_or_404(uow, id), messages)
     else:
-        base = _thread_out(thread_from_work_item(_read_item_or_404(uow, id), messages))
-    detail = ThreadDetailOut(**base.model_dump(), filesWritten=_files_written(messages))
+        item = _read_item_or_404(uow, id)
+        view = thread_from_work_item(item, messages, _active_roles(uow, item.id))
+    detail = ThreadDetailOut(
+        **_thread_out(view).model_dump(),
+        filesWritten=_files_written(messages),
+        participantDetails=_participant_details_out(view),
+    )
     return ok(detail)
 
 
