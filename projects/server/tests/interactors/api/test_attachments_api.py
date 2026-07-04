@@ -47,8 +47,7 @@ def test_rejects_disallowed_content_type(client, seeded_work_item_id):
     assert r.status_code == 415
 
 
-def test_rejects_oversize_upload(client, seeded_work_item_id, monkeypatch):
-    from interactors.api import routes  # noqa: F401
+def test_rejects_oversize_upload(client, seeded_work_item_id):
     big = b"x" * (10_485_760 + 1)
     r = _upload(client, seeded_work_item_id, name="big.txt", data=big, ct="text/plain")
     assert r.status_code == 413
@@ -65,3 +64,20 @@ def test_delete_removes_attachment(client, seeded_work_item_id):
 def test_upload_to_other_owners_item_is_404(client_other_owner, seeded_work_item_id):
     r = _upload(client_other_owner, seeded_work_item_id)
     assert r.status_code == 404
+
+
+def test_cannot_access_attachment_via_wrong_work_item(
+    client, seeded_work_item_id, second_work_item_id
+):
+    # Upload to work item A (seeded_work_item_id); both items share one owner.
+    att = _upload(client, seeded_work_item_id).json()["data"]
+
+    # DELETE via work item B's URL must 404 and NOT touch A's row.
+    d = client.delete(f"/work-items/{second_work_item_id}/attachments/{att['id']}")
+    assert d.status_code == 404
+    still = client.get(f"/work-items/{seeded_work_item_id}/attachments").json()["data"]
+    assert [a["id"] for a in still] == [att["id"]]
+
+    # GET download via work item B's URL must 404 too.
+    dl = client.get(f"/work-items/{second_work_item_id}/attachments/{att['id']}")
+    assert dl.status_code == 404

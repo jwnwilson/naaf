@@ -40,6 +40,21 @@ def seeded_work_item_id(client) -> str:
 
 
 @pytest.fixture
+def second_work_item_id(client) -> str:
+    """A second work item under the SAME owner as seeded_work_item_id.
+
+    An epic is used because it is a valid root (a task would need a feature
+    parent); the guard test only needs a distinct owned work item id.
+    """
+    proj = client.post("/projects/", json={"name": "test-project-2"}).json()["data"]
+    pid = proj["id"]
+    epic = client.post(
+        f"/projects/{pid}/work-items", json={"type": "epic", "title": "E2"}
+    ).json()["data"]
+    return epic["id"]
+
+
+@pytest.fixture
 def client_other_owner(session_factory, tmp_path):
     """A TestClient owned by 'other-user' — cannot access dev-user's work items."""
     app = create_app(

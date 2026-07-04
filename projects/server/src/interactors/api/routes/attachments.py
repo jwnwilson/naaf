@@ -102,6 +102,8 @@ def download_attachment(
     wid = work_item_id.hex
     _require_item(uow, wid)
     att = uow.attachments.read(attachment_id.hex)
+    if att.work_item_id != wid:
+        raise HTTPException(status_code=404, detail="attachment not found")
     try:
         data = storage.get_bytes(attachment_key(wid, att.filename))
     except StorageNotFound as err:
@@ -123,6 +125,8 @@ def delete_attachment(
     wid = work_item_id.hex
     _require_item(uow, wid)
     att = uow.attachments.read(attachment_id.hex)
+    if att.work_item_id != wid:
+        raise HTTPException(status_code=404, detail="attachment not found")
     uow.attachments.delete(att.id)
     storage.delete(attachment_key(wid, att.filename))
     return ok({"deleted": att.id})
