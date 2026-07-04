@@ -1,4 +1,5 @@
 from adapters.database.engine import build_engine, build_session_factory
+from adapters.storage.factory import build_storage
 from crud_router import ok
 from fastapi import FastAPI
 from sqlalchemy.orm import sessionmaker
@@ -20,6 +21,7 @@ def create_app(
     app = FastAPI(title="NAAF Control Plane")
     app.state.settings = settings
     app.state.session_factory = session_factory
+    app.state.storage = build_storage(settings)
 
     register_exception_handlers(app)
     register_routers(app)
