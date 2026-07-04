@@ -62,8 +62,10 @@ class S3Storage(Storage):
         try:
             self._client.head_object(Bucket=self._bucket, Key=self._full(key))
             return True
-        except botocore.exceptions.ClientError:
-            return False
+        except botocore.exceptions.ClientError as err:
+            if err.response["Error"]["Code"] in ("404", "NoSuchKey", "NoSuchBucket"):
+                return False
+            raise StorageError(str(err)) from err
 
     def local_path(self, key: str) -> str:
         return f"/tmp/naaf-s3-cache/{self._full(key)}"

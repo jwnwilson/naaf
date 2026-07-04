@@ -32,3 +32,38 @@ def test_get_missing_maps_to_storage_not_found():
     store._client = _FakeClient()
     with pytest.raises(StorageNotFound):
         store.get_bytes("work-item/abc/missing.txt")
+
+
+def test_exists_returns_false_for_404_class_error():
+    import botocore.exceptions
+
+    from storage import S3Storage
+
+    store = S3Storage(bucket="naaf-test", region="eu-west-1")
+
+    class _FakeClient:
+        def head_object(self, **_):
+            raise botocore.exceptions.ClientError(
+                {"Error": {"Code": "404"}}, "HeadObject"
+            )
+
+    store._client = _FakeClient()
+    assert store.exists("work-item/abc/missing.txt") is False
+
+
+def test_exists_reraises_non_404_error_as_storage_error():
+    import botocore.exceptions
+
+    from storage import S3Storage, StorageError
+
+    store = S3Storage(bucket="naaf-test", region="eu-west-1")
+
+    class _FakeClient:
+        def head_object(self, **_):
+            raise botocore.exceptions.ClientError(
+                {"Error": {"Code": "AccessDenied"}}, "HeadObject"
+            )
+
+    store._client = _FakeClient()
+    with pytest.raises(StorageError):
+        store.exists("work-item/abc/denied.txt")
