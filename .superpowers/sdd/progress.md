@@ -17,3 +17,6 @@ Task 1: complete (commits 99bee99..f7ab91f, review clean)
   Minor (defer to final): add explicit test for thread_from_project().project_id == project.id
 Task 2: complete (commits f7ab91f..54dd63f, review clean)
 Task 3: complete (commits 54dd63f..32a2c16, review clean)
+Task 4: complete (commits 32a2c16..34a0142, review clean)
+  Minor (defer to final): handlers.test.ts projectId assertion uses toBeTruthy() — prefer toBe("proj-1")
+Task 5: complete (commits 34a0142..ee839c7, review clean after 1 fix loop: added project-thread test + inline-block truncate)
