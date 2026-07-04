@@ -12,12 +12,12 @@ function RunningChip({ agent }: { agent: Agent }) {
       <div className="flex items-center gap-[6px]">
         <PulseDot size={6} className="shrink-0" />
         <span className="flex-1 truncate text-[11px] font-semibold text-[#c4c5cb]">
-          {agent.name}
+          {agent.role}
         </span>
         <span className="shrink-0 font-mono text-[8.5px] text-[#7c6cf0]">RUN</span>
       </div>
       <div className="truncate text-[10px] text-[#4a4d56]">
-        {agent.currentItemId ?? "—"}
+        {agent.workItemId ?? "—"}
       </div>
       <ProgressBar value={agent.progress ?? 0} height={2} />
     </div>
@@ -36,7 +36,7 @@ function IdleChip({ agent }: { agent: Agent }) {
           style={{ width: 6, height: 6 }}
         />
         <span className="flex-1 truncate text-[11px] text-[#30333c]">
-          {agent.name}
+          {agent.role}
         </span>
         <span className="shrink-0 font-mono text-[8.5px] text-[#22252c]">IDLE</span>
       </div>
@@ -59,9 +59,9 @@ export function LiveAgentsRibbon() {
       </span>
       {agents.map((agent) =>
         agent.status === "running" ? (
-          <RunningChip key={agent.id} agent={agent} />
+          <RunningChip key={agent.role} agent={agent} />
         ) : (
-          <IdleChip key={agent.id} agent={agent} />
+          <IdleChip key={agent.role} agent={agent} />
         ),
       )}
     </div>

@@ -17,6 +17,24 @@ produce reviewable PRs; and update persistent memory as they work.
 
 ## Status (2026-07-04)
 
+**Live agents on the dashboard — built.** The dashboard's "running agents" panel and the
+"ACTIVE AGENTS" metric are now real, replacing the mock. A pure domain aggregator
+(`domain/live_agents.py` `build_live_agents`) joins the enabled `AgentDefinition` roster with
+active runs (`status ∈ {running, awaiting_gate}`) into **one row per team role**, marking a role
+**running** when a run's current stage maps to it (`lead→lead`, `engineer→backend`, `qa→qa`;
+most-recently-started run wins on same-role ties; progress = passed stages / 6; fixed role order;
+architect/frontend/devops stay idle since the pipeline never dispatches them). A new owner-scoped
+**`GET /agents`** endpoint (`AgentOut` contract) serves the rows — read-only aggregation, **no new
+persistence or migration**. On the UI, `useAgents` was reshaped to the role rows and **polls every
+5s** (paused when the tab is hidden, like the board); the dashboard **RunningAgentsPanel**, the board
+**LiveAgentsRibbon**, and the **ACTIVE AGENTS** count all render live; `/agents` moved from MSW
+mock-only to live-backed with reshaped fixtures so mock mode still renders. **Deferred (per spec):**
+global/cross-run SSE (polling chosen), TokenChart + ActivityFeed + the other metric cards stay
+mocked, agent pause/assign actions (no backend action), and a persisted agent-runtime entity (the
+roster + active runs are the source of truth). Design:
+[superpowers/specs/2026-07-04-live-agents-dashboard-design.md](superpowers/specs/2026-07-04-live-agents-dashboard-design.md);
+plan: [superpowers/plans/2026-07-04-live-agents-dashboard.md](superpowers/plans/2026-07-04-live-agents-dashboard.md).
+
 **Thread tab — D3 design parity (agent identity, model & status) — built.** The work-item Detail
 **Thread** tab now surfaces the agent details the hi-fi design (frame **D3**) calls for, closing the
 gap where messages had no author identity and the rail listed raw role strings (`lead`/`backend`).

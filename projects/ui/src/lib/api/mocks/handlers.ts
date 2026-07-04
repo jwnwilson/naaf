@@ -252,6 +252,10 @@ export const liveHandlers = [
     return run ? ok(run) : notFound();
   }),
 
+  // ── Agents ───────────────────────────────────────────────────────────────────
+
+  http.get(`${BASE}/agents`, () => ok(seed.agents)),
+
   // ── Threads ───────────────────────────────────────────────────────────────────
   // Backed by the real backend (A3+). In live mode these pass through to /api.
   // More-specific paths (/messages) must be listed before the bare /:id catch-all.
@@ -367,10 +371,6 @@ export const mockOnlyHandlers = [
     if (!p) return notFound();
     return ok(db.boardFor(params.id as string));
   }),
-
-  // ── Agents ───────────────────────────────────────────────────────────────────
-
-  http.get(`${BASE}/agents`, () => ok(seed.agents)),
 
   // ── Dashboard ─────────────────────────────────────────────────────────────────
 

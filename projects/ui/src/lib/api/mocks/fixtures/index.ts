@@ -1,6 +1,6 @@
 import type { components } from "../../schema";
+import type { Agent } from "../../hooks/useAgents";
 
-type Agent = components["schemas"]["Agent"];
 type Project = components["schemas"]["Project"];
 type WorkItem = components["schemas"]["WorkItem"];
 type Team = components["schemas"]["Team"];
@@ -18,37 +18,34 @@ type Budget = components["schemas"]["Budget"];
 
 const agents: Agent[] = [
   {
-    id: "agent-1",
-    name: "Lead Agent",
-    type: "lead",
-    model: "claude-sonnet-4-6",
+    role: "lead",
+    model: "claude-opus-4-8",
     status: "running",
-    currentItemId: "wi-task-3",
-    progress: 0.65,
+    runId: "run-1",
+    workItemId: "wi-task-3",
+    currentStage: "plan",
+    progress: 0.33,
     tokenUsage: 12400,
-    tokenLimit: 50000,
   },
   {
-    id: "agent-2",
-    name: "Build Agent",
-    type: "sub",
+    role: "backend",
+    model: "claude-sonnet-4-6",
+    status: "idle",
+    runId: null,
+    workItemId: null,
+    currentStage: null,
+    progress: null,
+    tokenUsage: 0,
+  },
+  {
+    role: "qa",
     model: "claude-haiku-4-5",
     status: "idle",
-    currentItemId: null,
+    runId: null,
+    workItemId: null,
+    currentStage: null,
     progress: null,
-    tokenUsage: 3200,
-    tokenLimit: 30000,
-  },
-  {
-    id: "agent-3",
-    name: "QA Agent",
-    type: "sub",
-    model: "claude-haiku-4-5",
-    status: "paused",
-    currentItemId: "wi-task-4",
-    progress: 0.3,
-    tokenUsage: 8100,
-    tokenLimit: 30000,
+    tokenUsage: 0,
   },
 ];
 
@@ -178,7 +175,6 @@ const workItems: WorkItem[] = [
     projectId: "proj-1",
     epicId: "wi-epic-1",
     featureId: "wi-feat-2",
-    assignedAgent: agents[0],
     tokenUsageThisRun: 4800,
     tokenUsageAllRuns: 9600,
     tokenLimit: 20000,
@@ -197,7 +193,6 @@ const workItems: WorkItem[] = [
     projectId: "proj-1",
     epicId: "wi-epic-1",
     featureId: "wi-feat-2",
-    assignedAgent: agents[2],
     tokenUsageThisRun: 2200,
     tokenUsageAllRuns: 7800,
     tokenLimit: 20000,
