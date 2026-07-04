@@ -263,6 +263,11 @@ export const liveHandlers = [
     return ok(msgs, pageMeta(msgs));
   }),
 
+  http.get(`${BASE}/threads/:id`, ({ params }) => {
+    const detail = db.threadDetail(params.id as string);
+    return detail ? ok(detail) : notFound();
+  }),
+
   http.post(`${BASE}/threads/:id/messages/:msgId/answer`, async ({ params, request }) => {
     const body = (await request.json()) as { option: string };
     const msg = db.resolveQuestion(params.msgId as string, body.option);
