@@ -83,3 +83,17 @@ def build_agent_deps(settings, *, anthropic_api_key: str, github_token: str):
 
     runtime = LlmAgentRuntime(adapter, workspace_factory, settings.agent_max_iterations)
     return runtime, LlmChatResponder(adapter), LlmOrchestrator(adapter)
+
+
+def build_global_agent_deps(settings) -> tuple[AgentRuntime | None, object, object]:
+    """Process-global (env-based) agent deps for the worker's fallback path.
+
+    Returns ``(None, None, None)`` when no LLM credentials are configured in the
+    environment (e.g. keys live only in Settings > Secrets). Per-owner injection
+    in ``ctx_factory`` then supplies credentials at run time; the worker must not
+    crash at startup just because the global env key is absent.
+    """
+    try:
+        return build_runtime(settings), build_chat_responder(settings), build_orchestrator(settings)
+    except ValueError:
+        return None, None, None
