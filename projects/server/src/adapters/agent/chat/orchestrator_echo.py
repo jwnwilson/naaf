@@ -9,6 +9,9 @@ from domain.messaging.chat import ChatTurn
 
 
 class EchoOrchestrator:
+    def set_event_sink(self, emit) -> None:
+        pass
+
     def respond(self, history: list[ChatTurn], title: str, tools: OrchestrationTools) -> str:
         last_user = next((t.content for t in reversed(history) if t.role == "user"), "")
         epic_title = last_user.strip() or "New epic"

@@ -8,6 +8,9 @@ class EchoChatResponder:
     def __init__(self, mention: str | None = None):
         self._mention = mention
 
+    def set_event_sink(self, emit) -> None:
+        pass
+
     def respond(self, role: str, history: list[ChatTurn], title: str) -> str:
         text = f"[{role}] ack"
         if self._mention:

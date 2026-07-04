@@ -17,6 +17,11 @@ class LlmChatResponder:
         self._llm = llm
         self._model = model
 
+    def set_event_sink(self, emit) -> None:
+        setter = getattr(self._llm, "set_event_sink", None)
+        if setter is not None:
+            setter(emit)
+
     def respond(self, role: str, history: list[ChatTurn], title: str) -> str:
         request = LLMRequest(
             model=self._model,
