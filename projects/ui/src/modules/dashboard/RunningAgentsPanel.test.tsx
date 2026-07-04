@@ -4,62 +4,31 @@ import { describe, expect, it } from "vitest";
 import { createQueryClient } from "../../lib/api/queryClient";
 import { RunningAgentsPanel } from "./RunningAgentsPanel";
 
-describe("RunningAgentsPanel", () => {
-  it("renders agent rows from the mock", async () => {
-    render(
-      <QueryClientProvider client={createQueryClient()}>
-        <RunningAgentsPanel />
-      </QueryClientProvider>,
-    );
-    await waitFor(() =>
-      expect(screen.getAllByRole("button").length).toBeGreaterThan(0),
-    );
-  });
+function renderPanel() {
+  render(
+    <QueryClientProvider client={createQueryClient()}>
+      <RunningAgentsPanel />
+    </QueryClientProvider>,
+  );
+}
 
+describe("RunningAgentsPanel", () => {
   it("shows the panel header", async () => {
-    render(
-      <QueryClientProvider client={createQueryClient()}>
-        <RunningAgentsPanel />
-      </QueryClientProvider>,
-    );
+    renderPanel();
     await waitFor(() =>
       expect(screen.getByText(/Running Agents/i)).toBeInTheDocument(),
     );
   });
 
-  it("renders a Pause button for running agents", async () => {
-    render(
-      <QueryClientProvider client={createQueryClient()}>
-        <RunningAgentsPanel />
-      </QueryClientProvider>,
-    );
-    // seed has 1 running agent
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /pause/i })).toBeInTheDocument(),
-    );
+  it("renders a running role with its work item and an idle role", async () => {
+    renderPanel();
+    await waitFor(() => expect(screen.getByText("lead")).toBeInTheDocument());
+    expect(screen.getByText("wi-task-3")).toBeInTheDocument(); // running lead's work item
+    expect(screen.getByText("backend")).toBeInTheDocument();   // idle row
   });
 
-  it("renders Assign buttons for non-running agents", async () => {
-    render(
-      <QueryClientProvider client={createQueryClient()}>
-        <RunningAgentsPanel />
-      </QueryClientProvider>,
-    );
-    // seed has 2 non-running agents (idle + paused)
-    await waitFor(() =>
-      expect(screen.getAllByRole("button", { name: /assign/i }).length).toBeGreaterThan(0),
-    );
-  });
-
-  it("shows active agent count in header", async () => {
-    render(
-      <QueryClientProvider client={createQueryClient()}>
-        <RunningAgentsPanel />
-      </QueryClientProvider>,
-    );
-    // seed.agents has 1 running agent
-    await waitFor(() =>
-      expect(screen.getByText(/1 active/i)).toBeInTheDocument(),
-    );
+  it("shows the active (running) count in the header", async () => {
+    renderPanel();
+    await waitFor(() => expect(screen.getByText(/1 active/)).toBeInTheDocument());
   });
 });

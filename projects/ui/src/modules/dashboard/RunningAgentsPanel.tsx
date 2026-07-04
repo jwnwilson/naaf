@@ -1,4 +1,3 @@
-import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { ProgressBar } from "../../components/ui/ProgressBar";
 import { PulseDot } from "../../components/ui/PulseDot";
@@ -15,12 +14,12 @@ function RunningRow({ agent }: { agent: Agent }) {
     <div className="flex items-center gap-3 px-[15px] py-3">
       <PulseDot />
       <div className="flex-1 min-w-0">
-        <div className="text-[11px] font-semibold text-text-2 truncate">
-          {agent.id}
-        </div>
-        {agent.currentItemId && (
+        <div className="text-[11px] font-semibold text-text-2 truncate">{agent.role}</div>
+        {agent.currentStage && (
           <div className="text-[10px] text-text-5 truncate">
-            {agent.currentItemId}
+            <span>{agent.workItemId ?? "—"}</span>
+            <span> · </span>
+            <span>{agent.currentStage}</span>
           </div>
         )}
         {agent.progress != null && (
@@ -29,14 +28,9 @@ function RunningRow({ agent }: { agent: Agent }) {
           </div>
         )}
       </div>
-      {agent.tokenUsage != null && (
-        <span className="font-mono text-[10px] text-text-5 shrink-0">
-          {formatTokens(agent.tokenUsage)}
-        </span>
-      )}
-      <Button variant="tertiary" className="shrink-0 text-[10px] px-2 h-6">
-        Pause
-      </Button>
+      <span className="font-mono text-[10px] text-text-5 shrink-0">
+        {formatTokens(agent.tokenUsage)}
+      </span>
     </div>
   );
 }
@@ -49,11 +43,9 @@ function IdleRow({ agent }: { agent: Agent }) {
         style={{ width: 6, height: 6 }}
       />
       <div className="flex-1 min-w-0">
-        <div className="text-[11px] text-text-5 truncate">{agent.id}</div>
+        <div className="text-[11px] text-text-5 truncate">{agent.role}</div>
       </div>
-      <Button variant="tertiary" className="shrink-0 text-[10px] px-2 h-6">
-        Assign
-      </Button>
+      <span className="font-mono text-[10px] text-text-5 shrink-0">{agent.model}</span>
     </div>
   );
 }
@@ -73,19 +65,15 @@ export function RunningAgentsPanel() {
   return (
     <Card>
       <div className="flex items-center gap-2 px-[15px] pt-[15px] pb-3 border-b border-border">
-        <span className="text-[12.5px] font-semibold text-text-2">
-          Running Agents
-        </span>
-        <span className="text-[11px] text-[#4a8c68]">
-          {runningAgents.length} active
-        </span>
+        <span className="text-[12.5px] font-semibold text-text-2">Running Agents</span>
+        <span className="text-[11px] text-[#4a8c68]">{runningAgents.length} active</span>
       </div>
       <div className="divide-y divide-[rgba(255,255,255,0.05)]">
         {runningAgents.map((agent) => (
-          <RunningRow key={agent.id} agent={agent} />
+          <RunningRow key={agent.role} agent={agent} />
         ))}
         {idleAgents.map((agent) => (
-          <IdleRow key={agent.id} agent={agent} />
+          <IdleRow key={agent.role} agent={agent} />
         ))}
       </div>
     </Card>
