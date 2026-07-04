@@ -66,3 +66,27 @@ def test_argv_includes_permission_mcp_and_workdir_flags():
     assert "--mcp-config" in argv and "/tmp/mcp.json" in argv
     assert "--add-dir" in argv and "/ws" in argv
     assert cap["env"].get("GH_TOKEN") == "ghp_x"
+
+
+def test_default_path_uses_streaming_runner_when_sink_set(monkeypatch):
+    """Regression: streaming branch must select streaming_runner in production (no injected runner).
+    Without the fix, self._runner defaults to _default_runner which doesn't accept emit."""
+    import adapters.agent.claude_cli.adapter as mod
+    called = {}
+
+    def fake_streaming(argv, *, cwd=None, env=None, timeout=None, emit=None):
+        called["argv"] = argv
+        called["emit"] = emit
+        if emit is not None:
+            emit("text_block", {"text": "x"})
+        return {"result": "ok", "is_error": False, "usage": {}}
+
+    monkeypatch.setattr(mod, "streaming_runner", fake_streaming)
+    events = []
+    adapter = ClaudeCliLLMAdapter()  # NO runner injected → production path
+    adapter.set_event_sink(lambda k, p: events.append((k, p)))
+    resp = adapter.complete(_req())
+    assert "stream-json" in called["argv"]
+    assert called["emit"] is not None
+    assert events == [("text_block", {"text": "x"})]
+    assert resp.content == "ok"

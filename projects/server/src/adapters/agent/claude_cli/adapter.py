@@ -65,7 +65,7 @@ class ClaudeCliLLMAdapter:
         self._github_token = github_token
         self._claude_oauth_token = claude_oauth_token
         self._timeout = timeout_s
-        self._runner: Runner = runner or _default_runner
+        self._runner: Runner | None = runner
         self._emit: EventSink | None = None
 
     def set_cwd(self, cwd: str) -> None:
