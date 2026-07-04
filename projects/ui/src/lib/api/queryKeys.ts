@@ -11,4 +11,5 @@ export const queryKeys = {
   run: (id: string) => ["run", id] as const,
   runEvents: (runId: string) => ["run", runId, "events"] as const,
   threadMessages: (workItemId?: string) => ["threads", workItemId ?? "none", "messages"] as const,
+  attachments: (workItemId: string) => ["attachments", workItemId] as const,
 };

@@ -61,3 +61,14 @@ export const apiPost = <T>(path: string, json: unknown) =>
 export const apiPatch = <T>(path: string, json: unknown) =>
   apiFetch<T>(path, { method: "PATCH", body: JSON.stringify(json) });
 export const apiDelete = (path: string) => apiFetch<void>(path, { method: "DELETE" });
+
+// No content-type header: the browser sets the multipart boundary itself.
+export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, { method: "POST", body: form });
+  const raw = await res.text().catch(() => "");
+  const body = JSON.parse(raw) as { success: boolean; data: T; error: string | null };
+  if (!res.ok || !body.success) {
+    throw new ApiError(body.error ?? `upload failed (${res.status})`, res.status);
+  }
+  return body.data;
+}
