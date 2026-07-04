@@ -17,6 +17,24 @@ produce reviewable PRs; and update persistent memory as they work.
 
 ## Status (2026-07-04)
 
+**Thread tab — D3 design parity (agent identity, model & status) — built.** The work-item Detail
+**Thread** tab now surfaces the agent details the hi-fi design (frame **D3**) calls for, closing the
+gap where messages had no author identity and the rail listed raw role strings (`lead`/`backend`).
+Backend: a new **`ThreadParticipant`** projection enriches each distinct sender with a display name
+(role→label map), the **latest model** seen for that role, and **running/idle** status derived from a
+run's currently-running stage roles (`_active_roles` reads `StageState.role`, which the pipeline
+populates at `handlers.py`). It's exposed as **`participantDetails` on `ThreadDetailOut` only** — the
+existing `Thread.participants: string[]` is untouched, so the sidebar chat and inbox are unaffected
+(zero blast radius). OpenAPI + FE `schema.d.ts` regenerated. Frontend: `MessageItem` gained an author
+header (name + timestamp + model badge), lead (violet) vs subagent (muted `subagent` Avatar variant)
+avatars, and `@mention` + inline-code highlighting; `ThreadRail` renders **PARTICIPANTS** (name +
+Running/Idle dot), **THREAD INFO** (messages/started/task), and styled **FILES WRITTEN** cards;
+`Thread` adds day dividers + a typing indicator (gated on an active run, reusing `ui/TypingIndicator`).
+New tested helpers `agentIdentity`/`renderContent`/`groupByDay`; the mock `GET /threads/{id}` now
+returns enriched detail for the offline UI. Verified with unit/API tests (server 90.9% coverage) and a
+headless-browser screenshot of the rendered tab. Reference: `docs/design/NAAF Hi-Fi.dc.html` (D3);
+PR #51.
+
 **Claude Code CLI runtime (subscription-backed agents) — built.** A new
 `naaf_llm_provider=claude_cli` mode runs all agent LLM work through headless Claude Code
 (`claude -p`, authed by the user's **subscription** — no Anthropic API key), fulfilling the
