@@ -106,4 +106,35 @@ describe("ConversationPane", () => {
     });
     expect(link).toHaveAttribute("href", "/projects/proj-1/items/wi-task-3");
   });
+
+  it("links a project-level thread to its board", async () => {
+    server.use(
+      http.get("/api/threads/project:proj-1", () =>
+        HttpResponse.json({
+          success: true,
+          data: {
+            id: "project:proj-1",
+            workItemId: "",
+            projectId: "proj-1",
+            title: "Design review",
+            status: "in_progress",
+            lastMessage: null,
+            messageCount: 0,
+            participants: [],
+            createdAt: "2026-06-29T13:00:00Z",
+            filesWritten: [],
+            participantDetails: [],
+          },
+          error: null,
+          meta: null,
+        }),
+      ),
+      http.get("/api/threads/project:proj-1/messages", () =>
+        HttpResponse.json({ success: true, data: [], error: null, meta: null }),
+      ),
+    );
+    renderPane("project:proj-1");
+    const link = await screen.findByRole("link", { name: /Design review/ });
+    expect(link).toHaveAttribute("href", "/projects?project=proj-1");
+  });
 });

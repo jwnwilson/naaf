@@ -26,7 +26,7 @@ function TaskBanner({ workItemId, projectId, title }: TaskBannerProps) {
       {href ? (
         <Link
           to={href}
-          className="text-[12px] font-medium text-[#c4c5cb] truncate hover:text-[#7c6cf0] hover:underline"
+          className="inline-block max-w-full text-[12px] font-medium text-[#c4c5cb] truncate hover:text-[#7c6cf0] hover:underline"
         >
           {label}
         </Link>
