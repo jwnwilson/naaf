@@ -1,7 +1,17 @@
 from datetime import datetime
 
 from domain.base import new_id, utcnow
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -143,3 +153,11 @@ class MessageRow(_Timestamped, Base):
     mentions: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
     payload: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     run_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
+
+class SecretRow(_Timestamped, Base):
+    __tablename__ = "secrets"
+    __table_args__ = (UniqueConstraint("owner_id", "name", name="uq_secret_owner_name"),)
+    name: Mapped[str] = mapped_column(String(64), nullable=False)
+    value_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
+    hint: Mapped[str] = mapped_column(String(8), default="", nullable=False)

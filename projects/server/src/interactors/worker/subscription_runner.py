@@ -37,6 +37,8 @@ def run_subscription(
     Raises:
         KeyError: if *name* is not found in ``SUBSCRIPTIONS``.
     """
+    from adapters.agent.factory import build_agent_deps
+    from adapters.agent.secrets_resolver import SecretResolver
     from adapters.bus.factory import build_message_bus
     from adapters.database.repositories import (
         MessageRepository,
@@ -44,9 +46,11 @@ def run_subscription(
         ProjectRepository,
         RunEventRepository,
         RunRepository,
+        SecretRepository,
         WorkItemRepository,
     )
     from adapters.database.uow import SqlUnitOfWork
+    from adapters.security.cipher import SecretCipher
 
     from interactors.worker.handlers import HandlerContext
     from interactors.worker.pubsub import process_subscription
@@ -76,10 +80,26 @@ def run_subscription(
     # --- per-item owner-scoped context ---
     from interactors.api.settings import Settings as _Settings
     _s = _Settings()
+    _cipher = SecretCipher(_s.secret_key)
 
     def ctx_factory(uow: SqlUnitOfWork, item: object) -> HandlerContext:
         owner_id: str = item.owner_id  # type: ignore[attr-defined]
         scope = {"owner_id": owner_id}
+
+        # Per-owner secret injection: if this owner has stored secrets, build
+        # owner-specific agent deps (their Anthropic key + GitHub token);
+        # otherwise reuse the process-global deps (env-based).
+        secrets = SecretRepository(uow.session, required_filters=scope)
+        resolver = SecretResolver(secrets, _cipher, _s)
+        if resolver.has_any_stored():
+            _rt, _chat, _orch = build_agent_deps(
+                _s,
+                anthropic_api_key=resolver.anthropic_api_key(),
+                github_token=resolver.github_token(),
+            )
+        else:
+            _rt, _chat, _orch = runtime, chat_responder, lead_orchestrator
+
         return HandlerContext(
             runs=RunRepository(uow.session, required_filters=scope),
             run_events=RunEventRepository(uow.session, required_filters=scope),
@@ -87,12 +107,12 @@ def run_subscription(
             notifications=NotificationRepository(uow.session, required_filters=scope),
             messages=MessageRepository(uow.session, required_filters=scope),
             bus=build_message_bus(uow),
-            runtime=runtime,
+            runtime=_rt,
             projects=ProjectRepository(uow.session, required_filters=scope),
             workspace_root=_s.workspace_root,
             role_aliases=_s.role_model_aliases,
-            chat_responder=chat_responder,
-            lead_orchestrator=lead_orchestrator,
+            chat_responder=_chat,
+            lead_orchestrator=_orch,
         )
 
     return process_subscription(bound, uow_factory, ctx_factory, max_items=max_items)
