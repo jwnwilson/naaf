@@ -121,6 +121,7 @@ export const db = {
     return {
       id: workItemId,
       workItemId,
+      projectId: item.projectId,
       title: item.title,
       status: item.status,
       lastMessage: msgs.length ? msgs[msgs.length - 1].content : null,

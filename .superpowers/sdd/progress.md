@@ -13,3 +13,7 @@ Base: origin/main @ 312f1f7
 - Task 6: gates + PR — pending
 
 ## Log
+Task 1: complete (commits 99bee99..f7ab91f, review clean)
+  Minor (defer to final): add explicit test for thread_from_project().project_id == project.id
+Task 2: complete (commits f7ab91f..54dd63f, review clean)
+Task 3: complete (commits 54dd63f..32a2c16, review clean)

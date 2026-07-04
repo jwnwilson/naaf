@@ -6,6 +6,7 @@ import { ThreadRail } from "./ThreadRail";
 const thread: ThreadDetail = {
   id: "wi-42",
   workItemId: "wi-42",
+  projectId: "proj-1",
   title: "OAuth refresh",
   status: "in_progress",
   lastMessage: null,
