@@ -35,9 +35,13 @@ celery_app.conf.beat_schedule = {
 
 
 @lru_cache(maxsize=1)
-def _deps() -> tuple[sessionmaker, AgentRuntime, object]:
+def _deps() -> tuple[sessionmaker, AgentRuntime, object, object]:
     """Build heavy resources once, on first use."""
-    from adapters.agent.factory import build_chat_responder, build_runtime
+    from adapters.agent.factory import (
+        build_chat_responder,
+        build_orchestrator,
+        build_runtime,
+    )
     from adapters.database.engine import build_engine, build_session_factory
 
     s = Settings()
@@ -45,7 +49,8 @@ def _deps() -> tuple[sessionmaker, AgentRuntime, object]:
     session_factory = build_session_factory(engine)
     runtime: AgentRuntime = build_runtime(s)
     chat_responder = build_chat_responder(s)
-    return session_factory, runtime, chat_responder
+    lead_orchestrator = build_orchestrator(s)
+    return session_factory, runtime, chat_responder, lead_orchestrator
 
 
 @celery_app.task(name="naaf.dispatch_subscriptions")
@@ -62,5 +67,8 @@ def process_subscription_task(name: str) -> int:
     """Drain a single named subscription and return the number of items handled."""
     from interactors.worker.subscription_runner import run_subscription
 
-    session_factory, runtime, chat_responder = _deps()
-    return run_subscription(name, session_factory, runtime, chat_responder=chat_responder)
+    session_factory, runtime, chat_responder, lead_orchestrator = _deps()
+    return run_subscription(
+        name, session_factory, runtime,
+        chat_responder=chat_responder, lead_orchestrator=lead_orchestrator,
+    )

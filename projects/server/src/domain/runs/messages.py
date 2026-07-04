@@ -29,6 +29,11 @@ def chat_recipient(work_item_id: str, role: str) -> str:
     return f"wi:{work_item_id}:{role}"
 
 
+def project_chat_recipient(project_id: str, role: str) -> str:
+    """Recipient key for a chat message to a team role in a project-level thread."""
+    return f"proj:{project_id}:{role}"
+
+
 class AgentMessage(BaseModel):
     id: str = Field(default_factory=new_id)
     owner_id: str

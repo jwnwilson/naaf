@@ -2,6 +2,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+from adapters.agent.orchestration_tools import CtxOrchestrationTools
 from adapters.agent.provision import provision_workspace
 from domain.agent.context import StageContext, WorkItemBrief
 from domain.agent.runtime import AgentEvent, AgentRuntime, StageOutcome, StageResult
@@ -11,6 +12,7 @@ from domain.messaging.chat import ChatTurn
 from domain.messaging.dispatch import plan_fanout
 from domain.messaging.message import AuthorKind, Message, MessageKind
 from domain.messaging.question import question_payload, resolve_payload
+from domain.messaging.thread import is_project_thread, project_id_from_thread
 from domain.runs.coupling import work_item_status_for
 from domain.runs.events import EventType, RunEvent
 from domain.runs.messages import AgentMessage, MessageType, chat_recipient, recipient_key
@@ -38,6 +40,7 @@ class HandlerContext:
     projects: Any = None
     messages: Any = None  # MessageRepository | None — None in dead-letter cleanup
     chat_responder: Any = None  # ChatResponder | None — None in dead-letter cleanup
+    lead_orchestrator: Any = None  # LeadOrchestrator | None — project-thread lead
 
 
 _ROLE_MAP = {
@@ -469,6 +472,29 @@ def _publish_chat(
     ))
 
 
+def _handle_project_chat(ctx, msg, thread_id: str, history: list) -> None:
+    """Project-thread lead: plan work via orchestration tools, post a reply.
+
+    The tools (create/update work items, propose runs) run through the owner-scoped
+    ctx repos + bus, so items and the run proposal appear in the project + thread.
+    """
+    if ctx.lead_orchestrator is None or ctx.projects is None:
+        return
+    project_id = msg.payload.get("project_id") or project_id_from_thread(thread_id)
+    project = ctx.projects.read(project_id)
+    tools = CtxOrchestrationTools(
+        work_items=ctx.work_items,
+        projects=ctx.projects,
+        messages=ctx.messages,
+        bus=ctx.bus,
+        owner_id=msg.owner_id,
+        project_id=project_id,
+    )
+    reply_text = ctx.lead_orchestrator.respond(history, project.name, tools)
+    if reply_text.strip():
+        _post_agent_message(ctx, thread_id, "lead", reply_text)
+
+
 def handle_chat(msg: AgentMessage, ctx: HandlerContext) -> None:
     """Handle an agent-chat message: respond in the thread and fan out @mentions.
 
@@ -476,22 +502,30 @@ def handle_chat(msg: AgentMessage, ctx: HandlerContext) -> None:
     mentions no one addresses no one, so it must not default to lead). The depth
     guard in plan_fanout terminates agent->agent chains at MAX_FANOUT_DEPTH hops.
     """
-    if ctx.chat_responder is None or ctx.messages is None:
+    if ctx.messages is None:
         return
 
-    work_item_id: str = msg.payload["work_item_id"]
+    thread_id: str = msg.payload.get("thread_id") or msg.payload["work_item_id"]
     depth: int = msg.payload.get("depth", 0)
     role: str = msg.role
 
-    # Build the conversation history for the responder
+    # Build the conversation history (shared by both scopes)
     history_rows = ctx.messages.read_multi(
-        filters={"thread_id": work_item_id}, order_by="created_at"
+        filters={"thread_id": thread_id}, order_by="created_at"
     ).results
     history = [
         ChatTurn(role=(m.author_role or "user"), content=m.content)
         for m in history_rows
     ]
 
+    if is_project_thread(thread_id):
+        _handle_project_chat(ctx, msg, thread_id, history)
+        return
+
+    if ctx.chat_responder is None:
+        return
+
+    work_item_id = thread_id
     title = _work_item_title_by_id(ctx, work_item_id)
     reply_text = ctx.chat_responder.respond(role, history, title)
 

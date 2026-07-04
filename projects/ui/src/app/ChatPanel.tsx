@@ -1,9 +1,10 @@
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { ChevronRightIcon } from "../components/ui";
 import { PulseDot } from "../components/ui/PulseDot";
 import { Thread } from "../components/thread";
 import { useThreads } from "../lib/api/hooks";
 import { useLocalStorage } from "../lib/hooks/useLocalStorage";
+import { projectThreadId } from "../lib/threadScope";
 
 // ── Collapsed strip ────────────────────────────────────────────────────────────
 
@@ -31,7 +32,13 @@ export function ChatPanel() {
   const [open, setOpen] = useLocalStorage("naaf.chat.open", true);
   const { data: threads = [] } = useThreads();
   const params = useParams<{ itemId?: string }>();
-  const workItemId = params.itemId ?? threads[0]?.workItemId;
+  const [searchParams] = useSearchParams();
+  const projectId = searchParams.get("project");
+  // Inside a work item → that thread; on a project board → the project lead
+  // thread; otherwise fall back to the first thread.
+  const workItemId =
+    params.itemId ?? (projectId ? projectThreadId(projectId) : threads[0]?.workItemId);
+  const isLeadThread = !params.itemId && Boolean(projectId);
 
   if (!open) {
     return <CollapsedStrip onExpand={() => setOpen(true)} />;
@@ -43,7 +50,9 @@ export function ChatPanel() {
       <div className="flex h-[44px] shrink-0 items-stretch border-b border-[rgba(255,255,255,0.055)]">
         <div className="flex h-full flex-1 items-center gap-1.5 px-3">
           <PulseDot size={6} />
-          <span className="text-[11.5px] font-medium text-[#bab7f6]">Chat</span>
+          <span className="text-[11.5px] font-medium text-[#bab7f6]">
+            {isLeadThread ? "Chat with lead" : "Chat"}
+          </span>
         </div>
         <button
           aria-label="collapse"

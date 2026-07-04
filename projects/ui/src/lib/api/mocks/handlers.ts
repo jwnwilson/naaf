@@ -255,6 +255,41 @@ export const liveHandlers = [
       createdAt: new Date().toISOString(),
     };
     db.addMessage(msg);
+
+    // Project-level "chat with lead": simulate the lead orchestrator creating
+    // work items and proposing a run, so the flow is demoable offline.
+    if (workItemId.startsWith("project:")) {
+      const projectId = workItemId.slice("project:".length);
+      const t = Date.now();
+      const now = () => new Date().toISOString();
+      const epicId = `wi-${t}-e`;
+      const taskId = `wi-${t}-t`;
+      db.addWorkItem({
+        id: epicId, projectId, type: "epic", title: body.content,
+        status: "todo", priority: "medium", createdAt: now(), updatedAt: now(),
+      } as unknown as components["schemas"]["WorkItem"]);
+      db.addWorkItem({
+        id: taskId, projectId, type: "task", title: `Implement: ${body.content}`,
+        epicId, status: "todo", priority: "medium", createdAt: now(), updatedAt: now(),
+      } as unknown as components["schemas"]["WorkItem"]);
+      db.addMessage({
+        id: `msg-${t}-r`, threadId: workItemId, authorKind: "agent", authorRole: "lead",
+        model: null, kind: "text",
+        content: `[lead] Created epic '${body.content}' and a task. Ready to start development.`,
+        mentions: [], payload: null, runId: null, createdAt: now(),
+      });
+      db.addMessage({
+        id: `msg-${t}-q`, threadId: workItemId, authorKind: "agent", authorRole: "lead",
+        model: null, kind: "question", content: "Start development on these items?",
+        mentions: [],
+        payload: {
+          options: [{ id: "approve", label: "Approve" }, { id: "reject", label: "Reject" }],
+          run_proposal: true, work_item_ids: [taskId], resolved_option: null,
+        },
+        runId: null, createdAt: now(),
+      });
+    }
+
     return HttpResponse.json(
       { success: true, data: msg, error: null, meta: null },
       { status: 201 },
