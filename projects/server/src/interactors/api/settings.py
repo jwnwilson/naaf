@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     agent_max_iterations: int = 25
     agent_bash_timeout_s: int = 120
     agent_runtime: str = "claude_code"
+    # llm_provider="claude_cli" runs agents on the Claude subscription via `claude -p`
+    # (no Anthropic key). These configure that path:
+    claude_bin: str = "claude"
+    claude_timeout_s: int = 900
     workspace_root: str = "/tmp/naaf-workspaces"
     attachments_root: str = "~/.naaf"
     storage_backend: str = "local"          # "local" | "s3"

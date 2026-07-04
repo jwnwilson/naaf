@@ -17,6 +17,24 @@ produce reviewable PRs; and update persistent memory as they work.
 
 ## Status (2026-07-04)
 
+**Claude Code CLI runtime (subscription-backed agents) — built.** A new
+`naaf_llm_provider=claude_cli` mode runs all agent LLM work through headless Claude Code
+(`claude -p`, authed by the user's **subscription** — no Anthropic API key), fulfilling the
+roadmap's "A5 Claude Code runtime adapter." It's a **single new `LLMAdapter`**
+(`ClaudeCliLLMAdapter`): `complete()` shells out to `claude -p --output-format json
+--permission-mode bypassPermissions` and captures the JSON into an `LLMResponse` (content + usage)
+— so the **existing** `LlmAgentRuntime`, `LlmChatResponder`, and `LlmOrchestrator` are reused
+unchanged. On run stages (detected by the `report` tool spec) it maps Claude's `VERDICT: PASS|FAIL`
+into a synthesized `report` tool-call so VERIFY semantics hold; the runtime's `workspace_factory`
+points the adapter at each stage's workspace. For the lead-chat to reach naaf's own domain, a
+**naaf MCP server** (`interactors/mcp/`, FastMCP, 10 owner-scoped tools over existing code —
+create/update/list/propose/start/transition + reads) is attached via `--mcp-config`, so Claude Code
+creates the epic→feature→task tree and proposes runs itself. Per-owner deps built in `ctx_factory`
+(MCP scoped by owner via env; project resolved by Claude via `list_projects`); `github_token`
+injected for `gh`; `mcp` + `naaf_claude_bin`/`naaf_claude_timeout_s` added. The API-key adapters
+remain. Design:
+[superpowers/specs/2026-07-04-claude-cli-runtime-design.md](superpowers/specs/2026-07-04-claude-cli-runtime-design.md).
+
 **Work-item file uploads — built.** You can attach text/image files to any work item and agents
 read them during a run. A new app-agnostic **`storage` workspace lib** (`libs/storage/`) provides a
 bytes-oriented `Storage` port with a default **`LocalStorage`** adapter (rooted at `~/.naaf`) and an

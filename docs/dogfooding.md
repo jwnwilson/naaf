@@ -30,6 +30,15 @@ Covers features **A+C** (run controls), **D** (conversational lead), and secrets
 > Experimental dogfood runs open **real PRs** on the repo and spend **real Anthropic tokens**.
 > Close/label PRs as needed, or point the project at a fork to keep the main repo's PR list clean.
 
+### Cost-effective alternative — run on your Claude **subscription** (no API key)
+
+Set `naaf_llm_provider=claude_cli` (add it to `.env`) to run all agent work through headless
+Claude Code (`claude -p`), authed by your Claude Pro/Max **subscription** instead of a metered
+Anthropic API key. You still need Claude Code logged in (`claude` works in your terminal) and a
+**GitHub token** in Settings → Secrets (for `gh`). The lead-chat reaches naaf's own domain through
+an MCP server, so "Chat with lead" creates work items + proposes runs on your subscription too.
+(`bypassPermissions` — Claude Code runs freely in each run's workspace.)
+
 ## 1. Bring the stack up in real-Claude mode
 
 ```bash
