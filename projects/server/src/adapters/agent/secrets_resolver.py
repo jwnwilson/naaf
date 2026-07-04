@@ -38,3 +38,6 @@ class SecretResolver:
 
     def github_token(self) -> str:
         return self._stored("github_token") or os.environ.get("GH_TOKEN", "")
+
+    def claude_oauth_token(self) -> str:
+        return self._stored("claude_oauth_token") or os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", "")

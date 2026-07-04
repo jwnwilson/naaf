@@ -54,6 +54,7 @@ class ClaudeCliLLMAdapter:
         cwd: str | None = None,
         mcp_config_path: str | None = None,
         github_token: str = "",
+        claude_oauth_token: str = "",
         timeout_s: int = 900,
         runner: Runner | None = None,
     ) -> None:
@@ -61,6 +62,7 @@ class ClaudeCliLLMAdapter:
         self._cwd = cwd
         self._mcp = mcp_config_path
         self._github_token = github_token
+        self._claude_oauth_token = claude_oauth_token
         self._timeout = timeout_s
         self._runner: Runner = runner or _default_runner
 
@@ -78,6 +80,10 @@ class ClaudeCliLLMAdapter:
         env.pop("ANTHROPIC_API_KEY", None)  # force subscription auth, not a metered key
         if self._github_token:
             env["GH_TOKEN"] = self._github_token
+        if self._claude_oauth_token:
+            # Headless subscription auth for the container (no keychain); local
+            # `make dev` leaves it unset and uses the keychain.
+            env["CLAUDE_CODE_OAUTH_TOKEN"] = self._claude_oauth_token
         return env
 
     def complete(self, request: LLMRequest) -> LLMResponse:

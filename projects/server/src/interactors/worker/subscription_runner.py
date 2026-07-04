@@ -99,6 +99,7 @@ def run_subscription(
                 _s,
                 anthropic_api_key=resolver.anthropic_api_key(),
                 github_token=resolver.github_token(),
+                claude_oauth_token=resolver.claude_oauth_token(),
                 owner_id=owner_id,
             )
         else:

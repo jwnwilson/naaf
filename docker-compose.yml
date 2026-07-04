@@ -34,7 +34,9 @@ services:
       naaf_db_url: postgresql+psycopg://naaf:naaf@postgres:5432/naaf
       naaf_celery_broker_url: redis://redis:6379/0
       naaf_agent_runtime: ${naaf_agent_runtime:-fake}
+      naaf_llm_provider: ${naaf_llm_provider:-claude}  # claude_cli → run agents on the Claude subscription via `claude -p`
       naaf_anthropic_api_key: ${naaf_anthropic_api_key:-}
+      naaf_secret_key: ${naaf_secret_key:-}  # Fernet key so the worker can decrypt per-owner secrets (claude_oauth_token, GH token)
       naaf_workspace_root: /workspaces
       naaf_attachments_root: /attachments
       naaf_worker_roles: ""  # empty = drain all roles (bus dispatch roles are lead/engineer/qa; architect/backend/etc. are model-selection only)
