@@ -780,10 +780,11 @@ components:
 
     Thread:
       type: object
-      required: [id, workItemId, title, status, messageCount, participants, createdAt]
+      required: [id, workItemId, projectId, title, status, messageCount, participants, createdAt]
       properties:
         id: { type: string }
         workItemId: { type: string }
+        projectId: { type: string }
         title: { type: string }
         status: { type: string }
         lastMessage: { type: string, nullable: true }

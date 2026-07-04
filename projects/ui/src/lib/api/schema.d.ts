@@ -654,6 +654,7 @@ export interface components {
         Thread: {
             id: string;
             workItemId: string;
+            projectId: string;
             title: string;
             status: string;
             lastMessage?: string | null;
