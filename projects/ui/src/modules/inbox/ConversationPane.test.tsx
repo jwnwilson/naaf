@@ -137,4 +137,35 @@ describe("ConversationPane", () => {
     const link = await screen.findByRole("link", { name: /Design review/ });
     expect(link).toHaveAttribute("href", "/projects?project=proj-1");
   });
+
+  it("renders the title as plain text with no link when projectId is missing", async () => {
+    server.use(
+      http.get("/api/threads/wi-orphan", () =>
+        HttpResponse.json({
+          success: true,
+          data: {
+            id: "wi-orphan",
+            workItemId: "wi-orphan",
+            projectId: "",
+            title: "Untethered task",
+            status: "in_progress",
+            lastMessage: null,
+            messageCount: 0,
+            participants: [],
+            createdAt: "2026-06-29T13:00:00Z",
+            filesWritten: [],
+            participantDetails: [],
+          },
+          error: null,
+          meta: null,
+        }),
+      ),
+      http.get("/api/threads/wi-orphan/messages", () =>
+        HttpResponse.json({ success: true, data: [], error: null, meta: null }),
+      ),
+    );
+    renderPane("wi-orphan");
+    expect(await screen.findByText("Untethered task")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).toBeNull();
+  });
 });

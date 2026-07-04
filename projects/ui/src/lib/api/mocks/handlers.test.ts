@@ -37,7 +37,7 @@ describe("mock handlers", () => {
   it("thread detail includes the work item's projectId", async () => {
     const res = await fetch("/api/threads/wi-task-3");
     const body = await res.json();
-    expect(body.data.projectId).toBeTruthy();
+    expect(body.data.projectId).toBe("proj-1");
   });
 });
 
