@@ -1,5 +1,13 @@
 .PHONY: install test coverage lint run db-upgrade db-reset worker dev secret-key
 
+# Load .env (if present) and export it so every child process — the worker,
+# API, alembic, seed launched by `make dev`/`run`/`worker` — inherits it,
+# regardless of the cwd it runs from. Put naaf_secret_key here (see .env.example;
+# generate one with `make secret-key`). Agent credentials still go through the
+# Settings > Secrets UI, not .env.
+-include .env
+export
+
 # Postgres URL shared by the live dev stack (API, worker, alembic, seed).
 # Override, e.g.: make dev NAAF_DB_URL=postgresql+psycopg://user:pass@host:5432/db
 NAAF_DB_URL ?= postgresql+psycopg://naaf:naaf@localhost:5432/naaf
