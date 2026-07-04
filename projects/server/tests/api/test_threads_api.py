@@ -200,7 +200,7 @@ def test_post_message_with_no_mention_dispatches_to_lead(client, session_factory
 
 
 def test_list_threads_carry_project_id(client, session_factory):
-    wid = _make_item(session_factory)
+    _make_item(session_factory)
     body = client.get("/threads").json()
     row = body["data"][0]
     assert row["projectId"] == "p1"
