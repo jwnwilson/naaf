@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 def run_subscription(
     name: str,
     session_factory: sessionmaker,
-    runtime: AgentRuntime,
+    runtime: AgentRuntime | None,
     chat_responder: object | None = None,
     lead_orchestrator: object | None = None,
     max_items: int = 1000,
