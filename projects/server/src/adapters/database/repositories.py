@@ -6,6 +6,7 @@ from domain.project import Project
 from domain.runs.events import RunEvent
 from domain.runs.messages import AgentMessage, MessageStatus, MessageType
 from domain.runs.run import Run
+from domain.secrets.secret import Secret
 from domain.team import AgentDefinition, Team
 from domain.work_item import WorkItem
 from sqlalchemy import func, select
@@ -19,6 +20,7 @@ from adapters.database.orm import (
     ProjectRow,
     RunEventRow,
     RunRow,
+    SecretRow,
     SubscriberCursorRow,
     TeamRow,
     WorkItemRow,
@@ -29,6 +31,11 @@ from adapters.database.repository import SqlRepository
 class ProjectRepository(SqlRepository[Project]):
     orm_model = ProjectRow
     dto = Project
+
+
+class SecretRepository(SqlRepository[Secret]):
+    orm_model = SecretRow
+    dto = Secret
 
 
 class WorkItemRepository(SqlRepository[WorkItem]):

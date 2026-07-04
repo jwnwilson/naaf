@@ -19,6 +19,7 @@ dependencies = [
     "celery>=5.4",
     "redis>=5",
     "anthropic>=0.40",
+    "cryptography>=43",
 ]
 
 [tool.uv.sources]

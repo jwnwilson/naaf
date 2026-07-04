@@ -292,3 +292,29 @@ class AnswerIn(BaseModel):
         if not v.strip():
             raise ValueError("option must not be empty")
         return v
+
+
+# ---------------------------------------------------------------------------
+# Secrets (owner-scoped, write-only)
+# ---------------------------------------------------------------------------
+
+
+class SecretOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    name: str
+    isSet: bool
+    hint: str
+
+
+class SecretSetIn(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    value: str
+
+    @field_validator("value")
+    @classmethod
+    def _non_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("value must not be empty")
+        return v

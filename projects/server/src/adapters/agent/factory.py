@@ -59,3 +59,27 @@ def build_orchestrator(settings):
         return EchoOrchestrator()
     from adapters.agent.chat.orchestrator_llm import LlmOrchestrator
     return LlmOrchestrator(build_llm_adapter(settings))
+
+
+def build_agent_deps(settings, *, anthropic_api_key: str, github_token: str):
+    """Build (runtime, chat_responder, orchestrator) for a specific owner's secrets.
+
+    The Anthropic key overrides the settings value; the GitHub token is injected
+    into the run runtime's workspace env so the agent's git/gh commands use it.
+    Falls through to the offline impls when ``agent_runtime=fake``.
+    """
+    if settings.agent_runtime == "fake":
+        return build_runtime(settings), build_chat_responder(settings), build_orchestrator(settings)
+
+    from adapters.agent.chat.llm import LlmChatResponder
+    from adapters.agent.chat.orchestrator_llm import LlmOrchestrator
+
+    owner_settings = settings.model_copy(update={"anthropic_api_key": anthropic_api_key})
+    adapter = build_llm_adapter(owner_settings)
+    env = {"GH_TOKEN": github_token} if github_token else None
+
+    def workspace_factory(path: str) -> LocalWorkspace:
+        return LocalWorkspace(path, env=env)
+
+    runtime = LlmAgentRuntime(adapter, workspace_factory, settings.agent_max_iterations)
+    return runtime, LlmChatResponder(adapter), LlmOrchestrator(adapter)

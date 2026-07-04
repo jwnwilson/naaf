@@ -592,6 +592,18 @@ paths:
 
 components:
   schemas:
+    SecretOut:
+      type: object
+      required: [name, isSet, hint]
+      properties:
+        name: { type: string }
+        isSet: { type: boolean }
+        hint: { type: string }
+    SecretSetIn:
+      type: object
+      required: [value]
+      properties:
+        value: { type: string }
     Meta:
       type: object
       properties:

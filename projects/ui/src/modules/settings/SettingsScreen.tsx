@@ -2,6 +2,7 @@ import { useLocation } from "react-router-dom";
 import { useAgentDefinitions } from "../../lib/api/hooks/useAgentDefinitions";
 import { SettingsSubnav } from "./SettingsSubnav";
 import { LeadAgentCard } from "./LeadAgentCard";
+import { SecretsPanel } from "./SecretsPanel";
 import { SubagentsTable } from "./SubagentsTable";
 
 export function SettingsScreen() {
@@ -10,6 +11,17 @@ export function SettingsScreen() {
 
   const leadAgent = agents?.find((a) => a.role === "lead") ?? agents?.[0];
   const subAgents = agents?.filter((a) => a !== leadAgent) ?? [];
+
+  if (pathname.endsWith("/secrets")) {
+    return (
+      <div className="flex h-full">
+        <SettingsSubnav active={pathname} />
+        <div className="flex-1 overflow-y-auto p-6">
+          <SecretsPanel />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full">

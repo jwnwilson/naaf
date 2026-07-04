@@ -500,6 +500,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        SecretOut: {
+            name: string;
+            isSet: boolean;
+            hint: string;
+        };
+        SecretSetIn: {
+            value: string;
+        };
         Meta: {
             total?: number;
             page_size?: number;
