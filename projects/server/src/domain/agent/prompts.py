@@ -37,8 +37,18 @@ def system_prompt(ctx: StageContext) -> str:
 def stage_instruction(ctx: StageContext) -> str:
     wi = ctx.work_item
     criteria = "\n".join(f"- {c}" for c in wi.acceptance_criteria) or "- (none given)"
+    attachments_block = ""
+    if wi.attachments:
+        files = "\n".join(f"- {name}" for name in wi.attachments)
+        attachments_block = (
+            "\n\n## Attachments\n"
+            "The following files are available in `.naaf/attachments/` in your workspace. "
+            "Read the ones relevant to the ticket:\n"
+            f"{files}"
+        )
     return (
         f"# Ticket: {wi.title}\n\n{wi.body}\n\n"
-        f"## Acceptance criteria\n{criteria}\n\n"
+        f"## Acceptance criteria\n{criteria}"
+        f"{attachments_block}\n\n"
         f"## Your task ({ctx.stage.value})\n{_STAGE_INSTRUCTIONS[ctx.stage]}"
     )
