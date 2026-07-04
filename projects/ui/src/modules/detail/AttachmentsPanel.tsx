@@ -69,7 +69,7 @@ export function AttachmentsPanel({ workItemId }: { workItemId: string }) {
               </span>
               <button
                 type="button"
-                onClick={() => remove.mutate(a.id)}
+                onClick={() => { if (window.confirm(`Delete ${a.filename}?`)) remove.mutate(a.id); }}
                 className="font-mono text-[10px] text-[#e06c75]"
               >
                 delete

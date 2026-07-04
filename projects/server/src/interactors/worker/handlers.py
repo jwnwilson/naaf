@@ -76,12 +76,15 @@ _ROLE_MAP = {
 def build_stage_context(ctx: HandlerContext, run: Run, role: str, stage: Stage) -> StageContext:
     try:
         wi = ctx.work_items.read(run.work_item_id)
-        names = []
+        names: list[str] = []
         if ctx.storage is not None:
-            names = [
-                k.rsplit("/", 1)[-1]
-                for k in ctx.storage.list(attachment_prefix(run.work_item_id))
-            ]
+            try:
+                names = [
+                    k.rsplit("/", 1)[-1]
+                    for k in ctx.storage.list(attachment_prefix(run.work_item_id))
+                ]
+            except Exception:  # storage failure must not fail the stage
+                names = []
         brief = WorkItemBrief(
             title=getattr(wi, "title", ""),
             body=getattr(wi, "body", ""),

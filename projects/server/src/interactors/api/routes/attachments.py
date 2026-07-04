@@ -1,3 +1,4 @@
+from urllib.parse import quote
 from uuid import UUID
 
 from adapters.database.uow import SqlUnitOfWork
@@ -108,10 +109,11 @@ def download_attachment(
         data = storage.get_bytes(attachment_key(wid, att.filename))
     except StorageNotFound as err:
         raise HTTPException(status_code=404, detail="file bytes missing") from err
+    filename_star = quote(att.filename)
     return StreamingResponse(
         iter([data]),
         media_type=att.content_type,
-        headers={"Content-Disposition": f'inline; filename="{att.filename}"'},
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{filename_star}"},
     )
 
 

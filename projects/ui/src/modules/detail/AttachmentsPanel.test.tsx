@@ -30,6 +30,49 @@ describe("AttachmentsPanel", () => {
     await waitFor(() => expect(screen.getByText("notes.md")).toBeInTheDocument());
   });
 
+  it("does NOT delete when the user cancels the confirm dialog", async () => {
+    const deleteSpy = vi.fn();
+    server.use(
+      http.get("/api/work-items/wi1/attachments", () =>
+        HttpResponse.json({ success: true, data: [att("notes.md")], error: null }),
+      ),
+      http.delete("/api/work-items/wi1/attachments/:id", () => {
+        deleteSpy();
+        return HttpResponse.json({ success: true, data: { deleted: "id-notes.md" }, error: null });
+      }),
+    );
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<AttachmentsPanel workItemId="wi1" />, { wrapper });
+    await waitFor(() => expect(screen.getByText("notes.md")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: /delete/i }));
+
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining("notes.md"));
+    expect(deleteSpy).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+
+  it("deletes when the user confirms the dialog", async () => {
+    const deleteSpy = vi.fn();
+    server.use(
+      http.get("/api/work-items/wi1/attachments", () =>
+        HttpResponse.json({ success: true, data: [att("notes.md")], error: null }),
+      ),
+      http.delete("/api/work-items/wi1/attachments/:id", () => {
+        deleteSpy();
+        return HttpResponse.json({ success: true, data: { deleted: "id-notes.md" }, error: null });
+      }),
+    );
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<AttachmentsPanel workItemId="wi1" />, { wrapper });
+    await waitFor(() => expect(screen.getByText("notes.md")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: /delete/i }));
+
+    await waitFor(() => expect(deleteSpy).toHaveBeenCalledTimes(1));
+    confirmSpy.mockRestore();
+  });
+
   it("warns before overwriting and does NOT upload when the user declines", async () => {
     const uploadSpy = vi.fn();
     server.use(

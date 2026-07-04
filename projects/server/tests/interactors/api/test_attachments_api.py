@@ -81,3 +81,27 @@ def test_cannot_access_attachment_via_wrong_work_item(
     # GET download via work item B's URL must 404 too.
     dl = client.get(f"/work-items/{second_work_item_id}/attachments/{att['id']}")
     assert dl.status_code == 404
+
+
+def test_download_forces_attachment_disposition(client, seeded_work_item_id):
+    """Download response must use 'attachment' disposition, never 'inline'.
+
+    Serving SVG inline at the app origin allows stored-XSS via embedded <script>.
+    """
+    att = _upload(client, seeded_work_item_id).json()["data"]
+    dl = client.get(f"/work-items/{seeded_work_item_id}/attachments/{att['id']}")
+    assert dl.status_code == 200
+    assert dl.headers["content-disposition"].startswith("attachment")
+
+
+def test_download_encodes_special_chars_in_filename(client, seeded_work_item_id):
+    """Filename with spaces/quotes must be percent-encoded (RFC 6266 filename*=UTF-8'')."""
+    att = _upload(
+        client, seeded_work_item_id, name='my notes "v2".md', data=b"x", ct="text/markdown"
+    ).json()["data"]
+    dl = client.get(f"/work-items/{seeded_work_item_id}/attachments/{att['id']}")
+    assert dl.status_code == 200
+    cd = dl.headers["content-disposition"]
+    # Must not contain a raw double-quote (would break the header)
+    assert '"' not in cd
+    assert "attachment" in cd
