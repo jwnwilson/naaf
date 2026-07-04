@@ -15,9 +15,11 @@ Covers features **A+C** (run controls), **D** (conversational lead), and secrets
 
 - **Docker** running (Postgres + Redis).
 - One-time UI deps: `cd projects/ui && pnpm install`.
-- **`naaf_secret_key`** — a Fernet key for encrypting stored secrets. Generate one:
+- **`naaf_secret_key`** — a Fernet key for encrypting stored secrets. Put it in a git-ignored
+  `.env` at the repo root (`make dev`/`run`/`worker` load + export it automatically):
   ```bash
-  make secret-key            # prints a fresh key, e.g. 041fL8iRCx…O80=
+  cp .env.example .env
+  echo "naaf_secret_key=$(make -s secret-key)" >> .env   # generate + write in one step
   ```
   Keep it stable across restarts — losing it makes previously stored secrets undecryptable (you'd
   just re-enter them in the UI).
@@ -31,7 +33,7 @@ Covers features **A+C** (run controls), **D** (conversational lead), and secrets
 ## 1. Bring the stack up in real-Claude mode
 
 ```bash
-export naaf_secret_key="$(make -s secret-key)"      # generate + export in one step
+# naaf_secret_key comes from .env (see Prerequisites); the Makefile loads + exports it.
 make dev NAAF_AGENT_RUNTIME=claude_code
 ```
 
@@ -93,7 +95,7 @@ your stored GitHub token for `git`/`gh`.
 
 | Symptom | Cause / fix |
 |---------|-------------|
-| Saving a secret returns a 500 | `naaf_secret_key` not set — generate with `make secret-key` and export it before starting the API. |
+| Saving a secret returns a 500 | `naaf_secret_key` not set — add it to `.env` (`make secret-key`) and restart `make dev`. |
 | Run fails at PLAN with a key error | No Anthropic key stored (Settings → Secrets) and none in env. |
 | PR stage fails, no **View PR** | GitHub token missing or lacking push/PR scope on the repo. |
 | **Start run** disabled | Item isn't a Task/Feature, isn't in To Do/In Review, or a run is already active (see tooltip). |
