@@ -47,6 +47,7 @@ def _thread_out(view: ThreadView) -> ThreadOut:
     return ThreadOut(
         id=view.id,
         workItemId=view.work_item_id,
+        projectId=view.project_id,
         title=view.title,
         status=view.status,
         lastMessage=view.last_message,

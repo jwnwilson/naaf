@@ -197,3 +197,16 @@ def test_post_message_with_no_mention_dispatches_to_lead(client, session_factory
     with session_factory() as s:
         chat = [r for r in s.query(BusMessageRow).all() if r.type == "chat"]
     assert [r.role for r in chat] == ["lead"]
+
+
+def test_list_threads_carry_project_id(client, session_factory):
+    wid = _make_item(session_factory)
+    body = client.get("/threads").json()
+    row = body["data"][0]
+    assert row["projectId"] == "p1"
+
+
+def test_thread_detail_carries_project_id(client, session_factory):
+    wid = _make_item(session_factory)
+    body = client.get(f"/threads/{wid}").json()
+    assert body["data"]["projectId"] == "p1"
