@@ -17,6 +17,13 @@ produce reviewable PRs; and update persistent memory as they work.
 
 ## Status (2026-07-04)
 
+**Live board refresh — built.** The board now **polls while mounted** (`useBoard` gained a
+`refetchInterval`, `BOARD_POLL_MS=5000`; paused when the tab is hidden), so work items the agents
+create/move server-side — the conversational lead's new epics/tasks and run-driven status changes —
+appear **without any user interaction**. Complements D's on-send/answer board invalidation (which
+only covered synchronous/mock creates). A board SSE stream would be lower-latency but is deferred —
+polling is the right cost/complexity trade for a local single-user tool.
+
 **Conversational lead (D) — built.** You can now plan a project by chatting with a **lead agent**
 in a new **project-level thread** (`project:<id>` — a namespaced thread id, no schema change). The
 lead has a **tool surface**: a `LeadOrchestrator` (LLM-backed `LlmOrchestrator`, or the
