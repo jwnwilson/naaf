@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiPost } from "../client";
 import { queryKeys } from "../queryKeys";
+import { invalidateBoardForThread } from "./invalidateBoard";
 import type { Message } from "./useThreadMessages";
 
 type SendVars = { content: string };
@@ -41,6 +42,8 @@ export function useSendMessage(workItemId: string) {
       void qc.invalidateQueries({ queryKey: key });
       void qc.invalidateQueries({ queryKey: queryKeys.thread(workItemId) });
       void qc.invalidateQueries({ queryKey: queryKeys.threads() });
+      // Lead (project) thread: created work items should appear on the board.
+      invalidateBoardForThread(qc, workItemId);
     },
   });
 }

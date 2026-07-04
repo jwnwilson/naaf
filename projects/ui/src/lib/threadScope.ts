@@ -7,3 +7,6 @@ export const projectThreadId = (projectId: string): string =>
 
 export const isProjectThread = (threadId: string): boolean =>
   threadId.startsWith(PROJECT_THREAD_PREFIX);
+
+export const projectIdFromThread = (threadId: string): string =>
+  threadId.slice(PROJECT_THREAD_PREFIX.length);
