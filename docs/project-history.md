@@ -17,6 +17,26 @@ produce reviewable PRs; and update persistent memory as they work.
 
 ## Status (2026-07-04)
 
+**Work-item file uploads — built.** You can attach text/image files to any work item and agents
+read them during a run. A new app-agnostic **`storage` workspace lib** (`libs/storage/`) provides a
+bytes-oriented `Storage` port with a default **`LocalStorage`** adapter (rooted at `~/.naaf`) and an
+**`S3Storage`** adapter (lazy `boto3`, `s3` extra — shipped as code, not the active backend). Keys
+follow one convention everywhere — `work-item/<uuid>/<filename>` — identical for local disk and S3,
+so cloud drops in later without touching callers. Server side: an **`attachments`** table (entity +
+owner-scoped repository + migration `0011`) holds metadata while bytes live in storage; **multipart
+`POST`/`GET`/`DELETE /work-items/{id}/attachments`** endpoints (envelope + owner-scoped, load the
+work item first) validate size (413, 10 MB cap), content-type allowlist (415), and duplicate
+filename (409 unless `overwrite=true`); downloads force `Content-Disposition: attachment` with an
+RFC-6266-encoded filename (no in-origin SVG render). `WorkItemOut.attachments` is now populated.
+Agent access: at **provision** the worker materializes a work item's attachments into
+`<workspace>/.naaf/attachments/` (via the `Storage` port, so S3 works later) and `stage_instruction`
+lists them; the attachments root is bind-mounted into the worker container. UI: a Detail-screen
+**Attachments panel** (list · upload with an overwrite-confirm guard · delete-confirm) wired to three
+React Query hooks + an `apiUpload` multipart helper, with MSW mocks for offline demo. Deferred (per
+spec): MinIO/compose S3 service, S3 prefix sync-down at provision, image vision, PDFs/binaries.
+Design: [superpowers/specs/2026-07-04-work-item-file-uploads-design.md](superpowers/specs/2026-07-04-work-item-file-uploads-design.md);
+plan: [superpowers/plans/2026-07-04-work-item-file-uploads.md](superpowers/plans/2026-07-04-work-item-file-uploads.md).
+
 **Conversational lead (D) — built.** You can now plan a project by chatting with a **lead agent**
 in a new **project-level thread** (`project:<id>` — a namespaced thread id, no schema change). The
 lead has a **tool surface**: a `LeadOrchestrator` (LLM-backed `LlmOrchestrator`, or the
