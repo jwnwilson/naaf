@@ -96,3 +96,8 @@ def test_agent_status_is_running_when_role_is_active_else_idle():
     by_role = {p.role: p for p in details}
     assert by_role["backend"].status == "running"
     assert by_role["lead"].status == "idle"
+
+
+def test_thread_from_work_item_carries_project_id():
+    view = thread_from_work_item(_item(), [])
+    assert view.project_id == "p1"

@@ -54,6 +54,7 @@ class ThreadParticipant(BaseModel):
 class ThreadView(BaseModel):
     id: str  # work_item_id, or "project:<id>" for a project-level thread
     work_item_id: str
+    project_id: str
     title: str
     status: str
     participants: list[str]
@@ -111,6 +112,7 @@ def thread_from_work_item(
     return ThreadView(
         id=item.id,
         work_item_id=item.id,
+        project_id=item.project_id,
         title=item.title,
         status=item.status.value,
         participants=_participants(ordered),
@@ -129,6 +131,7 @@ def thread_from_project(
     return ThreadView(
         id=project_thread_id(project.id),
         work_item_id="",
+        project_id=project.id,
         title=project.name,
         status="project",
         participants=_participants(ordered),
