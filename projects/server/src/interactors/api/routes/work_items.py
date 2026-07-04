@@ -9,7 +9,13 @@ from domain.transitions import validate_transition
 from domain.work_item import WorkItem, WorkItemKind
 from fastapi import APIRouter, Depends, Response
 
-from interactors.api.contract import AttachmentOut, WorkItemCreateIn, WorkItemOut, WorkItemUpdateIn, iso
+from interactors.api.contract import (
+    AttachmentOut,
+    WorkItemCreateIn,
+    WorkItemOut,
+    WorkItemUpdateIn,
+    iso,
+)
 from interactors.api.deps import get_uow
 from interactors.api.schemas import TransitionRequest, UpdateWorkItem
 

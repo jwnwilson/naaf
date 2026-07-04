@@ -1,5 +1,4 @@
 import pytest
-
 from domain.attachments.validation import (
     is_allowed_content_type,
     validate_filename,

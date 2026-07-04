@@ -1,5 +1,4 @@
 import pytest
-
 from storage import LocalStorage, StorageNotFound
 
 

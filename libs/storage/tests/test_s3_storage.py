@@ -15,7 +15,6 @@ def test_s3_storage_is_importable_and_constructs():
 
 def test_get_missing_maps_to_storage_not_found():
     import botocore.exceptions
-
     from storage import S3Storage, StorageNotFound
 
     store = S3Storage(bucket="naaf-test", region="eu-west-1")
@@ -36,7 +35,6 @@ def test_get_missing_maps_to_storage_not_found():
 
 def test_exists_returns_false_for_404_class_error():
     import botocore.exceptions
-
     from storage import S3Storage
 
     store = S3Storage(bucket="naaf-test", region="eu-west-1")
@@ -53,7 +51,6 @@ def test_exists_returns_false_for_404_class_error():
 
 def test_exists_reraises_non_404_error_as_storage_error():
     import botocore.exceptions
-
     from storage import S3Storage, StorageError
 
     store = S3Storage(bucket="naaf-test", region="eu-west-1")

@@ -19,7 +19,9 @@ def upgrade() -> None:
         sa.Column("owner_id", sa.String(length=64), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
-        sa.Column("work_item_id", sa.String(length=32), sa.ForeignKey("work_items.id"), nullable=False),
+        sa.Column(
+            "work_item_id", sa.String(length=32), sa.ForeignKey("work_items.id"), nullable=False
+        ),
         sa.Column("filename", sa.String(length=512), nullable=False),
         sa.Column("content_type", sa.String(length=255), nullable=False),
         sa.Column("size", sa.Integer(), nullable=False),

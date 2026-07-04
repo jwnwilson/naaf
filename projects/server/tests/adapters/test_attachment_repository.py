@@ -30,8 +30,16 @@ def test_create_and_read_attachment_round_trips(uow):
 
 def test_list_by_work_item_filters(uow):
     with uow.transaction() as u:
-        u.attachments.create(Attachment(owner_id="", work_item_id="wiA", filename="a.txt", content_type="text/plain", size=1))
-        u.attachments.create(Attachment(owner_id="", work_item_id="wiB", filename="b.txt", content_type="text/plain", size=1))
+        u.attachments.create(
+            Attachment(
+                owner_id="", work_item_id="wiA", filename="a.txt", content_type="text/plain", size=1
+            )
+        )
+        u.attachments.create(
+            Attachment(
+                owner_id="", work_item_id="wiB", filename="b.txt", content_type="text/plain", size=1
+            )
+        )
     with uow.transaction() as u:
         page = u.attachments.read_multi(filters={"work_item_id": "wiA"})
     assert [a.filename for a in page.results] == ["a.txt"]
