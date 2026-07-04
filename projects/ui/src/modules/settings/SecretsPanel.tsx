@@ -11,6 +11,7 @@ interface Field {
 const FIELDS: Field[] = [
   { name: "anthropic_api_key", label: "Anthropic API key", placeholder: "sk-ant-…" },
   { name: "github_token", label: "GitHub token", placeholder: "ghp_…" },
+  { name: "claude_oauth_token", label: "Claude subscription token", placeholder: "from `claude setup-token`" },
 ];
 
 function SecretRow({ field, secret }: { field: Field; secret: Secret | undefined }) {

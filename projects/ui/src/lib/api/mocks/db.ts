@@ -19,7 +19,7 @@ const clone = <T>(items: T[]): T[] => structuredClone(items);
 
 type Secret = components["schemas"]["SecretOut"];
 
-const SECRET_NAMES = ["anthropic_api_key", "github_token"] as const;
+const SECRET_NAMES = ["anthropic_api_key", "github_token", "claude_oauth_token"] as const;
 
 let projects: Project[] = clone(seed.projects);
 let workItems: WorkItem[] = clone(seed.workItems);

@@ -61,7 +61,9 @@ def build_orchestrator(settings):
     return LlmOrchestrator(build_llm_adapter(settings))
 
 
-def build_claude_cli_deps(settings, *, owner_id: str, github_token: str):
+def build_claude_cli_deps(
+    settings, *, owner_id: str, github_token: str, claude_oauth_token: str = ""
+):
     """Build (runtime, chat_responder, orchestrator) for the Claude subscription
     (via `claude -p`) — no Anthropic key. One ClaudeCliLLMAdapter powers all three
     (reusing LlmAgentRuntime/LlmChatResponder/LlmOrchestrator). The runtime's
@@ -77,6 +79,7 @@ def build_claude_cli_deps(settings, *, owner_id: str, github_token: str):
         claude_bin=settings.claude_bin,
         mcp_config_path=mcp_path,
         github_token=github_token,
+        claude_oauth_token=claude_oauth_token,
         timeout_s=settings.claude_timeout_s,
     )
 
@@ -89,7 +92,7 @@ def build_claude_cli_deps(settings, *, owner_id: str, github_token: str):
 
 
 def build_agent_deps(settings, *, anthropic_api_key: str = "", github_token: str = "",
-                     owner_id: str = ""):
+                     owner_id: str = "", claude_oauth_token: str = ""):
     """Build (runtime, chat_responder, orchestrator) for a specific owner's secrets.
 
     The Anthropic key overrides the settings value; the GitHub token is injected
@@ -101,7 +104,10 @@ def build_agent_deps(settings, *, anthropic_api_key: str = "", github_token: str
         return build_runtime(settings), build_chat_responder(settings), build_orchestrator(settings)
 
     if settings.llm_provider == "claude_cli":
-        return build_claude_cli_deps(settings, owner_id=owner_id, github_token=github_token)
+        return build_claude_cli_deps(
+            settings, owner_id=owner_id, github_token=github_token,
+            claude_oauth_token=claude_oauth_token,
+        )
 
     from adapters.agent.chat.llm import LlmChatResponder
     from adapters.agent.chat.orchestrator_llm import LlmOrchestrator

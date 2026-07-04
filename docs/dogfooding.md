@@ -34,10 +34,18 @@ Covers features **A+C** (run controls), **D** (conversational lead), and secrets
 
 Set `naaf_llm_provider=claude_cli` (add it to `.env`) to run all agent work through headless
 Claude Code (`claude -p`), authed by your Claude Pro/Max **subscription** instead of a metered
-Anthropic API key. You still need Claude Code logged in (`claude` works in your terminal) and a
-**GitHub token** in Settings → Secrets (for `gh`). The lead-chat reaches naaf's own domain through
-an MCP server, so "Chat with lead" creates work items + proposes runs on your subscription too.
-(`bypassPermissions` — Claude Code runs freely in each run's workspace.)
+Anthropic API key. You still need a **GitHub token** in Settings → Secrets (for `gh`). The
+lead-chat reaches naaf's own domain through an MCP server, so "Chat with lead" creates work items
++ proposes runs on your subscription too. (`bypassPermissions` — Claude Code runs freely in each
+run's workspace.)
+
+**How Claude Code authenticates depends on where the agent runs:**
+
+- **Local `make dev`** — the worker runs on your host and reuses the keychain login from
+  `claude` in your terminal. No extra secret needed.
+- **Containerized worker** (`docker compose up worker`) — there is no keychain, so generate a
+  subscription token with `claude setup-token` and paste it into **Settings → Secrets →
+  Claude subscription token**. The worker injects it as `CLAUDE_CODE_OAUTH_TOKEN` per run.
 
 ## 1. Bring the stack up in real-Claude mode
 
@@ -54,8 +62,10 @@ the UI (`:5173`, live-API). `NAAF_AGENT_RUNTIME=claude_code` selects the real `L
 
 In the UI (`http://localhost:5173`) go to **Settings → Secrets** and set:
 
-- **Anthropic API key** → Save (shows `Set ••••<last4>`).
+- **Anthropic API key** → Save (shows `Set ••••<last4>`). *(API mode only — skip on the subscription path.)*
 - **GitHub token** → Save.
+- **Claude subscription token** → Save. *(Only needed for a containerized worker on the
+  subscription path — from `claude setup-token`. Local `make dev` uses the keychain instead.)*
 
 Values are encrypted at rest and write-only — the raw value is never shown again. A run resolves
 **your** stored keys per owner (falling back to any env values only if a secret is unset).
@@ -106,6 +116,7 @@ your stored GitHub token for `git`/`gh`.
 |---------|-------------|
 | Saving a secret returns a 500 | `naaf_secret_key` not set — add it to `.env` (`make secret-key`) and restart `make dev`. |
 | Run fails at PLAN with a key error | No Anthropic key stored (Settings → Secrets) and none in env. |
+| Containerized run fails with a Claude auth error | On the subscription path the worker has no keychain — store a **Claude subscription token** (`claude setup-token`) in Settings → Secrets, and set `naaf_secret_key` on the worker so it can decrypt it. |
 | PR stage fails, no **View PR** | GitHub token missing or lacking push/PR scope on the repo. |
 | **Start run** disabled | Item isn't a Task/Feature, isn't in To Do/In Review, or a run is already active (see tooltip). |
 | Runs execute but do nothing real | `NAAF_AGENT_RUNTIME` still defaults to `fake` — pass `claude_code`. |
