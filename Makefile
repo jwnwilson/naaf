@@ -1,4 +1,4 @@
-.PHONY: install test coverage lint run db-upgrade db-reset worker dev
+.PHONY: install test coverage lint run db-upgrade db-reset worker dev secret-key
 
 # Postgres URL shared by the live dev stack (API, worker, alembic, seed).
 # Override, e.g.: make dev NAAF_DB_URL=postgresql+psycopg://user:pass@host:5432/db
@@ -11,6 +11,11 @@ NAAF_AGENT_RUNTIME ?= fake
 
 install:
 	uv sync
+
+# Generate a Fernet key for naaf_secret_key (secrets encryption at rest).
+# Set the printed value as naaf_secret_key in the server environment.
+secret-key:
+	@uv run python -m interactors.cli.gen_secret_key
 
 test:
 	uv run pytest
