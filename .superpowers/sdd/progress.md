@@ -20,3 +20,7 @@ Task 3: complete (commits 54dd63f..32a2c16, review clean)
 Task 4: complete (commits 32a2c16..34a0142, review clean)
   Minor (defer to final): handlers.test.ts projectId assertion uses toBeTruthy() — prefer toBe("proj-1")
 Task 5: complete (commits 34a0142..ee839c7, review clean after 1 fix loop: added project-thread test + inline-block truncate)
+
+## Final whole-branch review (opus): Ready to merge = Yes
+  3 Minor test-coverage gaps closed in d411bc5 (project-thread projection value assert; no-link fallback test; exact mock assertion)
+Task 6: gates green (backend 409 pass / 91% cov / ruff+mypy clean; frontend 213 pass / tsc clean / eslint 0 err) — complete
