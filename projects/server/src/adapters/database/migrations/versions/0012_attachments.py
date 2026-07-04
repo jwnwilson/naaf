@@ -1,13 +1,13 @@
 """attachments table
 
-Revision ID: 0011_attachments
-Revises: 0010_run_pr_url
+Revision ID: 0012_attachments
+Revises: 0011_secrets
 """
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0011_attachments"
-down_revision = "0010_run_pr_url"
+revision = "0012_attachments"
+down_revision = "0011_secrets"
 branch_labels = None
 depends_on = None
 

@@ -37,6 +37,28 @@ spec): MinIO/compose S3 service, S3 prefix sync-down at provision, image vision,
 Design: [superpowers/specs/2026-07-04-work-item-file-uploads-design.md](superpowers/specs/2026-07-04-work-item-file-uploads-design.md);
 plan: [superpowers/plans/2026-07-04-work-item-file-uploads.md](superpowers/plans/2026-07-04-work-item-file-uploads.md).
 
+**Secrets management — built.** Agent credentials (Anthropic key + GitHub token) are now managed
+in a **Settings → Secrets** page and injected into agent runs, replacing the global-env-only model
+(first step of the master spec's `Secret` entity + management plane). Owner-scoped `Secret` store,
+**Fernet-encrypted at rest** (`naaf_secret_key`; writes fail closed if unset), **write-only** API
+(`GET/PUT/DELETE /secrets` returns only `{name, isSet, hint}` — the value never leaves the server;
+`hint` is the last 4 chars). Injection is resolved **per owner** in `ctx_factory`: a stored
+Anthropic key builds a per-owner LLM adapter/runtime (`build_agent_deps`) and a stored GitHub token
+is baked into the run runtime's `LocalWorkspace` subprocess env (`GH_TOKEN`) for the agent's
+`git`/`gh` — both **falling back to the env vars** when unset, so `make dev` with env still works
+(`SecretResolver`). UI: a masked Secrets form (`SecretsPanel`) showing **Set ••••1234 / Not set**
+with Save/Clear. Migration `0011_secrets`; `cryptography` added. **Deferred (spec end-state):**
+credential-injecting egress proxy / placeholders, GitHub App per-run tokens, per-project secrets,
+audit log. Design:
+[superpowers/specs/2026-07-04-secrets-management-design.md](superpowers/specs/2026-07-04-secrets-management-design.md).
+
+**Live board refresh — built.** The board now **polls while mounted** (`useBoard` gained a
+`refetchInterval`, `BOARD_POLL_MS=5000`; paused when the tab is hidden), so work items the agents
+create/move server-side — the conversational lead's new epics/tasks and run-driven status changes —
+appear **without any user interaction**. Complements D's on-send/answer board invalidation (which
+only covered synchronous/mock creates). A board SSE stream would be lower-latency but is deferred —
+polling is the right cost/complexity trade for a local single-user tool.
+
 **Conversational lead (D) — built.** You can now plan a project by chatting with a **lead agent**
 in a new **project-level thread** (`project:<id>` — a namespaced thread id, no schema change). The
 lead has a **tool surface**: a `LeadOrchestrator` (LLM-backed `LlmOrchestrator`, or the

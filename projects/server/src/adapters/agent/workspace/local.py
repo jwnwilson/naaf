@@ -7,8 +7,9 @@ from domain.agent.workspace import CommandResult
 
 
 class LocalWorkspace:
-    def __init__(self, root: str | Path):
+    def __init__(self, root: str | Path, env: dict[str, str] | None = None):
         self._root = Path(root).resolve()
+        self._env = env or {}
 
     def _resolve(self, path: str) -> Path:
         p = (self._root / path).resolve()
@@ -40,6 +41,7 @@ class LocalWorkspace:
     def bash(self, cmd: str, timeout_s: int) -> CommandResult:
         proc = subprocess.Popen(
             cmd, shell=True, cwd=self._root, text=True,
+            env={**os.environ, **self._env},
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True,
         )
         try:

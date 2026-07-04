@@ -17,11 +17,16 @@ type MockAttachment = Attachment & { workItemId: string };
 
 const clone = <T>(items: T[]): T[] => structuredClone(items);
 
+type Secret = components["schemas"]["SecretOut"];
+
+const SECRET_NAMES = ["anthropic_api_key", "github_token"] as const;
+
 let projects: Project[] = clone(seed.projects);
 let workItems: WorkItem[] = clone(seed.workItems);
 let runs: RunOut[] = clone(seed.runs);
 let messages: Message[] = clone(seed.messages);
 let attachments: MockAttachment[] = clone(seed.attachments);
+let secretHints: Record<string, string> = {};  // name -> hint; presence = isSet
 
 // ─── Public db interface ──────────────────────────────────────────────────────
 
@@ -142,6 +147,27 @@ export const db = {
     attachments = attachments.filter((a) => a.id !== id);
   },
 
+  // ─── Secrets (write-only; never store the raw value) ──────────────────────
+
+  listSecrets: (): Secret[] =>
+    SECRET_NAMES.map((name) => ({
+      name,
+      isSet: name in secretHints,
+      hint: secretHints[name] ?? "",
+    })),
+
+  setSecret: (name: string, value: string): Secret => {
+    secretHints = { ...secretHints, [name]: value.slice(-4) };
+    return { name, isSet: true, hint: secretHints[name] };
+  },
+
+  deleteSecret: (name: string): Secret => {
+    const rest = { ...secretHints };
+    delete rest[name];
+    secretHints = rest;
+    return { name, isSet: false, hint: "" };
+  },
+
   // ─── Reset (restore all stores to seed state) ─────────────────────────────
 
   reset: (): void => {
@@ -150,5 +176,6 @@ export const db = {
     runs = clone(seed.runs);
     messages = clone(seed.messages);
     attachments = clone(seed.attachments);
+    secretHints = {};
   },
 };

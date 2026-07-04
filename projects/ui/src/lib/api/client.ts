@@ -60,7 +60,9 @@ export const apiPost = <T>(path: string, json: unknown) =>
   apiFetch<T>(path, { method: "POST", body: JSON.stringify(json) });
 export const apiPatch = <T>(path: string, json: unknown) =>
   apiFetch<T>(path, { method: "PATCH", body: JSON.stringify(json) });
-export const apiDelete = (path: string) => apiFetch<void>(path, { method: "DELETE" });
+export const apiPut = <T>(path: string, json: unknown) =>
+  apiFetch<T>(path, { method: "PUT", body: JSON.stringify(json) });
+export const apiDelete = <T = void>(path: string) => apiFetch<T>(path, { method: "DELETE" });
 
 // No content-type header: the browser sets the multipart boundary itself.
 export async function apiUpload<T>(path: string, form: FormData): Promise<T> {

@@ -18,6 +18,7 @@ export const routes: RouteObject[] = [
       { path: "projects", element: <BoardScreen /> },
       { path: "projects/:projectId/items/:itemId", element: <DetailScreen /> },
       { path: "settings/agents", element: <SettingsScreen /> },
+      { path: "settings/secrets", element: <SettingsScreen /> },
     ],
   },
 ];

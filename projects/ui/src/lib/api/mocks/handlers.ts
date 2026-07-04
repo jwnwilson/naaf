@@ -194,6 +194,21 @@ export const liveHandlers = [
     return ok({ ...def, ...body });
   }),
 
+  // ── Secrets (owner-scoped, write-only) ──────────────────────────────────────────
+
+  http.get(`${BASE}/secrets`, () => ok(db.listSecrets())),
+
+  http.put(`${BASE}/secrets/:name`, async ({ params, request }) => {
+    const name = params.name as string;
+    if (!["anthropic_api_key", "github_token"].includes(name)) {
+      return HttpResponse.json({ success: false, data: null, error: "unknown secret" }, { status: 422 });
+    }
+    const body = (await request.json()) as { value: string };
+    return ok(db.setSecret(name, body.value));
+  }),
+
+  http.delete(`${BASE}/secrets/:name`, ({ params }) => ok(db.deleteSecret(params.name as string))),
+
   // ── Runs ──────────────────────────────────────────────────────────────────────
   // Now backed by the real backend (A3). In live mode these pass through to /api.
   // Literal + more-specific paths before the bare /:id catch-all.

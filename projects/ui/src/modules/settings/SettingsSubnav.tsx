@@ -17,7 +17,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: "Agents", href: "/settings/agents", isRoute: true },
       { label: "Budget", href: "/settings/budget", isRoute: false },
-      { label: "Secrets", href: "/settings/secrets", isRoute: false },
+      { label: "Secrets", href: "/settings/secrets", isRoute: true },
     ],
   },
 ];

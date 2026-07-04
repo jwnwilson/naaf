@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     celery_broker_url: str = "redis://localhost:6379/0"
     worker_roles: str = ""
 
+    # Fernet key (base64) for encrypting stored secrets at rest. Empty = writes
+    # fail closed; reads/injection fall back to the env values below.
+    secret_key: str = ""
+
     llm_provider: str = "claude"           # "claude" | "litellm"
     anthropic_api_key: str = ""
     anthropic_base_url: str = ""           # blank = Anthropic default

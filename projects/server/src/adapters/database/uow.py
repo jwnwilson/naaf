@@ -13,6 +13,7 @@ from adapters.database.repositories import (
     ProjectRepository,
     RunEventRepository,
     RunRepository,
+    SecretRepository,
     TeamRepository,
     WorkItemRepository,
 )
@@ -64,6 +65,10 @@ class SqlUnitOfWork:
     @property
     def projects(self) -> ProjectRepository:
         return self._repo("projects", ProjectRepository)
+
+    @property
+    def secrets(self) -> SecretRepository:
+        return self._repo("secrets", SecretRepository)
 
     @property
     def work_items(self) -> WorkItemRepository:

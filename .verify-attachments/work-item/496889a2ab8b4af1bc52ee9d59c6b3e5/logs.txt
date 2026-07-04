@@ -1,0 +1,23 @@
+2026-06-02 16:09:50,992 INFO     botocore.credentials  Found credentials in environment variables.
+2026-06-02 16:09:51,127 INFO     __main__  remote_worker  run_id=b72cb2eb-97e9-488f-8803-f9517f83fa97  job_type=export  backend=s3  prefix=workflow/b72cb2eb-97e9-488f-8803-f9517f83fa97
+2026-06-02 16:09:51,590 INFO     adapters.storage.s3  s3 write_bytes ok  bucket=aipet-jwn  key=workflow/b72cb2eb-97e9-488f-8803-f9517f83fa97/status.txt
+2026-06-02 16:09:51,590 INFO     domain.train.export_job  export  run_id=b72cb2eb-97e9-488f-8803-f9517f83fa97  quantize=Q4_K_M
+2026-06-02 16:09:51,590 INFO     domain.train.export_job  downloading checkpoint  prefix=workflow/b72cb2eb-97e9-488f-8803-f9517f83fa97/checkpoint/
+2026-06-02 16:11:13,790 INFO     adapters.storage.s3  s3 download_directory ok  bucket=aipet-jwn  prefix=workflow/b72cb2eb-97e9-488f-8803-f9517f83fa97/checkpoint/  files=5
+2026-06-02 16:11:13,795 INFO     domain.train.export_job  exporting  quantize=Q4_K_M  llama_cpp_dir=/llama.cpp
+2026-06-02 16:11:35,273 INFO     domain.train.export  Extracted vocab.json from tokenizer.json (49152 tokens)
+2026-06-02 16:11:35,284 INFO     domain.train.export  Extracted merges.txt from tokenizer.json (48900 merges)
+2026-06-02 16:11:35,291 INFO     domain.train.export  Converting HF checkpoint → FP16 GGUF: /tmp/export/b72cb2eb-97e9-488f-8803-f9517f83fa97/model.f16.gguf  $ /app/.venv/bin/python /llama.cpp/convert_hf_to_gguf.py /tmp/export/b72cb2eb-97e9-488f-8803-f9517f83fa97/checkpoint --outfile /tmp/export/b72cb2eb-97e9-488f-8803-f9517f83fa97/model.f16.gguf
+2026-06-02 16:11:50,236 INFO     domain.train.export  Quantising (Q4_K_M): /tmp/export/b72cb2eb-97e9-488f-8803-f9517f83fa97/model.gguf  $ /llama.cpp/build/bin/llama-quantize /tmp/export/b72cb2eb-97e9-488f-8803-f9517f83fa97/model.f16.gguf /tmp/export/b72cb2eb-97e9-488f-8803-f9517f83fa97/model.gguf Q4_K_M
+2026-06-02 16:11:52,819 INFO     domain.train.export  main: quantize time =  2578.19 ms
+main:    total time =  2578.19 ms
+2026-06-02 16:11:52,819 INFO     domain.train.export  Verifying GGUF loads: /tmp/export/b72cb2eb-97e9-488f-8803-f9517f83fa97/model.gguf …
+2026-06-02 16:11:52,823 INFO     domain.train.export  LlamaCppInferenceAdapter instantiated successfully (lazy load).
+2026-06-02 16:11:52,823 INFO     domain.train.export  Export complete  output=/tmp/export/b72cb2eb-97e9-488f-8803-f9517f83fa97/model.gguf  size=258.1 MB
+2026-06-02 16:11:52,823 INFO     domain.train.export_job  GGUF written  size=258.1 MB
+2026-06-02 16:11:52,823 INFO     domain.train.export_job  uploading GGUF  key=workflow/b72cb2eb-97e9-488f-8803-f9517f83fa97/model/aipet-v1.gguf
+2026-06-02 16:12:24,401 INFO     adapters.storage.s3  s3 upload ok  bucket=aipet-jwn  key=workflow/b72cb2eb-97e9-488f-8803-f9517f83fa97/model/aipet-v1.gguf
+2026-06-02 16:12:24,681 INFO     adapters.storage.s3  s3 delete_directory ok  bucket=aipet-jwn  prefix=workflow/b72cb2eb-97e9-488f-8803-f9517f83fa97/checkpoint/  deleted=5
+2026-06-02 16:12:24,681 INFO     domain.train.export_job  checkpoint deleted  prefix=workflow/b72cb2eb-97e9-488f-8803-f9517f83fa97/checkpoint/
+2026-06-02 16:12:24,682 INFO     domain.train.export_job  export complete  key=workflow/b72cb2eb-97e9-488f-8803-f9517f83fa97/model/aipet-v1.gguf
+2026-06-02 16:12:25,114 INFO     adapters.storage.s3  s3 write_bytes ok  bucket=aipet-jwn  key=workflow/b72cb2eb-97e9-488f-8803-f9517f83fa97/status.txt

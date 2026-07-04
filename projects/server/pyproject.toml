@@ -21,6 +21,7 @@ dependencies = [
     "anthropic>=0.40",
     "storage",
     "python-multipart>=0.0.9",
+    "cryptography>=43",
 ]
 
 [tool.uv.sources]
