@@ -281,8 +281,19 @@ class ThreadOut(BaseModel):
     createdAt: str
 
 
+class ThreadParticipantOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    kind: str  # "user" | "agent"
+    role: str
+    name: str
+    model: str | None = None
+    status: str | None = None  # "running" | "idle" | None (user)
+
+
 class ThreadDetailOut(ThreadOut):
     filesWritten: list[dict[str, Any]] = []
+    participantDetails: list[ThreadParticipantOut] = []
 
 
 class MessageOut(BaseModel):

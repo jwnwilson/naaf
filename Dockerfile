@@ -12,6 +12,12 @@ RUN apt-get update \
  && apt-get update && apt-get install -y --no-install-recommends gh \
  && rm -rf /var/lib/apt/lists/*
 
+# Claude Code (native install) — agents run on the user's subscription via `claude -p`.
+# Symlink onto PATH and gate the build on `claude --version` so a broken install fails fast.
+RUN curl -fsSL https://claude.ai/install.sh | bash \
+ && ln -sf /root/.local/bin/claude /usr/local/bin/claude \
+ && claude --version
+
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR /app

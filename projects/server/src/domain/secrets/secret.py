@@ -1,7 +1,7 @@
 from domain.base import Entity
 
 # The known, injectable secret names the API accepts and the resolver consumes.
-SECRET_NAMES: tuple[str, ...] = ("anthropic_api_key", "github_token")
+SECRET_NAMES: tuple[str, ...] = ("anthropic_api_key", "github_token", "claude_oauth_token")
 
 
 class Secret(Entity):

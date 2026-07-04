@@ -1,5 +1,6 @@
 import type { components } from "../schema";
 import type { Attachment } from "../hooks/useAttachments";
+import { roleLabel } from "../../agentIdentity";
 import { seed } from "./fixtures";
 
 type Project = components["schemas"]["Project"];
@@ -8,7 +9,32 @@ type RunOut = components["schemas"]["RunOut"];
 type RunEventOut = components["schemas"]["RunEventOut"];
 type Message = components["schemas"]["Message"];
 type Thread = components["schemas"]["Thread"];
+type ThreadDetail = components["schemas"]["ThreadDetail"];
+type ThreadParticipant = components["schemas"]["ThreadParticipant"];
 type MockAttachment = Attachment & { workItemId: string };
+
+// Mirror of the backend projection (domain/messaging/thread.py) so mocked
+// thread detail matches the live contract: distinct senders in first-seen
+// order, enriched with display name + latest model.
+function participantDetails(messages: Message[]): ThreadParticipant[] {
+  const order: string[] = [];
+  const latestModel: Record<string, string | null> = {};
+  for (const m of messages) {
+    const role = m.authorRole ?? "user";
+    if (!order.includes(role)) order.push(role);
+    if (m.model != null) latestModel[role] = m.model;
+  }
+  return order.map((role) => {
+    const isUser = role === "user";
+    return {
+      kind: isUser ? "user" : "agent",
+      role,
+      name: roleLabel(isUser ? "user" : "agent", role),
+      model: isUser ? null : (latestModel[role] ?? null),
+      status: isUser ? null : "idle",
+    };
+  });
+}
 
 // ─── Mutable in-memory stores ─────────────────────────────────────────────────
 // Each store starts as a DEEP clone of the seed so mutations never alias the
@@ -19,7 +45,7 @@ const clone = <T>(items: T[]): T[] => structuredClone(items);
 
 type Secret = components["schemas"]["SecretOut"];
 
-const SECRET_NAMES = ["anthropic_api_key", "github_token"] as const;
+const SECRET_NAMES = ["anthropic_api_key", "github_token", "claude_oauth_token"] as const;
 
 let projects: Project[] = clone(seed.projects);
 let workItems: WorkItem[] = clone(seed.workItems);
@@ -77,6 +103,34 @@ export const db = {
   // Messages for a work-item thread, keyed by threadId (= workItemId)
   messagesForThread: (workItemId: string): Message[] =>
     messages.filter((m) => m.threadId === workItemId),
+
+  // Enriched thread detail (participants + files written), mirroring the backend.
+  threadDetail: (workItemId: string): ThreadDetail | null => {
+    const base = seed.threads.find((t) => t.workItemId === workItemId);
+    const msgs = messages.filter((m) => m.threadId === workItemId);
+    const filesWritten = msgs
+      .filter((m) => m.kind === "file_write" && m.payload && (m.payload as { path?: string }).path)
+      .map((m) => m.payload as Record<string, unknown>);
+    const details = participantDetails(msgs);
+    if (base) {
+      return { ...base, participantDetails: details, filesWritten };
+    }
+    // Thread exists implicitly for any work item, even with no seeded thread row.
+    const item = workItems.find((w) => w.id === workItemId);
+    if (!item) return null;
+    return {
+      id: workItemId,
+      workItemId,
+      title: item.title,
+      status: item.status,
+      lastMessage: msgs.length ? msgs[msgs.length - 1].content : null,
+      messageCount: msgs.length,
+      participants: details.map((p) => p.role),
+      createdAt: item.createdAt ?? new Date(0).toISOString(),
+      participantDetails: details,
+      filesWritten,
+    };
+  },
 
   // ─── Mutations (immutable pattern: replace the array, never mutate items) ──
 

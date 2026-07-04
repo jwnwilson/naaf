@@ -200,7 +200,7 @@ export const liveHandlers = [
 
   http.put(`${BASE}/secrets/:name`, async ({ params, request }) => {
     const name = params.name as string;
-    if (!["anthropic_api_key", "github_token"].includes(name)) {
+    if (!["anthropic_api_key", "github_token", "claude_oauth_token"].includes(name)) {
       return HttpResponse.json({ success: false, data: null, error: "unknown secret" }, { status: 422 });
     }
     const body = (await request.json()) as { value: string };
@@ -265,6 +265,11 @@ export const liveHandlers = [
   http.get(`${BASE}/threads/:id/messages`, ({ params }) => {
     const msgs = db.messagesForThread(params.id as string);
     return ok(msgs, pageMeta(msgs));
+  }),
+
+  http.get(`${BASE}/threads/:id`, ({ params }) => {
+    const detail = db.threadDetail(params.id as string);
+    return detail ? ok(detail) : notFound();
   }),
 
   http.post(`${BASE}/threads/:id/messages/:msgId/answer`, async ({ params, request }) => {

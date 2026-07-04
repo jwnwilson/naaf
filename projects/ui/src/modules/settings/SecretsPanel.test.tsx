@@ -33,9 +33,10 @@ test("shows Not set initially, saves a masked value, and clears it", async () =>
 });
 
 test("rejects an unknown secret name with a 422 (guarded server-side)", async () => {
-  // Sanity: the panel only exposes the two known fields.
+  // Sanity: the panel only exposes the three known fields.
   renderPanel();
   await waitFor(() => expect(screen.getByLabelText("Anthropic API key")).toBeInTheDocument());
   expect(screen.getByLabelText("GitHub token")).toBeInTheDocument();
+  expect(screen.getByLabelText("Claude subscription token")).toBeInTheDocument();
   expect(screen.queryByLabelText(/aws/i)).not.toBeInTheDocument();
 });
