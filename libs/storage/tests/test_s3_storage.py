@@ -13,7 +13,7 @@ def test_s3_storage_is_importable_and_constructs():
     assert store.local_path("work-item/abc/x.txt").endswith("work-item/abc/x.txt")
 
 
-def test_get_missing_maps_to_storage_not_found(monkeypatch):
+def test_get_missing_maps_to_storage_not_found():
     import botocore.exceptions
 
     from storage import S3Storage, StorageNotFound
@@ -26,6 +26,9 @@ def test_get_missing_maps_to_storage_not_found(monkeypatch):
                 {"Error": {"Code": "NoSuchKey"}}, "GetObject"
             )
 
-    monkeypatch.setattr(store, "_client", _FakeClient())
+    # Assign straight through the property setter (no getattr, so the lazy
+    # getter never eagerly builds a real boto3 client). monkeypatch.setattr
+    # would getattr the original first to save it, triggering that eager build.
+    store._client = _FakeClient()
     with pytest.raises(StorageNotFound):
         store.get_bytes("work-item/abc/missing.txt")
