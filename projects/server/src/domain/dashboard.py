@@ -59,6 +59,8 @@ _ACTIVITY_MAP: dict[EventType, tuple[str, Callable[[RunEvent], str]]] = {
 def to_activity_event(event: RunEvent) -> ActivityItem | None:
     """Map a RunEvent to an activity row, or None for events that shouldn't show
     (log noise)."""
+    if event.created_at is None:
+        return None
     entry = _ACTIVITY_MAP.get(event.type)
     if entry is None:
         return None

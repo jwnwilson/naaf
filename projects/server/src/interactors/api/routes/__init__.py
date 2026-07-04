@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 from interactors.api.routes.agents import router as agents_router
 from interactors.api.routes.attachments import router as attachments_router
+from interactors.api.routes.dashboard import router as dashboard_router
 from interactors.api.routes.notifications import router as notifications_router
 from interactors.api.routes.projects import router as projects_router
 from interactors.api.routes.runs import router as runs_router
@@ -14,6 +15,7 @@ from interactors.api.routes.work_items import router as work_items_router
 
 
 def register_routers(app: FastAPI) -> None:
+    app.include_router(dashboard_router)
     app.include_router(agents_router)
     app.include_router(projects_router)
     app.include_router(work_items_router)

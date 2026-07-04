@@ -335,6 +335,29 @@ class AnswerIn(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Dashboard
+# ---------------------------------------------------------------------------
+
+
+class TokenPointOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    day: str
+    tokens: int
+
+
+class ActivityEventOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str
+    type: str
+    description: str
+    agentId: str | None = None
+    workItemId: str | None = None
+    createdAt: str
+
+
+# ---------------------------------------------------------------------------
 # Secrets (owner-scoped, write-only)
 # ---------------------------------------------------------------------------
 
