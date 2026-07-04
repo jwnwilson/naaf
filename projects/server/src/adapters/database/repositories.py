@@ -1,3 +1,4 @@
+from domain.attachments.attachment import Attachment
 from domain.base import utcnow
 from domain.messaging.message import Message
 from domain.messaging.subscriber import CursorState
@@ -14,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from adapters.database.orm import (
     AgentDefinitionRow,
+    AttachmentRow,
     BusMessageRow,
     MessageRow,
     NotificationRow,
@@ -26,6 +28,11 @@ from adapters.database.orm import (
     WorkItemRow,
 )
 from adapters.database.repository import SqlRepository
+
+
+class AttachmentRepository(SqlRepository[Attachment]):
+    orm_model = AttachmentRow
+    dto = Attachment
 
 
 class ProjectRepository(SqlRepository[Project]):

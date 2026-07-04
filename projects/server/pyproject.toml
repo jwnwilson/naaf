@@ -19,11 +19,14 @@ dependencies = [
     "celery>=5.4",
     "redis>=5",
     "anthropic>=0.40",
+    "storage",
+    "python-multipart>=0.0.9",
     "cryptography>=43",
 ]
 
 [tool.uv.sources]
 naaf-crud-router = { workspace = true }
+storage = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/domain", "src/adapters", "src/interactors"]

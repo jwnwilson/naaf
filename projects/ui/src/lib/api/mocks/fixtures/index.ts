@@ -611,4 +611,5 @@ export const seed = {
   tokenUsagePoints,
   activityEvents,
   budget,
+  attachments: [] as Array<{ id: string; workItemId: string; filename: string; contentType: string; size: number; url: string; createdAt: string }>,
 };

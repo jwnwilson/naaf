@@ -1,4 +1,5 @@
 import type { components } from "../schema";
+import type { Attachment } from "../hooks/useAttachments";
 import { seed } from "./fixtures";
 
 type Project = components["schemas"]["Project"];
@@ -7,6 +8,7 @@ type RunOut = components["schemas"]["RunOut"];
 type RunEventOut = components["schemas"]["RunEventOut"];
 type Message = components["schemas"]["Message"];
 type Thread = components["schemas"]["Thread"];
+type MockAttachment = Attachment & { workItemId: string };
 
 // ─── Mutable in-memory stores ─────────────────────────────────────────────────
 // Each store starts as a DEEP clone of the seed so mutations never alias the
@@ -23,6 +25,7 @@ let projects: Project[] = clone(seed.projects);
 let workItems: WorkItem[] = clone(seed.workItems);
 let runs: RunOut[] = clone(seed.runs);
 let messages: Message[] = clone(seed.messages);
+let attachments: MockAttachment[] = clone(seed.attachments);
 let secretHints: Record<string, string> = {};  // name -> hint; presence = isSet
 
 // ─── Public db interface ──────────────────────────────────────────────────────
@@ -130,6 +133,20 @@ export const db = {
     return messages.find((m) => m.id === msgId) ?? null;
   },
 
+  // ─── Attachment store ──────────────────────────────────────────────────────
+
+  listAttachments: (workItemId: string): MockAttachment[] =>
+    attachments.filter((a) => a.workItemId === workItemId),
+
+  addAttachment: (a: MockAttachment): MockAttachment => {
+    attachments = [...attachments, a];
+    return a;
+  },
+
+  deleteAttachment: (id: string): void => {
+    attachments = attachments.filter((a) => a.id !== id);
+  },
+
   // ─── Secrets (write-only; never store the raw value) ──────────────────────
 
   listSecrets: (): Secret[] =>
@@ -158,6 +175,7 @@ export const db = {
     workItems = clone(seed.workItems);
     runs = clone(seed.runs);
     messages = clone(seed.messages);
+    attachments = clone(seed.attachments);
     secretHints = {};
   },
 };

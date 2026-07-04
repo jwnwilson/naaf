@@ -6,6 +6,7 @@ from domain.errors import RecordNotFound
 from domain.runs.run import Run, Stage
 from domain.work_item import AcceptanceCriterion, WorkItem, WorkItemKind
 from interactors.worker.handlers import HandlerContext, build_stage_context
+from storage import StorageError
 
 # ---------------------------------------------------------------------------
 # Minimal fakes
@@ -113,6 +114,27 @@ def test_build_stage_context_missing_work_item_returns_empty_brief():
     sc = build_stage_context(ctx, run, "engineer", Stage.IMPLEMENT)
 
     assert sc.work_item.title == ""
+
+
+def test_build_stage_context_storage_error_yields_empty_attachments():
+    """A StorageError from ctx.storage.list must not propagate out of build_stage_context.
+
+    Real storage (S3) can fail transiently. The stage must still build with
+    attachments=[] rather than crashing the run.
+    """
+    class _FailingStorage:
+        def list(self, _prefix):
+            raise StorageError("s3 unavailable")
+
+    ctx = _make_ctx(storage=_FailingStorage())
+    wi = WorkItem(owner_id="u", project_id="p", kind=WorkItemKind.TASK, title="T")
+    ctx.work_items.create(wi)
+    run = Run(owner_id="u", work_item_id=wi.id, project_id="p", autonomy_level="full_auto")
+
+    # Must not raise — storage failure is fault-isolated
+    sc = build_stage_context(ctx, run, "engineer", Stage.IMPLEMENT)
+
+    assert sc.work_item.attachments == []
 
 
 def test_build_stage_context_maps_acceptance_criteria_to_strings():

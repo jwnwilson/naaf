@@ -1,9 +1,11 @@
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from adapters.agent.orchestration_tools import CtxOrchestrationTools
 from adapters.agent.provision import provision_workspace
+from adapters.storage.keys import attachment_prefix
 from domain.agent.context import StageContext, WorkItemBrief
 from domain.agent.runtime import AgentEvent, AgentRuntime, StageOutcome, StageResult
 from domain.base import utcnow
@@ -21,6 +23,7 @@ from domain.runs.run import Gate, Run, RunStatus, Stage, StageState, StageStatus
 from domain.team import AgentDefinition, AgentRole
 from domain.transitions import validate_transition
 from domain.work_item import WorkItemStatus
+from storage import Storage
 
 _STUB_STAGES = {Stage.PROVISION, Stage.PR, Stage.LEARN}
 
@@ -41,6 +44,22 @@ class HandlerContext:
     messages: Any = None  # MessageRepository | None — None in dead-letter cleanup
     chat_responder: Any = None  # ChatResponder | None — None in dead-letter cleanup
     lead_orchestrator: Any = None  # LeadOrchestrator | None — project-thread lead
+    storage: Storage | None = None  # blob store for work-item attachments
+
+
+def materialize_attachments(storage: Storage, work_item_id: str, workspace_path: str) -> list[str]:
+    """Copy a work item's attachments from storage into <workspace>/.naaf/attachments/.
+
+    Returns the filenames written. Backend-agnostic: works for local disk and S3.
+    """
+    dest = Path(workspace_path) / ".naaf" / "attachments"
+    names: list[str] = []
+    for key in storage.list(attachment_prefix(work_item_id)):
+        filename = key.rsplit("/", 1)[-1]
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / filename).write_bytes(storage.get_bytes(key))
+        names.append(filename)
+    return names
 
 
 _ROLE_MAP = {
@@ -57,12 +76,22 @@ _ROLE_MAP = {
 def build_stage_context(ctx: HandlerContext, run: Run, role: str, stage: Stage) -> StageContext:
     try:
         wi = ctx.work_items.read(run.work_item_id)
+        names: list[str] = []
+        if ctx.storage is not None:
+            try:
+                names = [
+                    k.rsplit("/", 1)[-1]
+                    for k in ctx.storage.list(attachment_prefix(run.work_item_id))
+                ]
+            except Exception:  # storage failure must not fail the stage
+                names = []
         brief = WorkItemBrief(
             title=getattr(wi, "title", ""),
             body=getattr(wi, "body", ""),
             acceptance_criteria=[
                 ac.text for ac in (getattr(wi, "acceptance_criteria", None) or [])
             ],
+            attachments=names,
         )
     except RecordNotFound:
         brief = WorkItemBrief(title="")
@@ -235,6 +264,12 @@ def _provision(ctx: HandlerContext, run: Run) -> StageOutcome:
             events=[AgentEvent(message=f"provision failed: {exc}")],
             result=StageResult(passed=False, summary=f"provision failed: {exc}"),
         )
+    if ctx.storage is not None:
+        try:
+            materialize_attachments(ctx.storage, run.work_item_id, path)
+        except Exception as exc:  # attachment sync must not crash provision
+            emit(ctx, run, EventType.LOG, stage=Stage.PROVISION, role="lead",
+                 payload={"message": f"attachment sync skipped: {exc}"})
     return StageOutcome(
         events=[
             AgentEvent(message=f"cloned {repo}"),

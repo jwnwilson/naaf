@@ -11,6 +11,7 @@ import type { DetailTab } from "./TabBar";
 const ALL_DETAIL_TABS: DetailTab[] = ["Spec", "Attachments", "Activity", "Agent", "Thread"];
 import { SpecTab } from "./SpecTab";
 import { AgentMonitor } from "./AgentMonitor";
+import { AttachmentsPanel } from "./AttachmentsPanel";
 import { StartRunButton } from "./StartRunButton";
 import { Thread } from "../../components/thread";
 
@@ -70,7 +71,7 @@ export function DetailScreen() {
               </div>
             )
         )}
-        {activeTab === "Attachments" && <EmptyBody message="No attachments" />}
+        {activeTab === "Attachments" && <AttachmentsPanel workItemId={itemId ?? ""} />}
         {activeTab === "Activity" && <EmptyBody message="No activity yet" />}
         {activeTab === "Thread" && <Thread workItemId={itemId ?? ""} showRail />}
       </div>

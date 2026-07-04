@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from adapters.database.repositories import (
     AgentDefinitionRepository,
+    AttachmentRepository,
     BusMessageRepository,
     MessageRepository,
     NotificationRepository,
@@ -56,6 +57,10 @@ class SqlUnitOfWork:
         if name not in self._repos:
             self._repos[name] = cls(self.session, required_filters=self._required_filters)
         return self._repos[name]
+
+    @property
+    def attachments(self) -> AttachmentRepository:
+        return self._repo("attachments", AttachmentRepository)
 
     @property
     def projects(self) -> ProjectRepository:

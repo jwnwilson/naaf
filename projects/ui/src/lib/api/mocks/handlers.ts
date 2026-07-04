@@ -142,6 +142,32 @@ export const liveHandlers = [
     return ok(updated);
   }),
 
+  // ── Attachments (literal sub-paths before bare :id) ─────────────────────────
+
+  http.get(`${BASE}/work-items/:id/attachments`, ({ params }) =>
+    ok(db.listAttachments(params.id as string)),
+  ),
+
+  http.post(`${BASE}/work-items/:id/attachments`, async ({ params, request }) => {
+    const form = await request.formData();
+    const file = form.get("file") as File;
+    const created = db.addAttachment({
+      id: `att-${file.name}`,
+      workItemId: params.id as string,
+      filename: file.name,
+      contentType: file.type || "application/octet-stream",
+      size: file.size,
+      url: `/work-items/${params.id}/attachments/att-${file.name}`,
+      createdAt: new Date().toISOString(),
+    });
+    return HttpResponse.json({ success: true, data: created, error: null }, { status: 201 });
+  }),
+
+  http.delete(`${BASE}/work-items/:id/attachments/:attId`, ({ params }) => {
+    db.deleteAttachment(params.attId as string);
+    return ok({ deleted: params.attId });
+  }),
+
   http.get(`${BASE}/work-items/:id`, ({ params }) => {
     const w = db.findWorkItem(params.id as string);
     return w ? ok(w) : notFound();

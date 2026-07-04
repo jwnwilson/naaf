@@ -9,7 +9,13 @@ from domain.transitions import validate_transition
 from domain.work_item import WorkItem, WorkItemKind
 from fastapi import APIRouter, Depends, Response
 
-from interactors.api.contract import WorkItemCreateIn, WorkItemOut, WorkItemUpdateIn, iso
+from interactors.api.contract import (
+    AttachmentOut,
+    WorkItemCreateIn,
+    WorkItemOut,
+    WorkItemUpdateIn,
+    iso,
+)
 from interactors.api.deps import get_uow
 from interactors.api.schemas import TransitionRequest, UpdateWorkItem
 
@@ -35,13 +41,17 @@ def _resolve_lineage(item: WorkItem, uow: SqlUnitOfWork) -> tuple[str | None, st
 
 
 def _work_item_out(
-    item: WorkItem, epic_id: str | None, feature_id: str | None
+    item: WorkItem,
+    epic_id: str | None,
+    feature_id: str | None,
+    attachments: list | None = None,
 ) -> WorkItemOut:
     """Build the camelCase contract response for a work item.
 
     epicId/featureId aren't stored on the item — the route resolves them from
     the parent chain (see _resolve_lineage). Agent-run fields (assignedAgent,
-    token usage, attachments) have no backend source yet and emit null/[].
+    token usage) have no backend source yet and emit null. Attachments are
+    populated only for single-item reads to avoid N+1 on list/board endpoints.
     """
     return WorkItemOut(
         id=item.id,
@@ -57,7 +67,7 @@ def _work_item_out(
         tokenUsageAllRuns=None,
         tokenLimit=None,
         spec=item.body or None,
-        attachments=[],
+        attachments=attachments or [],
         createdAt=iso(item.created_at),
         updatedAt=iso(item.updated_at),
     )
@@ -66,7 +76,21 @@ def _work_item_out(
 @router.get("/{id}", response_model=Envelope[WorkItemOut])
 def read_work_item(id: UUID, uow: SqlUnitOfWork = Depends(get_uow)):  # noqa: B008
     item = uow.work_items.read(id.hex)
-    return ok(_work_item_out(item, *_resolve_lineage(item, uow)))
+    atts = uow.attachments.read_multi(
+        filters={"work_item_id": item.id}, order_by="created_at"
+    ).results
+    att_out = [
+        AttachmentOut(
+            id=a.id,
+            filename=a.filename,
+            contentType=a.content_type,
+            size=a.size,
+            url=f"/work-items/{item.id}/attachments/{a.id}",
+            createdAt=iso(a.created_at),
+        ).model_dump()
+        for a in atts
+    ]
+    return ok(_work_item_out(item, *_resolve_lineage(item, uow), attachments=att_out))
 
 
 @router.patch("/{id}", response_model=Envelope[WorkItemOut])

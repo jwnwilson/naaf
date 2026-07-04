@@ -78,8 +78,11 @@ def run_subscription(
         return SqlUnitOfWork(session_factory)
 
     # --- per-item owner-scoped context ---
+    from adapters.storage.factory import build_storage
+
     from interactors.api.settings import Settings as _Settings
     _s = _Settings()
+    _storage = build_storage(_s)
     _cipher = SecretCipher(_s.secret_key)
 
     def ctx_factory(uow: SqlUnitOfWork, item: object) -> HandlerContext:
@@ -111,6 +114,7 @@ def run_subscription(
             projects=ProjectRepository(uow.session, required_filters=scope),
             workspace_root=_s.workspace_root,
             role_aliases=_s.role_model_aliases,
+            storage=_storage,
             chat_responder=_chat,
             lead_orchestrator=_orch,
         )

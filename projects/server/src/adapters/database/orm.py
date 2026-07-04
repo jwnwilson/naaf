@@ -53,6 +53,20 @@ class WorkItemRow(_Timestamped, Base):
     priority: Mapped[str] = mapped_column(String(16), default="medium", nullable=False)
 
 
+class AttachmentRow(_Timestamped, Base):
+    __tablename__ = "attachments"
+    __table_args__ = (
+        Index("ix_attachments_owner_wi", "owner_id", "work_item_id"),
+        UniqueConstraint("owner_id", "work_item_id", "filename", name="uq_attachment_name"),
+    )
+    work_item_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("work_items.id"), index=True, nullable=False
+    )
+    filename: Mapped[str] = mapped_column(String(512), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(255), nullable=False)
+    size: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
 class TeamRow(_Timestamped, Base):
     __tablename__ = "teams"
     name: Mapped[str] = mapped_column(String(255), nullable=False)

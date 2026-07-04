@@ -8,6 +8,7 @@ class WorkItemBrief(BaseModel):
     title: str
     body: str = ""
     acceptance_criteria: list[str] = Field(default_factory=list)
+    attachments: list[str] = Field(default_factory=list)
 
 
 class StageContext(BaseModel):

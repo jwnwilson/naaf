@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     agent_bash_timeout_s: int = 120
     agent_runtime: str = "claude_code"
     workspace_root: str = "/tmp/naaf-workspaces"
+    attachments_root: str = "~/.naaf"
+    storage_backend: str = "local"          # "local" | "s3"
+    s3_bucket: str = ""
+    s3_region: str = ""
+    max_attachment_bytes: int = 10_485_760  # 10 MB
     role_model_aliases: dict[str, str] = {
         "lead": "opus",
         "architect": "opus",
