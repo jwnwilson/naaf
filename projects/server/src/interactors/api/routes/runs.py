@@ -10,8 +10,6 @@ from domain.errors import InvalidTransition
 from domain.runs.events import EventType, RunEvent
 from domain.runs.messages import AgentMessage, MessageType, recipient_key
 from domain.runs.run import Run, StageState
-from domain.transitions import validate_transition
-from domain.work_item import WorkItemStatus
 from fastapi import APIRouter, Depends, Request
 from sse_starlette.sse import EventSourceResponse
 
@@ -25,6 +23,7 @@ from interactors.api.contract import (
     iso,
 )
 from interactors.api.deps import get_bus, get_uow
+from interactors.api.run_start import start_run as start_run_seq
 
 _SSE_POLL_SECONDS = 0.25
 _SSE_MAX_SECONDS = 600
@@ -101,31 +100,7 @@ def start_run(
     Creates a queued Run, enqueues a START message on the bus (atomic with the
     transaction), and transitions the work item to in_progress.
     """
-    work_item = uow.work_items.read(id.hex)
-    project = uow.projects.read(work_item.project_id)
-
-    # Validate the transition before creating the run so any bad state is 409
-    new_status = validate_transition(work_item.status, WorkItemStatus.IN_PROGRESS)
-
-    run = uow.runs.create(Run(
-        owner_id="",  # stamped by repo from required_filters
-        work_item_id=work_item.id,
-        project_id=project.id,
-        autonomy_level=project.autonomy_level.value,
-    ))
-
-    bus.publish(AgentMessage(
-        owner_id=owner_id,
-        run_id=run.id,
-        recipient=recipient_key(run.id, "lead"),
-        role="lead",
-        type=MessageType.START,
-    ))
-
-    uow.work_items.update(
-        work_item.id, work_item.model_copy(update={"status": new_status})
-    )
-
+    run = start_run_seq(uow, bus, owner_id, id.hex)
     return ok(_run_out(run))
 
 

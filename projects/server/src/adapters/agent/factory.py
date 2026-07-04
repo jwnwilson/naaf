@@ -46,3 +46,16 @@ def build_chat_responder(settings):
         return EchoChatResponder()
     from adapters.agent.chat.llm import LlmChatResponder
     return LlmChatResponder(build_llm_adapter(settings))
+
+
+def build_orchestrator(settings):
+    """Return the LeadOrchestrator for the project-thread lead.
+
+    EchoOrchestrator for ``agent_runtime=fake`` (offline/tests); otherwise the
+    LLM-backed LlmOrchestrator wired to the configured LLM adapter.
+    """
+    from adapters.agent.chat.orchestrator_echo import EchoOrchestrator
+    if settings.agent_runtime == "fake":
+        return EchoOrchestrator()
+    from adapters.agent.chat.orchestrator_llm import LlmOrchestrator
+    return LlmOrchestrator(build_llm_adapter(settings))

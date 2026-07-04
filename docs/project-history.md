@@ -15,6 +15,26 @@ produce reviewable PRs; and update persistent memory as they work.
 - Architecture & patterns: [architecture.md](architecture.md)
 - ADRs: [adr/](adr/)
 
+## Status (2026-07-04)
+
+**Conversational lead (D) — built.** You can now plan a project by chatting with a **lead agent**
+in a new **project-level thread** (`project:<id>` — a namespaced thread id, no schema change). The
+lead has a **tool surface**: a `LeadOrchestrator` (LLM-backed `LlmOrchestrator`, or the
+deterministic `EchoOrchestrator` offline/tests) drives domain-action tools via a shared
+`run_tool_loop` — `list_board`, `create_work_item` (hierarchy-validated), `update_work_item`, and
+`propose_run`. Tools execute through a `CtxOrchestrationTools` adapter over the owner-scoped worker
+context, so created epics/features/tasks and the run proposal appear on the board + in the thread.
+Autonomy is **auto-create, propose-to-run**: work items are created directly, but development is a
+**`run_proposal` question** the human approves in-thread — approval runs the shared `start_run`
+sequence per task (extracted from the runs route). `handle_chat` gained a project branch; the
+orchestrator is wired through `factory`/`subscription_runner`/`celery`. On the UI, the right-rail
+**chat becomes "Chat with lead"** and targets the project thread when a project is selected on the
+board (reusing the shared `<Thread>`), with a mock orchestrator simulating the flow offline.
+**Deviation from the spec:** the stage runtime still keeps its own loop — `run_tool_loop` is shared
+by the orchestrator but unifying `LlmAgentRuntime.run_stage` onto it is a deferred, lower-risk
+cleanup. Completes the **B → A+C → D** dogfooding sequence. Design:
+[superpowers/specs/2026-07-03-conversational-lead-design.md](superpowers/specs/2026-07-03-conversational-lead-design.md).
+
 ## Status (2026-07-03)
 
 **Dogfood setup + UI run controls (A+C) — built.** NAAF can now be driven end-to-end on its own

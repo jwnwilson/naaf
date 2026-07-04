@@ -1,6 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
 import { server } from "../lib/api/mocks/server";
@@ -11,7 +12,9 @@ import { ChatPanel } from "./ChatPanel";
 function renderPanel() {
   render(
     <QueryClientProvider client={createQueryClient()}>
-      <ChatPanel />
+      <MemoryRouter>
+        <ChatPanel />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -82,5 +85,29 @@ describe("ChatPanel", () => {
     await userEvent.type(input, "ship it");
     await userEvent.click(screen.getByRole("button", { name: /send/i }));
     expect(await screen.findByText("ship it")).toBeInTheDocument();
+  });
+
+  it("shows the project lead thread when a project is selected on the board", async () => {
+    server.use(
+      http.get("/api/threads/project:p1/messages", () =>
+        HttpResponse.json({
+          success: true,
+          data: [makeMsg({ id: "lm1", threadId: "project:p1", authorKind: "agent", authorRole: "lead", content: "lead: planning the work" })],
+          error: null,
+          meta: null,
+        }),
+      ),
+    );
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter initialEntries={["/projects?project=p1"]}>
+          <Routes>
+            <Route path="/projects" element={<ChatPanel />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText("Chat with lead")).toBeInTheDocument();
+    expect(await screen.findByText("lead: planning the work")).toBeInTheDocument();
   });
 });

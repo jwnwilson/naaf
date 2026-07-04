@@ -1,13 +1,29 @@
 from adapters.bus.ports import MessageBus
 from adapters.database.uow import SqlUnitOfWork
 from crud_router import Envelope, ok
-from domain.errors import RecordNotFound
+from domain.errors import InvalidTransition, RecordNotFound
 from domain.messaging.dispatch import plan_dispatch
-from domain.messaging.mentions import parse_mentions
+from domain.messaging.mentions import DEFAULT_ROLE, parse_mentions
 from domain.messaging.message import AuthorKind, Message, MessageKind
-from domain.messaging.question import is_valid_option
-from domain.messaging.thread import ThreadView, thread_from_work_item
-from domain.runs.messages import AgentMessage, MessageType, chat_recipient, recipient_key
+from domain.messaging.question import (
+    is_run_proposal,
+    is_valid_option,
+    resolve_payload,
+)
+from domain.messaging.thread import (
+    ThreadView,
+    is_project_thread,
+    project_id_from_thread,
+    thread_from_project,
+    thread_from_work_item,
+)
+from domain.runs.messages import (
+    AgentMessage,
+    MessageType,
+    chat_recipient,
+    project_chat_recipient,
+    recipient_key,
+)
 from fastapi import APIRouter, Depends, HTTPException
 
 from interactors.api.auth import get_owner_id
@@ -20,6 +36,7 @@ from interactors.api.contract import (
     iso,
 )
 from interactors.api.deps import get_bus, get_uow
+from interactors.api.run_start import start_run as start_run_seq
 
 router = APIRouter(prefix="/threads", tags=["threads"])
 
@@ -64,6 +81,21 @@ def _read_item_or_404(uow: SqlUnitOfWork, wid: str):
         raise HTTPException(status_code=404, detail="thread not found") from exc
 
 
+def _read_project_or_404(uow: SqlUnitOfWork, tid: str):
+    try:
+        return uow.projects.read(project_id_from_thread(tid))
+    except RecordNotFound as exc:
+        raise HTTPException(status_code=404, detail="thread not found") from exc
+
+
+def _ensure_thread(uow: SqlUnitOfWork, tid: str) -> None:
+    """Existence + owner check for either a project thread or a work-item thread."""
+    if is_project_thread(tid):
+        _read_project_or_404(uow, tid)
+    else:
+        _read_item_or_404(uow, tid)
+
+
 def _messages_for(uow: SqlUnitOfWork, wid: str) -> list[Message]:
     page = uow.messages.read_multi(
         filters={"thread_id": wid}, page_size=500, page_number=1, order_by="created_at"
@@ -96,9 +128,11 @@ def list_threads(
 
 @router.get("/{id}", response_model=Envelope[ThreadDetailOut])
 def get_thread(id: str, uow: SqlUnitOfWork = Depends(get_uow)):  # noqa: B008
-    item = _read_item_or_404(uow, id)
     messages = _messages_for(uow, id)
-    base = _thread_out(thread_from_work_item(item, messages))
+    if is_project_thread(id):
+        base = _thread_out(thread_from_project(_read_project_or_404(uow, id), messages))
+    else:
+        base = _thread_out(thread_from_work_item(_read_item_or_404(uow, id), messages))
     detail = ThreadDetailOut(**base.model_dump(), filesWritten=_files_written(messages))
     return ok(detail)
 
@@ -110,7 +144,7 @@ def list_messages(
     page_number: int = 1,
     uow: SqlUnitOfWork = Depends(get_uow),  # noqa: B008
 ):
-    _read_item_or_404(uow, id)
+    _ensure_thread(uow, id)
     page = uow.messages.read_multi(
         filters={"thread_id": id}, page_size=page_size, page_number=page_number,
         order_by="created_at",
@@ -126,7 +160,7 @@ def post_message(
     bus: MessageBus = Depends(get_bus),  # noqa: B008
     owner_id: str = Depends(get_owner_id),  # noqa: B008
 ):
-    _read_item_or_404(uow, id)
+    _ensure_thread(uow, id)
     created = uow.messages.create(Message(
         owner_id="",
         thread_id=id,
@@ -135,15 +169,33 @@ def post_message(
         content=payload.content,
         mentions=parse_mentions(payload.content),
     ))
-    for role in plan_dispatch(payload.content, 0):
+    if is_project_thread(id):
+        # Project thread: the human talks to the lead orchestrator.
+        pid = project_id_from_thread(id)
         bus.publish(AgentMessage(
             owner_id=owner_id,
             run_id="",
-            recipient=chat_recipient(id, role),
-            role=role,
+            recipient=project_chat_recipient(pid, DEFAULT_ROLE),
+            role=DEFAULT_ROLE,
             type=MessageType.CHAT,
-            payload={"work_item_id": id, "depth": 0, "trigger_message_id": created.id},
+            payload={
+                "thread_id": id, "project_id": pid, "depth": 0,
+                "trigger_message_id": created.id,
+            },
         ))
+    else:
+        for role in plan_dispatch(payload.content, 0):
+            bus.publish(AgentMessage(
+                owner_id=owner_id,
+                run_id="",
+                recipient=chat_recipient(id, role),
+                role=role,
+                type=MessageType.CHAT,
+                payload={
+                    "work_item_id": id, "thread_id": id, "depth": 0,
+                    "trigger_message_id": created.id,
+                },
+            ))
     return ok(_message_out(created))
 
 
@@ -156,7 +208,7 @@ def answer_question(
     owner_id: str = Depends(get_owner_id),  # noqa: B008
     bus: MessageBus = Depends(get_bus),  # noqa: B008
 ):
-    _read_item_or_404(uow, id)  # owner-scoped thread existence
+    _ensure_thread(uow, id)  # owner-scoped thread existence
     try:
         message = uow.messages.read(msg_id)
     except RecordNotFound as exc:
@@ -167,6 +219,21 @@ def answer_question(
         raise HTTPException(status_code=409, detail="question already resolved")
     if not is_valid_option(message.payload, body.option):
         raise HTTPException(status_code=422, detail="invalid option")
+
+    # A run proposal from the lead: approving it starts a run per work item.
+    # Unlike a gate, there is no worker round-trip, so resolve the message here.
+    if is_run_proposal(message.payload):
+        if body.option == "approve":
+            for wid in message.payload.get("work_item_ids", []):
+                try:
+                    start_run_seq(uow, bus, owner_id, wid)
+                except InvalidTransition:
+                    continue  # skip items that can't start (already running/done)
+        new_payload = resolve_payload(message.payload, body.option)
+        resolved = message.model_copy(update={"payload": new_payload})
+        uow.messages.update(msg_id, resolved)
+        return ok(_message_out(resolved))
+
     run_id = message.payload.get("run_id")
     if run_id:
         uow.runs.read(run_id)  # owner-scoped 404 if foreign
