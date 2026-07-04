@@ -61,15 +61,47 @@ def build_orchestrator(settings):
     return LlmOrchestrator(build_llm_adapter(settings))
 
 
-def build_agent_deps(settings, *, anthropic_api_key: str, github_token: str):
+def build_claude_cli_deps(settings, *, owner_id: str, github_token: str):
+    """Build (runtime, chat_responder, orchestrator) for the Claude subscription
+    (via `claude -p`) — no Anthropic key. One ClaudeCliLLMAdapter powers all three
+    (reusing LlmAgentRuntime/LlmChatResponder/LlmOrchestrator). The runtime's
+    workspace_factory points the adapter at each stage's workspace; the adapter's
+    MCP config is scoped to this owner so Claude Code can call naaf's tools."""
+    from adapters.agent.chat.llm import LlmChatResponder
+    from adapters.agent.chat.orchestrator_llm import LlmOrchestrator
+    from adapters.agent.claude_cli.adapter import ClaudeCliLLMAdapter
+    from adapters.agent.claude_cli.mcp_config import write_mcp_config
+
+    mcp_path = write_mcp_config(owner_id=owner_id, db_url=settings.db_url) if owner_id else None
+    adapter = ClaudeCliLLMAdapter(
+        claude_bin=settings.claude_bin,
+        mcp_config_path=mcp_path,
+        github_token=github_token,
+        timeout_s=settings.claude_timeout_s,
+    )
+
+    def workspace_factory(path: str) -> LocalWorkspace:
+        adapter.set_cwd(path)  # run claude -p in this stage's workspace
+        return LocalWorkspace(path)
+
+    runtime = LlmAgentRuntime(adapter, workspace_factory, settings.agent_max_iterations)
+    return runtime, LlmChatResponder(adapter), LlmOrchestrator(adapter)
+
+
+def build_agent_deps(settings, *, anthropic_api_key: str = "", github_token: str = "",
+                     owner_id: str = ""):
     """Build (runtime, chat_responder, orchestrator) for a specific owner's secrets.
 
     The Anthropic key overrides the settings value; the GitHub token is injected
     into the run runtime's workspace env so the agent's git/gh commands use it.
-    Falls through to the offline impls when ``agent_runtime=fake``.
+    Falls through to the offline impls when ``agent_runtime=fake`` and to the
+    Claude subscription when ``llm_provider=claude_cli``.
     """
     if settings.agent_runtime == "fake":
         return build_runtime(settings), build_chat_responder(settings), build_orchestrator(settings)
+
+    if settings.llm_provider == "claude_cli":
+        return build_claude_cli_deps(settings, owner_id=owner_id, github_token=github_token)
 
     from adapters.agent.chat.llm import LlmChatResponder
     from adapters.agent.chat.orchestrator_llm import LlmOrchestrator

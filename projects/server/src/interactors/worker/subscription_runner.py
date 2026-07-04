@@ -89,16 +89,17 @@ def run_subscription(
         owner_id: str = item.owner_id  # type: ignore[attr-defined]
         scope = {"owner_id": owner_id}
 
-        # Per-owner secret injection: if this owner has stored secrets, build
-        # owner-specific agent deps (their Anthropic key + GitHub token);
-        # otherwise reuse the process-global deps (env-based).
+        # Per-owner agent deps: build owner-specific deps when the owner has stored
+        # secrets, or always in claude_cli mode (the MCP server is owner-scoped and
+        # no global owner exists). Otherwise reuse the process-global (env) deps.
         secrets = SecretRepository(uow.session, required_filters=scope)
         resolver = SecretResolver(secrets, _cipher, _s)
-        if resolver.has_any_stored():
+        if _s.llm_provider == "claude_cli" or resolver.has_any_stored():
             _rt, _chat, _orch = build_agent_deps(
                 _s,
                 anthropic_api_key=resolver.anthropic_api_key(),
                 github_token=resolver.github_token(),
+                owner_id=owner_id,
             )
         else:
             _rt, _chat, _orch = runtime, chat_responder, lead_orchestrator
