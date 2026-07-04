@@ -1,5 +1,6 @@
 import { MetricCard } from "../../components/ui/MetricCard";
 import { ProgressBar } from "../../components/ui/ProgressBar";
+import { useAgents } from "../../lib/api/hooks/useAgents";
 import { useBudget } from "../../lib/api/hooks/useBudget";
 import { useDashboard } from "../../lib/api/hooks/useDashboard";
 
@@ -23,6 +24,8 @@ function SpendCardSub({ pct }: { pct: number }) {
 export function MetricCards() {
   const { data: metrics, isLoading } = useDashboard();
   const { data: budget } = useBudget();
+  const { data: agents } = useAgents();
+  const activeCount = (agents ?? []).filter((a) => a.status === "running").length;
 
   if (isLoading || !metrics) {
     return (
@@ -43,17 +46,17 @@ export function MetricCards() {
     <div className="grid grid-cols-4 gap-3">
       <MetricCard
         label="ACTIVE AGENTS"
-        value={metrics.activeAgents}
+        value={activeCount}
         sub={
           <span className="flex items-center gap-[5px] text-[#4a8c68]">
-            {metrics.activeAgents > 0 && (
+            {activeCount > 0 && (
               <span
                 data-testid="active-agents-dot"
                 className="inline-block rounded-full bg-[#4a8c68]"
                 style={{ width: 6, height: 6 }}
               />
             )}
-            {metrics.activeAgents} running now
+            {activeCount} running now
           </span>
         }
       />
