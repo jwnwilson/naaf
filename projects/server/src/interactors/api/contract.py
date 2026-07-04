@@ -170,6 +170,19 @@ class AgentDefinitionUpdateIn(BaseModel):
     enabled: bool | None = None
 
 
+class AgentOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    role: str
+    model: str
+    status: str  # "running" | "idle"
+    runId: str | None = None
+    workItemId: str | None = None
+    currentStage: str | None = None
+    progress: float | None = None
+    tokenUsage: int
+
+
 # ---------------------------------------------------------------------------
 # Run
 # ---------------------------------------------------------------------------

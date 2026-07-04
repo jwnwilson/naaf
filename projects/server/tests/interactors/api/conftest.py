@@ -65,3 +65,61 @@ def client_other_owner(session_factory, tmp_path):
         session_factory=session_factory,
     )
     return TestClient(app)
+
+
+@pytest.fixture
+def running_backend_run(client, session_factory):
+    """Seed an enabled backend AgentDefinition + a running Run via direct UoW access.
+
+    Returns a dict with ``work_item_id`` — the task the run is attached to.
+    """
+    from adapters.database.uow import SqlUnitOfWork
+    from domain.runs.run import Run, RunStatus, Stage, StageState, StageStatus
+    from domain.team import AgentDefinition, AgentRole, Team
+
+    # Create a real project + task via the API to avoid FK surprises.
+    proj = client.post("/projects/", json={"name": "run-project"}).json()["data"]
+    pid = proj["id"]
+    epic = client.post(
+        f"/projects/{pid}/work-items", json={"type": "epic", "title": "E"}
+    ).json()["data"]
+    feat = client.post(
+        f"/projects/{pid}/work-items",
+        json={"type": "feature", "title": "F", "epicId": epic["id"]},
+    ).json()["data"]
+    task = client.post(
+        f"/projects/{pid}/work-items",
+        json={"type": "task", "title": "T", "featureId": feat["id"]},
+    ).json()["data"]
+    work_item_id = task["id"]
+
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "dev-user"})
+    with uow.transaction():
+        team = uow.teams.create(Team(owner_id="", name="RunTeam"))
+        uow.agent_definitions.create(
+            AgentDefinition(
+                owner_id="",
+                team_id=team.id,
+                role=AgentRole.BACKEND,
+                enabled=True,
+            )
+        )
+        uow.runs.create(
+            Run(
+                owner_id="",
+                work_item_id=work_item_id,
+                project_id=pid,
+                autonomy_level="gated_all",
+                status=RunStatus.RUNNING,
+                current_stage=Stage.IMPLEMENT,
+                stages=[
+                    StageState(
+                        stage=Stage.IMPLEMENT,
+                        status=StageStatus.RUNNING,
+                        role="engineer",
+                    )
+                ],
+            )
+        )
+
+    return {"work_item_id": work_item_id}
