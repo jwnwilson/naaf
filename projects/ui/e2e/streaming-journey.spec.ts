@@ -76,13 +76,14 @@ test("chat → lead creates a task → run streams multi-stage output", async ({
     timeout: 30_000,
   });
 
-  // ── 10. Run advances through stages — assert a later stage is reached ────────
+  // ── 10. Run advances through stages — assert verify (or later) is reached ────
   // run-status renders "{status} · {currentStage} · {startedAt}".
-  // We catch "verify" while the stage is in-flight, or "done"/"learn" if the
-  // pipeline reaches further. PR/LEARN may fail without a real repo — that is
-  // expected and out of scope.
+  // We match stage names only (verify/pr/learn) — never "failed", which can
+  // appear in the status field even before verify, and never the dead
+  // alternatives "done"/"complete" which match no real RunStatus or RunStage.
+  // PR/LEARN may error without a real repo; that is expected and out of scope.
   await expect(page.getByTestId("run-status")).toContainText(
-    /verify|done|complete|learn|failed/i,
+    /verify|pr|learn/i,
     { timeout: 45_000 },
   );
 });
