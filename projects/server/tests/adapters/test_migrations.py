@@ -186,3 +186,50 @@ def test_migration_adds_subscriber_cursors(tmp_path):
     assert "subscriber_cursors" in tables
     cols = {r[1] for r in con.execute("PRAGMA table_info(subscriber_cursors)")}
     assert {"name", "last_global_seq", "retries", "updated_at"} <= cols
+
+
+def test_migration_backfills_work_item_keys_and_seq(tmp_path):
+    import os
+    import sqlite3
+    import subprocess
+    from pathlib import Path
+
+    db = tmp_path / "naaf.db"
+    server = Path(__file__).resolve().parents[2]
+    env = {"naaf_db_url": f"sqlite:///{db}", "PATH": os.environ["PATH"]}
+    subprocess.run(
+        ["uv", "run", "alembic", "upgrade", "0015_run_cost"],
+        cwd=server, env=env, check=True,
+    )
+    con = sqlite3.connect(db)
+    con.execute(
+        "INSERT INTO projects (id, owner_id, name, autonomy_level, created_at, updated_at) "
+        "VALUES ('p1','u1','Demo Project','gated_all','2026-01-01','2026-01-01')"
+    )
+    con.execute(
+        "INSERT INTO work_items (id, owner_id, project_id, kind, title, body, "
+        "acceptance_criteria, status, priority, created_at, updated_at) VALUES "
+        "('w1','u1','p1','epic','A','','[]','todo','medium','2026-01-01','2026-01-01')"
+    )
+    con.execute(
+        "INSERT INTO work_items (id, owner_id, project_id, kind, title, body, "
+        "acceptance_criteria, status, priority, created_at, updated_at) VALUES "
+        "('w2','u1','p1','task','B','','[]','todo','medium','2026-01-02','2026-01-02')"
+    )
+    con.commit()
+    con.close()
+
+    r = subprocess.run(
+        ["uv", "run", "alembic", "upgrade", "head"],
+        cwd=server, env=env, capture_output=True, text=True,
+    )
+    assert r.returncode == 0, r.stderr
+
+    con = sqlite3.connect(db)
+    key = con.execute("SELECT key FROM projects WHERE id='p1'").fetchone()[0]
+    seqs = dict(con.execute("SELECT id, seq FROM work_items WHERE project_id='p1'").fetchall())
+    idx = {r[1] for r in con.execute("PRAGMA index_list(projects)")}
+    con.close()
+    assert key == "DEMO"
+    assert seqs == {"w1": 1, "w2": 2}
+    assert "uq_project_owner_key" in idx

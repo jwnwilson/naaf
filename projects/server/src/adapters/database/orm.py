@@ -31,6 +31,9 @@ class _Timestamped:
 
 class ProjectRow(_Timestamped, Base):
     __tablename__ = "projects"
+    __table_args__ = (
+        Index("uq_project_owner_key", "owner_id", "key", unique=True),
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     key: Mapped[str | None] = mapped_column(String(8), nullable=True)
     repo_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
