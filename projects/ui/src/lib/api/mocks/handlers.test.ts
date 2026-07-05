@@ -48,8 +48,8 @@ describe("handler split", () => {
     expect(live).toMatch(/\/api\/runs/);
     // board endpoint has no backend — always mocked
     expect(mock).toMatch(/\/api\/projects\/:id\/board/);
-    // board must NOT be in live
-    expect(live).not.toMatch(/board/);
+    // board endpoint must NOT be in live (note: "dashboard" also contains "board" so match the full path)
+    expect(live).not.toMatch(/\/projects\/:id\/board/);
     // /inbox is retired — must not appear anywhere
     expect(live).not.toMatch(/\/inbox/);
     expect(mock).not.toMatch(/\/inbox/);
