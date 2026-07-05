@@ -56,7 +56,7 @@ export function Thread({
                 ))}
               </div>
             ))}
-            <ActivityFeed threadId={workItemId} />
+            <ActivityFeed scope={{ threadId: workItemId }} />
           </div>
           <ThreadComposer
             workItemId={workItemId}

@@ -8,7 +8,7 @@ describe("ActivityFeed", () => {
     vi.spyOn(hook, "useAgentActivity").mockReturnValue({
       events: [], isWorking: true, textBlocks: [], toolCalls: [], done: false,
     } as never);
-    render(<ActivityFeed threadId="w1" />);
+    render(<ActivityFeed scope={{ threadId: "w1" }} />);
     expect(screen.getByTestId("activity-typing")).toBeInTheDocument();
   });
 
@@ -17,7 +17,7 @@ describe("ActivityFeed", () => {
       events: [], isWorking: true, textBlocks: ["Planning…"],
       toolCalls: [{ name: "create_task", result: "ok" }], done: false,
     } as never);
-    render(<ActivityFeed threadId="w1" />);
+    render(<ActivityFeed scope={{ threadId: "w1" }} />);
     expect(screen.getByText("Planning…")).toBeInTheDocument();
     expect(screen.getByText(/create_task/)).toBeInTheDocument();
   });

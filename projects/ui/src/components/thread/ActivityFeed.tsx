@@ -1,8 +1,12 @@
 import { useAgentActivity } from "../../lib/api/hooks/useAgentActivity";
 import { TypingIndicator } from "../ui/TypingIndicator";
 
-export function ActivityFeed({ threadId }: { threadId: string }) {
-  const { isWorking, textBlocks, toolCalls } = useAgentActivity({ threadId });
+interface ActivityFeedProps {
+  scope: { threadId?: string; runId?: string };
+}
+
+export function ActivityFeed({ scope }: ActivityFeedProps) {
+  const { isWorking, textBlocks, toolCalls } = useAgentActivity(scope);
   if (!isWorking) return null;
   const hasContent = textBlocks.length > 0 || toolCalls.length > 0;
   return (
