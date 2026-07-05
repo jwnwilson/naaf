@@ -47,13 +47,16 @@ test("chat → lead creates a task → run streams multi-stage output", async ({
     )
     .toBe(true);
 
-  // Board polls every 5s; wait for the task card to appear
-  await expect(page.getByText(TASK_TITLE)).toBeVisible({ timeout: 15_000 });
+  // Board polls every 5s; wait for the task card to appear. Scope to role=link so
+  // we match the KanbanCard (an <a> to the detail route), NOT the lead's chat
+  // message which also contains the title ("…proposed a run on 'E2E streaming task'").
+  const taskCard = page.getByRole("link", { name: TASK_TITLE });
+  await expect(taskCard).toBeVisible({ timeout: 15_000 });
 
   // ── 6. Open the task detail page ─────────────────────────────────────────────
-  await page.getByText(TASK_TITLE).click();
-  // Breadcrumb or item header confirms we are on the detail page
-  await expect(page.getByText(TASK_TITLE).first()).toBeVisible({ timeout: 10_000 });
+  await taskCard.click();
+  // Confirm we actually navigated to the item detail route (not stayed on the board)
+  await expect(page).toHaveURL(/\/items\//, { timeout: 10_000 });
 
   // ── 7. Start a run (triggers modal; confirm to launch) ───────────────────────
   await page.getByTestId("start-run-button").click();
