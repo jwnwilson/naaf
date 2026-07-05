@@ -34,8 +34,10 @@ export function reduceActivity(events: ActivityEvent[]): ActivityState {
   return { isWorking: working, textBlocks, toolCalls, error, done: lastTerminal };
 }
 
-function scopePath(scope: { threadId?: string; runId?: string }): string {
-  return scope.threadId ? `/threads/${scope.threadId}` : `/runs/${scope.runId}`;
+function scopePath(scope: { threadId?: string; runId?: string }): string | null {
+  if (scope.threadId) return `/threads/${scope.threadId}`;
+  if (scope.runId) return `/runs/${scope.runId}`;
+  return null;
 }
 
 export function useAgentActivity(scope: { threadId?: string; runId?: string } | null) {

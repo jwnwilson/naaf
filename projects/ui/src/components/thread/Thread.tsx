@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 import { useAnswerQuestion, useThreadMessages } from "../../lib/api/hooks";
+import { useAgentActivity } from "../../lib/api/hooks/useAgentActivity";
 import { MessageItem } from "./MessageItem";
 import { ThreadComposer } from "./ThreadComposer";
 import { ThreadRail } from "./ThreadRail";
 import { groupMessagesByDay } from "./groupByDay";
-import { ActivityFeed } from "./ActivityFeed";
+import { ActivityFeedView } from "./ActivityFeed";
 
 interface ThreadProps {
   workItemId: string;
@@ -35,6 +36,7 @@ export function Thread({
   const answer = useAnswerQuestion(workItemId);
   const handleAnswer = (msgId: string, option: string) => { answer.mutate({ msgId, option }); };
   const groups = groupMessagesByDay(messages);
+  const activity = useAgentActivity({ threadId: workItemId });
 
   return (
     <div className="flex flex-col h-full flex-1 overflow-hidden">
@@ -45,7 +47,7 @@ export function Thread({
             {isLoading && (
               <p className="text-[11px] text-[#30333c]">Loading…</p>
             )}
-            {!isLoading && messages.length === 0 && (
+            {!isLoading && messages.length === 0 && !activity.isWorking && (
               <p className="text-[11px] text-[#30333c]">No messages yet</p>
             )}
             {groups.map((group) => (
@@ -56,7 +58,11 @@ export function Thread({
                 ))}
               </div>
             ))}
-            <ActivityFeed scope={{ threadId: workItemId }} />
+            <ActivityFeedView
+              isWorking={activity.isWorking}
+              textBlocks={activity.textBlocks}
+              toolCalls={activity.toolCalls}
+            />
           </div>
           <ThreadComposer
             workItemId={workItemId}

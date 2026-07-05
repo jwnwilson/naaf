@@ -1,12 +1,11 @@
-import { useAgentActivity } from "../../lib/api/hooks/useAgentActivity";
+import { useAgentActivity, type ActivityState } from "../../lib/api/hooks/useAgentActivity";
 import { TypingIndicator } from "../ui/TypingIndicator";
 
-interface ActivityFeedProps {
-  scope: { threadId?: string; runId?: string };
-}
-
-export function ActivityFeed({ scope }: ActivityFeedProps) {
-  const { isWorking, textBlocks, toolCalls } = useAgentActivity(scope);
+export function ActivityFeedView({
+  isWorking,
+  textBlocks,
+  toolCalls,
+}: Pick<ActivityState, "isWorking" | "textBlocks" | "toolCalls">) {
   if (!isWorking) return null;
   const hasContent = textBlocks.length > 0 || toolCalls.length > 0;
   return (
@@ -28,4 +27,9 @@ export function ActivityFeed({ scope }: ActivityFeedProps) {
       </div>
     </div>
   );
+}
+
+export function ActivityFeed({ scope }: { scope: { threadId?: string; runId?: string } }) {
+  const { isWorking, textBlocks, toolCalls } = useAgentActivity(scope);
+  return <ActivityFeedView isWorking={isWorking} textBlocks={textBlocks} toolCalls={toolCalls} />;
 }

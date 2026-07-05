@@ -1,7 +1,62 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Message } from "../../lib/api/hooks";
 import { MessageItem } from "./MessageItem";
+import { Thread } from "./Thread";
+
+vi.mock("../../lib/api/hooks", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../lib/api/hooks")>();
+  return {
+    ...actual,
+    useThreadMessages: vi.fn(),
+    useAnswerQuestion: vi.fn(),
+  };
+});
+
+vi.mock("../../lib/api/hooks/useAgentActivity", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../lib/api/hooks/useAgentActivity")>();
+  return {
+    ...actual,
+    useAgentActivity: vi.fn(),
+  };
+});
+
+vi.mock("./ThreadComposer", () => ({
+  ThreadComposer: () => <div data-testid="thread-composer" />,
+}));
+
+vi.mock("./ThreadRail", () => ({
+  ThreadRail: () => <div data-testid="thread-rail" />,
+}));
+
+import * as apiHooks from "../../lib/api/hooks";
+import * as activityHook from "../../lib/api/hooks/useAgentActivity";
+
+const IDLE = { isWorking: false, textBlocks: [], toolCalls: [], done: false, events: [] };
+const WORKING = { isWorking: true, textBlocks: [], toolCalls: [], done: false, events: [] };
+
+describe("Thread empty-state gate", () => {
+  beforeEach(() => {
+    vi.mocked(apiHooks.useAnswerQuestion).mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+    } as never);
+  });
+
+  it("shows 'No messages yet' when idle and no messages", () => {
+    vi.mocked(apiHooks.useThreadMessages).mockReturnValue({ data: [], isLoading: false } as never);
+    vi.mocked(activityHook.useAgentActivity).mockReturnValue(IDLE as never);
+    render(<Thread workItemId="wi-1" />);
+    expect(screen.getByText("No messages yet")).toBeInTheDocument();
+  });
+
+  it("does NOT show 'No messages yet' when agent is working and no messages yet", () => {
+    vi.mocked(apiHooks.useThreadMessages).mockReturnValue({ data: [], isLoading: false } as never);
+    vi.mocked(activityHook.useAgentActivity).mockReturnValue(WORKING as never);
+    render(<Thread workItemId="wi-1" />);
+    expect(screen.queryByText("No messages yet")).not.toBeInTheDocument();
+  });
+});
 
 function msg(overrides: Partial<Message>): Message {
   return {
