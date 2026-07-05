@@ -38,3 +38,21 @@ test("creates a project and closes", async () => {
   await userEvent.click(screen.getByRole("button", { name: /create project/i }));
   await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
 });
+
+test("submits the description with the new project", async () => {
+  let received: { name: string; description?: string } | null = null;
+  server.use(
+    http.post("/api/projects", async ({ request }) => {
+      received = (await request.json()) as { name: string; description?: string };
+      return HttpResponse.json(
+        { success: true, error: null, data: { id: "p9", name: received.name, description: received.description ?? "", repoUrl: "", itemCount: 0, createdAt: "2026-07-03T00:00:00Z", updatedAt: "2026-07-03T00:00:00Z" } },
+        { status: 201 },
+      );
+    }),
+  );
+  renderModal();
+  await userEvent.type(screen.getByLabelText(/name/i), "Acme");
+  await userEvent.type(screen.getByLabelText(/description/i), "our repo");
+  await userEvent.click(screen.getByRole("button", { name: /create project/i }));
+  await waitFor(() => expect(received?.description).toBe("our repo"));
+});
