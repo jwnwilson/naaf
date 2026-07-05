@@ -19,20 +19,19 @@ export function reduceActivity(events: ActivityEvent[]): ActivityState {
   const textBlocks: string[] = [];
   const toolCalls: { name: string; result?: string }[] = [];
   let error: string | undefined;
-  let done = false;
-  let sawStatus = false;
+  let working = false;      // running flag — re-activates on each new stage's status
+  let lastTerminal = false; // was the most recent event a final/error?
   for (const ev of events) {
     const p = (ev.payload ?? {}) as Record<string, unknown>;
-    if (ev.kind === "status") sawStatus = true;
-    else if (ev.kind === "text_block") textBlocks.push(String(p.text ?? ""));
-    else if (ev.kind === "tool_call") toolCalls.push({ name: String(p.name ?? "") });
+    if (ev.kind === "status") { working = true; lastTerminal = false; }
+    else if (ev.kind === "text_block") { textBlocks.push(String(p.text ?? "")); working = true; lastTerminal = false; }
+    else if (ev.kind === "tool_call") { toolCalls.push({ name: String(p.name ?? "") }); working = true; lastTerminal = false; }
     else if (ev.kind === "tool_result" && toolCalls.length)
       toolCalls[toolCalls.length - 1] = { ...toolCalls[toolCalls.length - 1], result: String(p.result ?? "") };
-    else if (ev.kind === "final") done = true;
-    else if (ev.kind === "error") { error = String(p.message ?? "error"); done = true; }
+    else if (ev.kind === "final") { working = false; lastTerminal = true; }
+    else if (ev.kind === "error") { error = String(p.message ?? "error"); working = false; lastTerminal = true; }
   }
-  const isWorking = (sawStatus || textBlocks.length > 0 || toolCalls.length > 0) && !done;
-  return { isWorking, textBlocks, toolCalls, error, done };
+  return { isWorking: working, textBlocks, toolCalls, error, done: lastTerminal };
 }
 
 function scopePath(scope: { threadId?: string; runId?: string }): string {

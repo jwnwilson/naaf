@@ -48,6 +48,10 @@ def streaming_runner(
     except FileNotFoundError:
         return {"is_error": True, "result": f"claude CLI not found ({argv[0]})", "usage": {}}
     try:
+        # KNOWN LIMITATION: this blocks per-line; proc.wait(timeout=) below only
+        # fires after stdout EOF. A claude hang with stdout open + no exit is not
+        # time-bounded here (unlike the blocking _default_runner). Follow-up: enforce
+        # a wall-clock deadline on the read (thread+join or select on the pipe).
         for line in proc.stdout:  # blocks per line as claude emits them
             try:
                 obj = json.loads(line)

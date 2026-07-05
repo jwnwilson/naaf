@@ -239,7 +239,22 @@ def _finish_stage(
 def _run_stage_inline(ctx: HandlerContext, run: Run, role: str, stage: Stage) -> StageResult:
     run = _start_stage(ctx, run, role, stage)
     assert ctx.runtime is not None, "_run_stage_inline requires a non-None runtime"
-    outcome = ctx.runtime.run_stage(role, stage, build_stage_context(ctx, run, role, stage))
+    scope = stream_scope(run_id=run.id)
+    sink = build_event_sink(ctx.session_factory, run.owner_id, scope)
+    if sink:
+        sink(EVENT_STATUS, {"state": "working", "stage": stage.value, "role": role})
+        ctx.runtime.set_event_sink(sink)
+    try:
+        outcome = ctx.runtime.run_stage(role, stage, build_stage_context(ctx, run, role, stage))
+    except Exception as exc:
+        if sink:
+            sink(EVENT_ERROR, {"message": str(exc)})
+        raise
+    finally:
+        if sink:
+            ctx.runtime.set_event_sink(None)
+    if sink:
+        sink(EVENT_FINAL, {"stage": stage.value})
     return _finish_stage(ctx, run, role, stage, outcome)
 
 

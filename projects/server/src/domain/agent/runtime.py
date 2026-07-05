@@ -30,6 +30,7 @@ class StageOutcome(BaseModel):
 
 
 class AgentRuntime(Protocol):
+    def set_event_sink(self, emit) -> None: ...
     def run_stage(self, role: str, stage: Stage, ctx: StageContext) -> StageOutcome: ...
 
 
