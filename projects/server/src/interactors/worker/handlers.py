@@ -511,7 +511,7 @@ def build_event_sink(session_factory: Any, owner_id: str, scope: str):
         uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": owner_id})
         with uow.transaction():
             uow.agent_events.create(
-                AgentEvent(owner_id="", scope=scope, kind=kind, payload=payload)
+                AgentEvent(owner_id=owner_id, scope=scope, kind=kind, payload=payload)
             )
 
     return emit

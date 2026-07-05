@@ -2,7 +2,10 @@
 NDJSON event to a sink, returning the same final dict shape as _default_runner.
 """
 import json
+import queue
 import subprocess
+import threading
+import time
 from collections.abc import Callable
 
 EventSink = Callable[[str, dict], None]
@@ -47,28 +50,55 @@ def streaming_runner(
         )
     except FileNotFoundError:
         return {"is_error": True, "result": f"claude CLI not found ({argv[0]})", "usage": {}}
-    try:
-        # KNOWN LIMITATION: this blocks per-line; proc.wait(timeout=) below only
-        # fires after stdout EOF. A claude hang with stdout open + no exit is not
-        # time-bounded here (unlike the blocking _default_runner). Follow-up: enforce
-        # a wall-clock deadline on the read (thread+join or select on the pipe).
-        for line in proc.stdout:  # blocks per line as claude emits them
-            try:
-                obj = json.loads(line)
-            except (json.JSONDecodeError, ValueError):
-                obj = None
-            if obj is not None and obj.get("type") == "result":
-                result_text = str(obj.get("result", ""))
-                is_error = bool(obj.get("is_error", False))
-                usage = obj.get("usage") or {}
-                continue
-            if emit is not None:
-                for kind, payload in parse_stream_line(line):
-                    emit(kind, payload)
-        proc.wait(timeout=timeout)
-    except subprocess.TimeoutExpired:
+
+    # Drain stdout in a daemon thread and consume via a queue so the wall-clock
+    # timeout is enforced even if claude hangs mid-stream with the pipe open
+    # (a blocking readline would otherwise defeat `timeout`).
+    lines: queue.Queue = queue.Queue()
+    _EOF = object()
+
+    def _drain() -> None:
+        try:
+            for ln in proc.stdout:
+                lines.put(ln)
+        finally:
+            lines.put(_EOF)
+
+    threading.Thread(target=_drain, daemon=True).start()
+
+    deadline = None if timeout is None else time.monotonic() + timeout
+
+    def _timed_out() -> dict:
         proc.kill()
         return {"is_error": True, "result": f"claude timed out after {timeout}s", "usage": {}}
+
+    while True:
+        if deadline is None:
+            item = lines.get()
+        else:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return _timed_out()
+            try:
+                item = lines.get(timeout=remaining)
+            except queue.Empty:
+                return _timed_out()
+        if item is _EOF:
+            break
+        try:
+            obj = json.loads(item)
+        except (json.JSONDecodeError, ValueError):
+            obj = None
+        if obj is not None and obj.get("type") == "result":
+            result_text = str(obj.get("result", ""))
+            is_error = bool(obj.get("is_error", False))
+            usage = obj.get("usage") or {}
+            continue
+        if emit is not None:
+            for kind, payload in parse_stream_line(item):
+                emit(kind, payload)
+
+    proc.wait()
     if proc.returncode not in (0, None) and not result_text:
         is_error = True
         result_text = f"claude exited {proc.returncode}"

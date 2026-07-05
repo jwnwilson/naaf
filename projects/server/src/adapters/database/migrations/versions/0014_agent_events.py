@@ -24,7 +24,7 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("scope", "seq"),
+        sa.UniqueConstraint("owner_id", "scope", "seq"),
     )
     op.create_index(op.f("ix_agent_events_owner_id"), "agent_events", ["owner_id"], unique=False)
     op.create_index(op.f("ix_agent_events_scope"), "agent_events", ["scope"], unique=False)

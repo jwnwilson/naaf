@@ -38,6 +38,9 @@ class _FakeProc:
     def wait(self, timeout=None):
         return 0
 
+    def kill(self):
+        pass
+
 
 def test_streaming_runner_emits_events_and_returns_final():
     lines = [
@@ -55,3 +58,33 @@ def test_streaming_runner_emits_events_and_returns_final():
     assert data["result"] == "all done"
     assert data["is_error"] is False
     assert data["usage"] == {"output_tokens": 5}
+
+
+def test_streaming_runner_times_out_when_claude_hangs():
+    import threading
+    released = threading.Event()
+    killed = {"called": False}
+
+    class _HangingStdout:
+        def __iter__(self):
+            return self
+        def __next__(self):
+            released.wait()  # blocks forever (event never set) → simulates a hung pipe
+            raise StopIteration
+
+    class _HangingProc:
+        def __init__(self):
+            self.stdout = _HangingStdout()
+            self.returncode = None
+        def wait(self, timeout=None):
+            return None
+        def kill(self):
+            killed["called"] = True
+            released.set()  # unblock the drain thread so it can exit cleanly
+
+    proc = _HangingProc()
+    data = streaming_runner(["claude"], timeout=0.1, _popen=lambda *a, **k: proc)
+    assert data["is_error"] is True
+    assert "timed out" in data["result"]
+    assert killed["called"] is True
+    released.set()

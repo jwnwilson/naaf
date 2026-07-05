@@ -4,7 +4,7 @@ from sqlalchemy import inspect
 
 def test_agent_event_row_table_shape():
     cols = {c.name for c in AgentEventRow.__table__.columns}
-    assert {"id", "owner_id", "scope", "seq", "kind", "payload", "created_at"} <= cols
+    assert {"id", "owner_id", "scope", "seq", "kind", "payload", "created_at", "updated_at"} <= cols
 
 
 def test_agent_events_table_created_by_metadata(session_factory):

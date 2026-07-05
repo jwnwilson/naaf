@@ -107,6 +107,8 @@ class AgentEventRepository(SqlRepository[AgentEvent]):
     dto = AgentEvent
 
     def create(self, dto: AgentEvent) -> AgentEvent:  # type: ignore[override]
+        # The (owner_id, scope, seq) unique constraint keeps seq monotonic per-owner per-scope;
+        # thread:/run: ids are UUIDs so scopes are globally unique to one owner in practice.
         q = select(func.coalesce(func.max(AgentEventRow.seq), 0) + 1).where(
             AgentEventRow.scope == dto.scope
         )

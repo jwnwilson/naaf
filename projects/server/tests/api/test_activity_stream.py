@@ -20,6 +20,7 @@ def test_activity_replay_returns_events_after_seq(client, session_factory):
     assert [e["seq"] for e in data] == [2]
     assert data[0]["kind"] == "text_block"
     assert data[0]["payload"] == {"text": "hello"}
+    assert data[0]["createdAt"]  # non-empty ISO string
 
 
 def test_activity_replay_empty_when_none(client):

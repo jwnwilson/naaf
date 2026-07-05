@@ -26,6 +26,6 @@ class AgentEvent(Entity):
 
 
 def stream_scope(*, thread_id: str | None = None, run_id: str | None = None) -> str:
-    if bool(thread_id) == bool(run_id):
+    if (thread_id is None) == (run_id is None):
         raise ValueError("stream_scope requires exactly one of thread_id or run_id")
-    return f"thread:{thread_id}" if thread_id else f"run:{run_id}"
+    return f"thread:{thread_id}" if thread_id is not None else f"run:{run_id}"

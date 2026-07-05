@@ -121,7 +121,7 @@ class RunEventRow(_Timestamped, Base):
 
 class AgentEventRow(_Timestamped, Base):
     __tablename__ = "agent_events"
-    __table_args__ = (UniqueConstraint("scope", "seq"),)
+    __table_args__ = (UniqueConstraint("owner_id", "scope", "seq"),)
     scope: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
     seq: Mapped[int] = mapped_column(Integer, nullable=False)
     kind: Mapped[str] = mapped_column(String(16), nullable=False)
