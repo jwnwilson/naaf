@@ -22,6 +22,9 @@ class StageResult(BaseModel):
     passed: bool
     summary: str = ""
     tokens: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    model: str = ""
 
 
 class StageOutcome(BaseModel):
@@ -66,11 +69,13 @@ class LlmAgentRuntime:
             max_tokens=min(ctx.agent.token_limit, MAX_OUTPUT_TOKENS),
         )
         final_text = ""
-        total_tokens = 0
+        total_input = 0
+        total_output = 0
 
         for _ in range(self._max_iterations):
             response = self._llm.complete(request.model_copy(update={"messages": messages}))
-            total_tokens += response.usage.input_tokens + response.usage.output_tokens
+            total_input += response.usage.input_tokens
+            total_output += response.usage.output_tokens
 
             if response.content:
                 final_text = response.content
@@ -83,7 +88,10 @@ class LlmAgentRuntime:
                     result=StageResult(
                         passed=bool(report.args.get("passed", ctx.stage is not Stage.VERIFY)),
                         summary=str(report.args.get("summary", final_text or "ok")),
-                        tokens=total_tokens,
+                        tokens=total_input + total_output,
+                        input_tokens=total_input,
+                        output_tokens=total_output,
+                        model=request.model,
                     ),
                 )
 
@@ -93,7 +101,10 @@ class LlmAgentRuntime:
                     result=StageResult(
                         passed=ctx.stage is not Stage.VERIFY,
                         summary=final_text or "ok",
-                        tokens=total_tokens,
+                        tokens=total_input + total_output,
+                        input_tokens=total_input,
+                        output_tokens=total_output,
+                        model=request.model,
                     ),
                 )
 
@@ -122,6 +133,9 @@ class LlmAgentRuntime:
             result=StageResult(
                 passed=False,
                 summary="stopped: max iterations reached",
-                tokens=total_tokens,
+                tokens=total_input + total_output,
+                input_tokens=total_input,
+                output_tokens=total_output,
+                model=request.model,
             ),
         )
