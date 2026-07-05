@@ -15,6 +15,36 @@ produce reviewable PRs; and update persistent memory as they work.
 - Architecture & patterns: [architecture.md](architecture.md)
 - ADRs: [adr/](adr/)
 
+## Current state (2026-07-05)
+
+The **local single-user product is end-to-end functional**: you can plan work on the board, chat with
+a lead to create the epic→feature→task tree, start real agent runs that clone the repo and open PRs,
+watch them live, and manage credentials — all with the dashboard reflecting real activity. What ships
+today:
+
+- **Control plane (A1) ✓** — Project + unified WorkItem (epic/feature/task) hierarchy + status
+  machine; owner-scoped Repository/UnitOfWork; envelope-aware CrudRouter; config Team/AgentDefinition.
+- **UI (A2) ✓** — all 7 screens, live-API for projects/work-items/teams/agent-definitions/runs/
+  threads/secrets/attachments/agents (MSW mocks only for `/dashboard/metrics` + `/budget`).
+- **Run pipeline (A3) ✓** — `Run` entity + status machine; **local pub/sub** orchestration; the worker
+  drives `PROVISION → PLAN → IMPLEMENT → VERIFY → PR → LEARN` with human gates, `RunEvent`s, and SSE.
+- **Agent runtime (A5) ✓** — LLM-agnostic `LlmAgentRuntime` reaching the model only via one
+  `LLMAdapter` port; three adapters: Claude SDK, LiteLLM, and **Claude CLI / subscription** (`claude -p`,
+  no API key) + a naaf MCP server so the lead drives the board itself.
+- **Containerized E2E worker (A4 slice 1) ✓** — role-configured Docker worker runs the full run and
+  opens a PR via `gh`.
+- **Conversational substrate (A6 slices) ✓** — work-item threads, run narration into threads, gates as
+  answerable messages, `@mention` agent↔agent dispatch, the conversational lead, and D3 thread-tab
+  parity (agent identity/model/status).
+- **Secrets management (C slice) ✓** — Settings → Secrets, Fernet-encrypted at rest, per-owner run
+  injection.
+- **Dashboard ✓** — live-agents panel + ACTIVE-AGENTS count, board live-agents ribbon, TokenChart, and
+  ActivityFeed all backed by real data; the board polls for live refresh.
+- **Work-item file uploads ✓** — `storage` lib (Local default / S3), attachments API, and
+  materialization into the agent workspace.
+
+See the dated log below for the detail on each, and **Outstanding** at the bottom for what's left.
+
 ## Status (2026-07-05)
 
 **Dashboard TokenChart + ActivityFeed — built.** The last two mocked dashboard widgets are now
@@ -212,9 +242,31 @@ SQLite in tests; dev auth. See [superpowers/plans/2026-06-29-a1-control-plane.md
 
 **Bus adapter is now SQL-free — refactor.** The message bus's SQL was moved into a `BusMessageRepository` (in `adapters/database`), and `SqlMessageBus` is now a thin `MessageBus`-port adapter that delegates via `uow.bus_messages` — closing the last "SQL in an adapter" exception (per the persistence-isolation rule). The bus repository is deliberately **cross-owner / not owner-scoped** (a worker claims pending messages across all owners), following the `SubscriberCursorRepository` precedent. Pure refactor, behavior unchanged. See [superpowers/plans/2026-07-03-bus-repository-refactor.md](superpowers/plans/2026-07-03-bus-repository-refactor.md).
 
-**Not yet built (designed only):** A4 sandbox /
-egress / GitHub App · B/C management plane. The
-agent/sandbox/secrets content in the master design and architecture doc is the
-*target*, not current code. **Orchestration is Local-First** (master design spec §2/§3): agents run locally in docker containers, exchanging messages via pub/sub onto per-agent queues, processed sequentially.
+## Outstanding (not yet built)
 
-**`Run` is a defined domain entity but has no code yet.** A run = one execution of a task through the agent pipeline (`PLAN → … → LEARN`); it is specified in design spec §4 (Domain model) and §6 (Execution flow), but there is no `Run` model, persistence, API, or status machine in `projects/server/src` — it arrives with A3. Today only Project + WorkItem + Team/AgentDefinition exist in code.
+The single-user local loop is complete; what remains is **hardening, the management plane, and the
+full team**. In rough priority order:
+
+- **A4 — sandbox / egress / network hardening.** The worker runs in Docker, but there is **no egress
+  proxy or network isolation** (A4 slice 3), and agents get a single shared **`GH_TOKEN`** rather than
+  **GitHub App per-run tokens**. This is the main gap before running untrusted/remote work.
+- **A5d — usage/budget + real pricing.** Runs track `token_usage` and expose a **flat placeholder
+  cost**; there is **no per-model pricing, no budget enforcement, and no budget UI**. The dashboard's
+  `/dashboard/metrics` other cards (spend/tokens/projects) and `/budget` are **still MSW-mocked**
+  pending this. The thread-fan-out **per-thread message/token budget** also pairs here.
+- **Live agent output (`stream-agent-output`) — designed only.** Token-by-token / tool-call streaming
+  of the agent trace into the UI (new `agent_events` table + streaming runner + SSE). Spec + plan
+  exist on the `feat/stream-agent-output` branch; when built, the dashboard ActivityFeed re-points at
+  the richer trace behind the unchanged `/activity` contract.
+- **C — rest of the management plane.** Secrets shipped; the **capabilities / MCP-server / model /
+  budget** management UIs are not built.
+- **B — full team.** The pipeline dispatches only **lead / engineer / qa**; architect / frontend /
+  devops roles exist in the roster but are never run. Parallel engineers, deeper memory/RAG, and
+  richer role coordination are future work.
+- **A5 follow-up polish (tracked, non-blocking):** apply `AgentDefinition.capability_grants` to filter
+  the tool set; thread `naaf_agent_bash_timeout_s` into `LocalWorkspace.bash`; retire the misleading
+  `_STUB_STAGES` / "stub" naming; mint LiteLLM per-run budget keys (pairs with A5d).
+
+The agent/sandbox content in the master design and architecture doc describes the **target**, not all
+current code. **Orchestration is Local-First** (master design spec §2/§3): agents run locally in
+Docker containers, exchanging messages via pub/sub onto per-agent queues, processed sequentially.
