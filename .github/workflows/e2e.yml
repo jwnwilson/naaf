@@ -1,0 +1,92 @@
+name: e2e
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref (e.g. new push to a PR branch).
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  playwright:
+    name: Playwright (scripted stack)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: naaf
+          POSTGRES_PASSWORD: naaf
+          POSTGRES_DB: naaf
+        ports:
+          - "5432:5432"
+        options: >-
+          --health-cmd "pg_isready -U naaf"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - "6379:6379"
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v7
+
+      # psql/createdb/pg_isready — used by the CI path in `make e2e-db`.
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.2.0
+        with:
+          version: "0.9.24"
+          enable-cache: true
+
+      - name: Install Python 3.12
+        run: uv python install 3.12
+
+      - name: Install backend dependencies
+        run: uv sync
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: "10.26.2"
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: projects/ui/pnpm-lock.yaml
+
+      - name: Install UI dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: projects/ui
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+        working-directory: projects/ui
+
+      - name: Run e2e (scripted)
+        run: make e2e
+        env:
+          CI: "true"
+          NAAF_E2E_DB_URL: postgresql+psycopg://naaf:naaf@localhost:5432/naaf_e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: projects/ui/playwright-report
+          retention-days: 7

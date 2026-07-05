@@ -6,6 +6,8 @@ import {
   TASK_TITLE,
 } from "./fixtures/scripted";
 
+const REAL = process.env.NAAF_E2E_REAL === "1";
+
 test("chat → lead creates a task → run streams multi-stage output", async ({ page }) => {
   // ── 1. Create a project with full_auto autonomy (no gates) via the API ──────
   const res = await page.request.post("http://localhost:8000/projects", {
@@ -83,4 +85,56 @@ test("chat → lead creates a task → run streams multi-stage output", async ({
     /verify|done|complete|learn|failed/i,
     { timeout: 45_000 },
   );
+});
+
+// ── @real smoke: run against a live Claude CLI subscription ──────────────────
+// Guarded by NAAF_E2E_REAL=1. Assertions are deliberately loose — real LLM
+// output varies, so we only verify observable side-effects: a task was created
+// and the activity feed received content.
+// Run with: make e2e-real  (boots with naaf_llm_provider=claude_cli)
+test.describe("@real real-claude smoke", () => {
+  test.skip(!REAL, "set NAAF_E2E_REAL=1 with naaf_llm_provider=claude_cli to run");
+
+  test("a task is created and some output streams (loose assertions)", async ({
+    page,
+  }) => {
+    // ── 1. Create a project with full_auto autonomy (no gates) ───────────────
+    const res = await page.request.post("http://localhost:8000/projects", {
+      data: { name: "Real E2E Project", autonomyLevel: "full_auto" },
+    });
+    expect(res.ok()).toBeTruthy();
+    const body = await res.json();
+    const projectId: string = body.data.id;
+
+    // ── 2. Navigate to the board ─────────────────────────────────────────────
+    await page.goto(`/projects?project=${projectId}`);
+    await expect(page.getByText("Real E2E Project").first()).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // ── 3. Send a message to the lead ────────────────────────────────────────
+    await page.getByTestId("thread-composer-input").fill("Build a notes feature");
+    await page.getByTestId("thread-composer-send").click();
+
+    // ── 4. Activity feed receives content (no exact-string check) ────────────
+    await expect(page.getByTestId("activity-feed")).not.toBeEmpty({
+      timeout: 30_000,
+    });
+
+    // ── 5. At least one work item was created ─────────────────────────────────
+    await expect
+      .poll(
+        async () => {
+          const r = await page.request.get(
+            `http://localhost:8000/work-items?project=${projectId}`,
+          );
+          if (!r.ok()) return false;
+          const json = await r.json();
+          const items: Array<unknown> = json.data?.results ?? json.data ?? [];
+          return items.length > 0;
+        },
+        { timeout: 60_000, intervals: [2_000] },
+      )
+      .toBe(true);
+  });
 });
