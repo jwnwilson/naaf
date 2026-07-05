@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 class CreateProject(BaseModel):
     name: str
+    description: str = ""
     repo_url: str | None = None
     repo_path: str | None = None
     team_id: str | None = None
@@ -14,6 +15,7 @@ class CreateProject(BaseModel):
 
 class UpdateProject(BaseModel):
     name: str | None = None
+    description: str | None = None
     repo_url: str | None = None
     repo_path: str | None = None
     team_id: str | None = None

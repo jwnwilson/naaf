@@ -32,6 +32,7 @@ class _Timestamped:
 class ProjectRow(_Timestamped, Base):
     __tablename__ = "projects"
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str] = mapped_column(String, default="", server_default="", nullable=False)
     repo_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     repo_path: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     team_id: Mapped[str | None] = mapped_column(String(32), nullable=True)

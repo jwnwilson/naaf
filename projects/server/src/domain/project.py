@@ -12,6 +12,7 @@ class AutonomyLevel(StrEnum):
 class Project(Entity):
     owner_id: str
     name: str
+    description: str = ""
     repo_url: str | None = None
     repo_path: str | None = None
     team_id: str | None = None
