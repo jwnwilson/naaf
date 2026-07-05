@@ -1,10 +1,12 @@
 import { createContext, useContext } from "react";
+import type { Project } from "../../lib/api/hooks/useProjects";
 import type { WorkItem } from "../../lib/api/hooks/useCreateWorkItem";
 
 export interface CreateModalContextValue {
   openCreateProject: () => void;
   openCreateWorkItem: (o: { projectId: string; status?: WorkItem["status"] }) => void;
   openEditWorkItem: (item: WorkItem) => void;
+  openEditProject: (project: Project) => void;
   close: () => void;
 }
 

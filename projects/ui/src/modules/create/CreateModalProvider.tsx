@@ -1,7 +1,9 @@
 import { useMemo, useState, type ReactNode } from "react";
+import type { Project } from "../../lib/api/hooks/useProjects";
 import type { WorkItem } from "../../lib/api/hooks/useCreateWorkItem";
 import { CreateProjectModal } from "./CreateProjectModal";
 import { CreateWorkItemModal } from "./CreateWorkItemModal";
+import { EditProjectModal } from "./EditProjectModal";
 import { EditWorkItemModal } from "./EditWorkItemModal";
 import { CreateModalContext } from "./useCreateModal";
 
@@ -9,7 +11,8 @@ type State =
   | { kind: "none" }
   | { kind: "project" }
   | { kind: "work-item"; projectId: string; status?: WorkItem["status"] }
-  | { kind: "edit-work-item"; item: WorkItem };
+  | { kind: "edit-work-item"; item: WorkItem }
+  | { kind: "edit-project"; project: Project };
 
 export function CreateModalProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<State>({ kind: "none" });
@@ -20,6 +23,7 @@ export function CreateModalProvider({ children }: { children: ReactNode }) {
       openCreateWorkItem: (o: { projectId: string; status?: WorkItem["status"] }) =>
         setState({ kind: "work-item", projectId: o.projectId, status: o.status }),
       openEditWorkItem: (item: WorkItem) => setState({ kind: "edit-work-item", item }),
+      openEditProject: (project: Project) => setState({ kind: "edit-project", project }),
       close: () => setState({ kind: "none" }),
     }),
     [],
@@ -34,6 +38,9 @@ export function CreateModalProvider({ children }: { children: ReactNode }) {
       )}
       {state.kind === "edit-work-item" && (
         <EditWorkItemModal item={state.item} onClose={value.close} />
+      )}
+      {state.kind === "edit-project" && (
+        <EditProjectModal project={state.project} onClose={value.close} />
       )}
     </CreateModalContext.Provider>
   );
