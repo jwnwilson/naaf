@@ -64,3 +64,22 @@ def test_delete_where_respects_owner_and_in_filter(session_factory):
     b2 = SqlUnitOfWork(session_factory, required_filters={"owner_id": "b"})
     with b2.transaction():
         assert b2.projects.read(pb.id).id == pb.id  # untouched
+
+
+def test_delete_where_cannot_bypass_owner_scope(session_factory):
+    from adapters.database.uow import SqlUnitOfWork
+    from interactors.api.schemas import CreateProject
+
+    owner_b = SqlUnitOfWork(session_factory, required_filters={"owner_id": "b"})
+    with owner_b.transaction():
+        pb = owner_b.projects.create(CreateProject(name="pb"))
+
+    # Owner "a" tries to delete owner "b"'s row by passing owner_id explicitly.
+    owner_a = SqlUnitOfWork(session_factory, required_filters={"owner_id": "a"})
+    with owner_a.transaction():
+        removed = owner_a.projects.delete_where(owner_id="b", id=pb.id)
+        assert removed == 0  # required owner scope ("a") wins; nothing matches
+
+    check_b = SqlUnitOfWork(session_factory, required_filters={"owner_id": "b"})
+    with check_b.transaction():
+        assert check_b.projects.read(pb.id).id == pb.id  # untouched

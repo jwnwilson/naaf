@@ -140,14 +140,19 @@ class SqlRepository(Generic[DTO]):  # noqa: UP046
         """Bulk-delete rows matching required_filters AND the given filters.
 
         Supports plain equality and the ``<field>__in`` suffix (the only shapes
-        the project cascade needs). Returns the number of rows deleted.
+        the project cascade needs). ``required_filters`` (owner scoping) are
+        applied last and unconditionally, so a caller-supplied ``owner_id`` can
+        never shadow the UnitOfWork's required scope. Returns the number of rows
+        deleted.
         """
         stmt: Delete = sql_delete(self.orm_model)
-        for key, value in {**self.required_filters, **filters}.items():
+        for key, value in filters.items():
             if key.endswith("__in"):
                 stmt = stmt.where(getattr(self.orm_model, key[:-4]).in_(value))
             else:
                 stmt = stmt.where(getattr(self.orm_model, key) == value)
+        for key, value in self.required_filters.items():
+            stmt = stmt.where(getattr(self.orm_model, key) == value)
         result = cast(CursorResult, self.session.execute(stmt))
         self.session.flush()
         return int(result.rowcount or 0)
