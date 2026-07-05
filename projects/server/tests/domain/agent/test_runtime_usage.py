@@ -27,7 +27,9 @@ def _ctx():
     return StageContext(
         run_id="r1", role="engineer", stage=Stage.IMPLEMENT, workspace_path="/tmp/x",
         work_item=WorkItemBrief(title="T"),
-        agent=AgentDefinition(owner_id="o", team_id="t", role=AgentRole.BACKEND, model_alias="sonnet"),
+        agent=AgentDefinition(
+            owner_id="o", team_id="t", role=AgentRole.BACKEND, model_alias="sonnet"
+        ),
     )
 
 

@@ -18,6 +18,7 @@ from domain.messaging.dispatch import plan_fanout
 from domain.messaging.message import AuthorKind, Message, MessageKind
 from domain.messaging.question import question_payload, resolve_payload
 from domain.messaging.thread import is_project_thread, project_id_from_thread
+from domain.pricing import ModelPrice, price_stage
 from domain.runs.coupling import work_item_status_for
 from domain.runs.events import EventType, RunEvent
 from domain.runs.messages import AgentMessage, MessageType, chat_recipient, recipient_key
@@ -50,6 +51,7 @@ class HandlerContext:
     runtime: AgentRuntime | None  # None only in dead-letter cleanup (couple path — no stage runs)
     workspace_root: str = ""
     role_aliases: dict[str, str] | None = field(default=None)
+    model_prices: dict[str, "ModelPrice"] | None = None
     projects: Any = None
     messages: Any = None  # MessageRepository | None — None in dead-letter cleanup
     chat_responder: Any = None  # ChatResponder | None — None in dead-letter cleanup
@@ -230,9 +232,14 @@ def _finish_stage(
         emit(ctx, run, EventType.LOG, stage=stage, role=role, payload={"message": ev.message})
     final_status = StageStatus.PASSED if outcome.result.passed else StageStatus.FAILED
     updated_entry = run.stages[-1].model_copy(update={"status": final_status, "ended_at": utcnow()})
+    stage_cost = price_stage(
+        outcome.result.model, outcome.result.input_tokens, outcome.result.output_tokens,
+        ctx.model_prices or {},
+    )
     _save(ctx, run.model_copy(update={
         "stages": [*run.stages[:-1], updated_entry],
         "token_usage": run.token_usage + outcome.result.tokens,
+        "cost": run.cost + stage_cost,
     }))
     event_type = EventType.STAGE_PASSED if outcome.result.passed else EventType.STAGE_FAILED
     emit(ctx, run, event_type, stage=stage, role=role,

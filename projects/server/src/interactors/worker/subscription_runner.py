@@ -116,6 +116,7 @@ def run_subscription(
             projects=ProjectRepository(uow.session, required_filters=scope),
             workspace_root=_s.workspace_root,
             role_aliases=_s.role_model_aliases,
+            model_prices=_s.model_prices,
             storage=_storage,
             chat_responder=_chat,
             lead_orchestrator=_orch,

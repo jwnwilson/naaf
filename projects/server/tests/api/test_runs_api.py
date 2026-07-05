@@ -144,8 +144,8 @@ def test_run_out_exposes_token_usage_and_cost(client, session_factory):
     with uow.transaction():
         run = uow.runs.create(
             Run(owner_id="", work_item_id="w1", project_id="p1", autonomy_level="full_auto",
-                token_usage=2000)
+                token_usage=3000, cost=0.033)
         )
     body = client.get(f"/runs/{run.id}").json()["data"]
-    assert body["tokenUsage"] == 2000
-    assert body["cost"] == 0.006  # 2000/1000 * 0.003
+    assert body["tokenUsage"] == 3000
+    assert body["cost"] == 0.033  # persisted real cost, rounded to 4dp
