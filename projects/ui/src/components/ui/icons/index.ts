@@ -13,3 +13,4 @@ export { ChevronDownIcon } from "./ChevronDownIcon";
 export { ChevronRightIcon } from "./ChevronRightIcon";
 export { CheckIcon } from "./CheckIcon";
 export { DocumentIcon } from "./DocumentIcon";
+export { PencilIcon } from "./PencilIcon";
