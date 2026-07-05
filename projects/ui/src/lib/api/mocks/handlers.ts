@@ -260,7 +260,13 @@ export const liveHandlers = [
 
   // ── Dashboard (live-backed) ───────────────────────────────────────────────────
 
+  http.get(`${BASE}/dashboard/metrics`, () => ok(seed.metrics)),
+
   http.get(`${BASE}/dashboard/token-usage`, () => ok(seed.tokenUsagePoints)),
+
+  // ── Budget (live-backed) ──────────────────────────────────────────────────────
+
+  http.get(`${BASE}/budget`, () => ok(seed.budget)),
 
   // ── Activity ──────────────────────────────────────────────────────────────────
 
@@ -383,14 +389,6 @@ export const mockOnlyHandlers = [
     if (!p) return notFound();
     return ok(db.boardFor(params.id as string));
   }),
-
-  // ── Dashboard ─────────────────────────────────────────────────────────────────
-
-  http.get(`${BASE}/dashboard/metrics`, () => ok(seed.metrics)),
-
-  // ── Budget ────────────────────────────────────────────────────────────────────
-
-  http.get(`${BASE}/budget`, () => ok(seed.budget)),
 ];
 
 // ─── Combined (default — fully mocked) ────────────────────────────────────────

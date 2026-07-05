@@ -3,7 +3,8 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { expect, test } from "vitest";
 import { server } from "../mocks/server";
-import { useActivity, useTokenUsage, DASHBOARD_POLL_MS } from "./useDashboard";
+import { useDashboard, useActivity, useTokenUsage, DASHBOARD_POLL_MS } from "./useDashboard";
+import { useBudget } from "./useBudget";
 
 function wrapper({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -37,4 +38,25 @@ test("useActivity fetches recent activity rows", async () => {
   const { result } = renderHook(() => useActivity(), { wrapper });
   await waitFor(() => expect(result.current.data).toHaveLength(1));
   expect(result.current.data?.[0].type).toBe("agent_write");
+});
+
+test("useDashboard fetches live metrics", async () => {
+  server.use(
+    http.get("/api/dashboard/metrics", () =>
+      HttpResponse.json({ success: true, error: null,
+        data: { activeAgents: 2, totalSpend: 1.5, totalTokens: 4200, projectCount: 3, workItemCount: 9 } }),
+    ),
+  );
+  const { result } = renderHook(() => useDashboard(), { wrapper });
+  await waitFor(() => expect(result.current.data?.totalSpend).toBe(1.5));
+});
+
+test("useBudget fetches live used/limit", async () => {
+  server.use(
+    http.get("/api/budget", () =>
+      HttpResponse.json({ success: true, error: null, data: { used: 1.5, limit: 100 } }),
+    ),
+  );
+  const { result } = renderHook(() => useBudget(), { wrapper });
+  await waitFor(() => expect(result.current.data?.limit).toBe(100));
 });

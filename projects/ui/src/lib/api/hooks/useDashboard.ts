@@ -16,6 +16,7 @@ export function useDashboard() {
   return useQuery({
     queryKey: queryKeys.dashboard(),
     queryFn: () => apiFetch<DashboardMetrics>("/dashboard/metrics"),
+    refetchInterval: DASHBOARD_POLL_MS,
   });
 }
 
