@@ -1,4 +1,5 @@
 import re
+from collections.abc import Collection
 from enum import StrEnum
 
 from domain.base import Entity
@@ -10,7 +11,7 @@ class AutonomyLevel(StrEnum):
     FULL_AUTO = "full_auto"
 
 
-def derive_project_key(name: str, taken: set[str] = frozenset()) -> str:
+def derive_project_key(name: str, taken: Collection[str] = frozenset()) -> str:
     """A short uppercase key from the project name, unique against `taken`."""
     base = re.sub(r"[^A-Za-z0-9]", "", name or "").upper()[:4] or "PROJ"
     if base not in taken:

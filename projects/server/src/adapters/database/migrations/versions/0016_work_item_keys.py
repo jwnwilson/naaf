@@ -4,6 +4,7 @@ Revision ID: 0016_work_item_keys
 Revises: 0015_run_cost
 """
 import re
+from typing import Literal
 
 import sqlalchemy as sa
 from alembic import op
@@ -58,7 +59,8 @@ def upgrade() -> None:
                 {"s": i, "id": wid},
             )
 
-    recreate = "always" if op.get_bind().dialect.name == "sqlite" else "auto"
+    is_sqlite = op.get_bind().dialect.name == "sqlite"
+    recreate: Literal["always", "auto"] = "always" if is_sqlite else "auto"
     with op.batch_alter_table("work_items", recreate=recreate) as batch:
         batch.create_unique_constraint("uq_work_item_project_seq", ["project_id", "seq"])
 
@@ -68,7 +70,8 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("uq_project_owner_key", table_name="projects")
 
-    recreate = "always" if op.get_bind().dialect.name == "sqlite" else "auto"
+    is_sqlite = op.get_bind().dialect.name == "sqlite"
+    recreate: Literal["always", "auto"] = "always" if is_sqlite else "auto"
     with op.batch_alter_table("work_items", recreate=recreate) as batch:
         batch.drop_constraint("uq_work_item_project_seq", type_="unique")
     op.drop_column("work_items", "seq")
