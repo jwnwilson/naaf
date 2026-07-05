@@ -24,10 +24,17 @@ export function useRun(runId: string): {
   events: RunEventOut[];
   isStreaming: boolean;
 } {
+  const TERMINAL_STATUSES = ["succeeded", "failed", "cancelled"] as const;
+
   const runQuery = useQuery({
     queryKey: queryKeys.run(runId),
     queryFn: () => apiFetch<RunOut>(`/runs/${runId}`),
-    refetchInterval: 2_000,
+    refetchInterval: (query) => {
+      const run = query.state.data as RunOut | undefined;
+      return run && TERMINAL_STATUSES.includes(run.status as typeof TERMINAL_STATUSES[number])
+        ? false
+        : 2_000;
+    },
   });
   const historyQuery = useQuery({
     queryKey: queryKeys.runEvents(runId),
