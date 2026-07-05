@@ -4,7 +4,7 @@ import { MessageItem } from "./MessageItem";
 import { ThreadComposer } from "./ThreadComposer";
 import { ThreadRail } from "./ThreadRail";
 import { groupMessagesByDay } from "./groupByDay";
-import { TypingIndicator } from "../ui/TypingIndicator";
+import { ActivityFeed } from "./ActivityFeed";
 
 interface ThreadProps {
   workItemId: string;
@@ -13,8 +13,6 @@ interface ThreadProps {
   compact?: boolean;
   banner?: ReactNode;
   composerPlaceholder?: string;
-  /** Show the agent typing indicator (a run is active on this item). */
-  showTyping?: boolean;
 }
 
 function DayDivider({ label }: { label: string }) {
@@ -27,26 +25,11 @@ function DayDivider({ label }: { label: string }) {
   );
 }
 
-function TypingRow() {
-  return (
-    <div className="flex gap-2.5 items-start mb-3.5" data-testid="typing-indicator">
-      <div className="w-[26px] h-[26px] flex-none" />
-      <div
-        className="flex items-center px-3.5 py-2.5"
-        style={{ background: "#131618", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "3px 10px 10px 10px" }}
-      >
-        <TypingIndicator />
-      </div>
-    </div>
-  );
-}
-
 export function Thread({
   workItemId,
   showRail,
   banner,
   composerPlaceholder,
-  showTyping,
 }: ThreadProps) {
   const { data: messages = [], isLoading } = useThreadMessages(workItemId);
   const answer = useAnswerQuestion(workItemId);
@@ -62,7 +45,7 @@ export function Thread({
             {isLoading && (
               <p className="text-[11px] text-[#30333c]">Loading…</p>
             )}
-            {!isLoading && messages.length === 0 && !showTyping && (
+            {!isLoading && messages.length === 0 && (
               <p className="text-[11px] text-[#30333c]">No messages yet</p>
             )}
             {groups.map((group) => (
@@ -73,7 +56,7 @@ export function Thread({
                 ))}
               </div>
             ))}
-            {showTyping && <TypingRow />}
+            <ActivityFeed threadId={workItemId} />
           </div>
           <ThreadComposer
             workItemId={workItemId}
