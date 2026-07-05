@@ -32,11 +32,11 @@ export function Thread({
   banner,
   composerPlaceholder,
 }: ThreadProps) {
-  const { data: messages = [], isLoading } = useThreadMessages(workItemId);
+  const activity = useAgentActivity({ threadId: workItemId });
+  const { data: messages = [], isLoading } = useThreadMessages(workItemId, activity.isWorking);
   const answer = useAnswerQuestion(workItemId);
   const handleAnswer = (msgId: string, option: string) => { answer.mutate({ msgId, option }); };
   const groups = groupMessagesByDay(messages);
-  const activity = useAgentActivity({ threadId: workItemId });
 
   return (
     <div className="flex flex-col h-full flex-1 overflow-hidden">
