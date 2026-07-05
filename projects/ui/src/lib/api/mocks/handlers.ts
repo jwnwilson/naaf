@@ -247,6 +247,8 @@ export const liveHandlers = [
     return ok(updated);
   }),
 
+  http.get(`${BASE}/runs/:id/activity`, () => ok([], pageMeta([]))),
+
   http.get(`${BASE}/runs/:id`, ({ params }) => {
     const run = db.findRun(params.id as string);
     return run ? ok(run) : notFound();
@@ -274,6 +276,8 @@ export const liveHandlers = [
     const msgs = db.messagesForThread(params.id as string);
     return ok(msgs, pageMeta(msgs));
   }),
+
+  http.get(`${BASE}/threads/:id/activity`, () => ok([], pageMeta([]))),
 
   http.get(`${BASE}/threads/:id`, ({ params }) => {
     const detail = db.threadDetail(params.id as string);

@@ -1,3 +1,4 @@
+from domain.agent.events import AgentEvent
 from domain.attachments.attachment import Attachment
 from domain.base import utcnow
 from domain.messaging.message import Message
@@ -15,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from adapters.database.orm import (
     AgentDefinitionRow,
+    AgentEventRow,
     AttachmentRow,
     BusMessageRow,
     MessageRow,
@@ -98,6 +100,30 @@ class RunEventRepository(SqlRepository[RunEvent]):
             .limit(limit)
         ).scalars().all()
         return [self._to_dto(r) for r in rows]
+
+
+class AgentEventRepository(SqlRepository[AgentEvent]):
+    orm_model = AgentEventRow
+    dto = AgentEvent
+
+    def create(self, dto: AgentEvent) -> AgentEvent:  # type: ignore[override]
+        # The (owner_id, scope, seq) unique constraint keeps seq monotonic per-owner per-scope;
+        # thread:/run: ids are UUIDs so scopes are globally unique to one owner in practice.
+        q = select(func.coalesce(func.max(AgentEventRow.seq), 0) + 1).where(
+            AgentEventRow.scope == dto.scope
+        )
+        for key, value in self.required_filters.items():
+            q = q.where(getattr(AgentEventRow, key) == value)
+        next_seq = self.session.execute(q).scalar_one()
+        return super().create(dto.model_copy(update={"seq": next_seq}))
+
+    def list_after(self, scope: str, after: int, limit: int = 200) -> list[AgentEvent]:
+        page = self.read_multi(
+            filters={"scope": scope, "seq__gt": after},
+            order_by="seq",
+            page_size=limit,
+        )
+        return page.results
 
 
 class SubscriberCursorRepository:

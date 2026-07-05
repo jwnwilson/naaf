@@ -15,6 +15,8 @@ from collections.abc import Callable
 
 from domain.agent.llm import LLMMessage, LLMRequest, LLMResponse, ToolCall, Usage
 
+from adapters.agent.claude_cli.stream_runner import EventSink, streaming_runner
+
 _VERDICT_SUFFIX = (
     "\n\nWhen you have finished, end your reply with a single line: "
     "`VERDICT: PASS — <summary>` if the work (and any tests) succeeded, "
@@ -64,13 +66,19 @@ class ClaudeCliLLMAdapter:
         self._github_token = github_token
         self._claude_oauth_token = claude_oauth_token
         self._timeout = timeout_s
-        self._runner: Runner = runner or _default_runner
+        self._runner: Runner | None = runner
+        self._emit: EventSink | None = None
 
     def set_cwd(self, cwd: str) -> None:
         """Point the next `claude -p` at a directory. Wired from the runtime's
         workspace_factory so each stage runs in that stage's workspace (the
         worker is single-concurrency, so this per-stage mutation is safe)."""
         self._cwd = cwd
+
+    def set_event_sink(self, emit: EventSink | None) -> None:
+        """Attach a per-call activity sink. When set, complete() streams events
+        via claude's stream-json output (single-concurrency worker → safe)."""
+        self._emit = emit
 
     def _prompt(self, messages: list[LLMMessage]) -> str:
         return "\n\n".join(m.content for m in messages if m.content) or "(no input)"
@@ -89,10 +97,14 @@ class ClaudeCliLLMAdapter:
     def complete(self, request: LLMRequest) -> LLMResponse:
         has_report = any(t.name == "report" for t in request.tools)
         system = request.system + (_VERDICT_SUFFIX if has_report else "")
+        streaming = self._emit is not None
+        fmt = "stream-json" if streaming else "json"
         argv = [
             self._bin, "-p", self._prompt(request.messages),
-            "--output-format", "json", "--permission-mode", "bypassPermissions",
+            "--output-format", fmt, "--permission-mode", "bypassPermissions",
         ]
+        if streaming:
+            argv += ["--verbose"]  # claude requires --verbose with stream-json under -p
         if system:
             argv += ["--append-system-prompt", system]
         if self._cwd:
@@ -100,7 +112,15 @@ class ClaudeCliLLMAdapter:
         if self._mcp:
             argv += ["--mcp-config", self._mcp, "--allowed-tools", "mcp__naaf__*"]
 
-        data = self._runner(argv, cwd=self._cwd, env=self._env(), timeout=self._timeout)
+        runner: Runner
+        if streaming:
+            runner = self._runner or streaming_runner
+            data = runner(
+                argv, cwd=self._cwd, env=self._env(), timeout=self._timeout, emit=self._emit
+            )
+        else:
+            runner = self._runner or _default_runner
+            data = runner(argv, cwd=self._cwd, env=self._env(), timeout=self._timeout)
 
         text = str(data.get("result", ""))
         is_error = bool(data.get("is_error", False))

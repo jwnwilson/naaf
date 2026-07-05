@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { expect, test, vi } from "vitest";
 import { server } from "../../lib/api/mocks/server";
+import * as activityHook from "../../lib/api/hooks/useAgentActivity";
 import { AgentMonitor } from "./AgentMonitor";
 
 function renderMonitor() {
@@ -59,6 +60,20 @@ test("hides the View PR link when the run has no prUrl", async () => {
   renderMonitor();
   await screen.findByText(/awaiting_gate/);
   expect(screen.queryByRole("link", { name: /view pr/i })).not.toBeInTheDocument();
+});
+
+test("renders live agent activity for the active run", async () => {
+  const RUNNING = { ...RUN, status: "running", pendingGate: null, currentStage: "implement",
+    stages: [{ stage: "implement", status: "running", role: "engineer", startedAt: "2026-07-02T00:00:00Z", endedAt: null }] };
+  server.use(
+    http.get("/api/runs/r1", () => HttpResponse.json({ success: true, error: null, data: RUNNING })),
+    http.get("/api/runs/r1/events", () => HttpResponse.json({ success: true, error: null, data: [] })),
+  );
+  vi.spyOn(activityHook, "useAgentActivity").mockReturnValue({
+    events: [], isWorking: true, textBlocks: ["Implementing…"], toolCalls: [], done: false,
+  } as never);
+  renderMonitor();
+  expect(await screen.findByText("Implementing…")).toBeInTheDocument();
 });
 
 test("renders status + token usage and resolves a pending gate", async () => {

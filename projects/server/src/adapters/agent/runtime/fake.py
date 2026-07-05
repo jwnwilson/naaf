@@ -25,6 +25,9 @@ class FakeAgentRuntime:
     def __init__(self, fail_verify_times: int = 0):
         self.fail_verify_times = fail_verify_times
 
+    def set_event_sink(self, emit) -> None:
+        pass
+
     def run_stage(self, role: str, stage: Stage, ctx: StageContext) -> StageOutcome:
         events = [AgentEvent(message=m) for m in _SCRIPT.get(stage, [f"{stage.value} step"])]
         passed = True

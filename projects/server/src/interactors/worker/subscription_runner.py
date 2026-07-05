@@ -119,6 +119,7 @@ def run_subscription(
             storage=_storage,
             chat_responder=_chat,
             lead_orchestrator=_orch,
+            session_factory=session_factory,
         )
 
     return process_subscription(bound, uow_factory, ctx_factory, max_items=max_items)

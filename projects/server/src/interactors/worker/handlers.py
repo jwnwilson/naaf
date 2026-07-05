@@ -5,9 +5,12 @@ from typing import Any
 
 from adapters.agent.orchestration_tools import CtxOrchestrationTools
 from adapters.agent.provision import provision_workspace
+from adapters.database.uow import SqlUnitOfWork
 from adapters.storage.keys import attachment_prefix
 from domain.agent.context import StageContext, WorkItemBrief
-from domain.agent.runtime import AgentEvent, AgentRuntime, StageOutcome, StageResult
+from domain.agent.events import EVENT_ERROR, EVENT_FINAL, EVENT_STATUS, AgentEvent, stream_scope
+from domain.agent.runtime import AgentEvent as RuntimeEvent
+from domain.agent.runtime import AgentRuntime, StageOutcome, StageResult
 from domain.base import utcnow
 from domain.errors import RecordNotFound
 from domain.messaging.chat import ChatTurn
@@ -45,6 +48,7 @@ class HandlerContext:
     chat_responder: Any = None  # ChatResponder | None — None in dead-letter cleanup
     lead_orchestrator: Any = None  # LeadOrchestrator | None — project-thread lead
     storage: Storage | None = None  # blob store for work-item attachments
+    session_factory: Any = None  # for independent-commit event sink
 
 
 def materialize_attachments(storage: Storage, work_item_id: str, workspace_path: str) -> list[str]:
@@ -235,14 +239,29 @@ def _finish_stage(
 def _run_stage_inline(ctx: HandlerContext, run: Run, role: str, stage: Stage) -> StageResult:
     run = _start_stage(ctx, run, role, stage)
     assert ctx.runtime is not None, "_run_stage_inline requires a non-None runtime"
-    outcome = ctx.runtime.run_stage(role, stage, build_stage_context(ctx, run, role, stage))
+    scope = stream_scope(run_id=run.id)
+    sink = build_event_sink(ctx.session_factory, run.owner_id, scope)
+    if sink:
+        sink(EVENT_STATUS, {"state": "working", "stage": stage.value, "role": role})
+        ctx.runtime.set_event_sink(sink)
+    try:
+        outcome = ctx.runtime.run_stage(role, stage, build_stage_context(ctx, run, role, stage))
+    except Exception as exc:
+        if sink:
+            sink(EVENT_ERROR, {"message": str(exc)})
+        raise
+    finally:
+        if sink:
+            ctx.runtime.set_event_sink(None)
+    if sink:
+        sink(EVENT_FINAL, {"stage": stage.value})
     return _finish_stage(ctx, run, role, stage, outcome)
 
 
 def _provision(ctx: HandlerContext, run: Run) -> StageOutcome:
     def skip(msg: str) -> StageOutcome:
         return StageOutcome(
-            events=[AgentEvent(message=msg)],
+            events=[RuntimeEvent(message=msg)],
             result=StageResult(passed=True, summary=msg),
         )
 
@@ -261,7 +280,7 @@ def _provision(ctx: HandlerContext, run: Run) -> StageOutcome:
         path = provision_workspace(repo, run.id, root)
     except Exception as exc:  # git failures should fail the stage, not crash the worker
         return StageOutcome(
-            events=[AgentEvent(message=f"provision failed: {exc}")],
+            events=[RuntimeEvent(message=f"provision failed: {exc}")],
             result=StageResult(passed=False, summary=f"provision failed: {exc}"),
         )
     if ctx.storage is not None:
@@ -272,8 +291,8 @@ def _provision(ctx: HandlerContext, run: Run) -> StageOutcome:
                  payload={"message": f"attachment sync skipped: {exc}"})
     return StageOutcome(
         events=[
-            AgentEvent(message=f"cloned {repo}"),
-            AgentEvent(message=f"branch agent/{run.id} at {path}"),
+            RuntimeEvent(message=f"cloned {repo}"),
+            RuntimeEvent(message=f"branch agent/{run.id} at {path}"),
         ],
         result=StageResult(passed=True, summary=f"provisioned {path}"),
     )
@@ -476,6 +495,28 @@ def _work_item_title_by_id(ctx: HandlerContext, work_item_id: str) -> str:
         return work_item_id
 
 
+def build_event_sink(session_factory: Any, owner_id: str, scope: str):
+    """Return emit(kind, payload) that commits EACH event in its own transaction.
+
+    The worker processes a whole turn inside one uow.transaction() that commits
+    only at the end; writing activity events on that shared session would hide
+    them from the polling SSE until the turn finished. An independent per-event
+    transaction makes each event visible live (and survives a later rollback of
+    the main turn, so the trace + an error event persist even on failure).
+    """
+    if session_factory is None:
+        return None
+
+    def emit(kind: str, payload: dict) -> None:
+        uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": owner_id})
+        with uow.transaction():
+            uow.agent_events.create(
+                AgentEvent(owner_id=owner_id, scope=scope, kind=kind, payload=payload)
+            )
+
+    return emit
+
+
 def _post_agent_message(
     ctx: HandlerContext, work_item_id: str, role: str, content: str
 ) -> None:
@@ -525,7 +566,22 @@ def _handle_project_chat(ctx, msg, thread_id: str, history: list) -> None:
         owner_id=msg.owner_id,
         project_id=project_id,
     )
-    reply_text = ctx.lead_orchestrator.respond(history, project.name, tools)
+    scope = stream_scope(thread_id=thread_id)
+    sink = build_event_sink(ctx.session_factory, msg.owner_id, scope)
+    if sink:
+        sink(EVENT_STATUS, {"state": "working"})
+        ctx.lead_orchestrator.set_event_sink(sink)
+    try:
+        reply_text = ctx.lead_orchestrator.respond(history, project.name, tools)
+    except Exception as exc:
+        if sink:
+            sink(EVENT_ERROR, {"message": str(exc)})
+        raise
+    finally:
+        if sink:
+            ctx.lead_orchestrator.set_event_sink(None)
+    if sink:
+        sink(EVENT_FINAL, {"text": reply_text})
     if reply_text.strip():
         _post_agent_message(ctx, thread_id, "lead", reply_text)
 
@@ -562,13 +618,25 @@ def handle_chat(msg: AgentMessage, ctx: HandlerContext) -> None:
 
     work_item_id = thread_id
     title = _work_item_title_by_id(ctx, work_item_id)
-    reply_text = ctx.chat_responder.respond(role, history, title)
-
+    scope = stream_scope(thread_id=thread_id)
+    sink = build_event_sink(ctx.session_factory, msg.owner_id, scope)
+    if sink:
+        sink(EVENT_STATUS, {"state": "working"})
+        ctx.chat_responder.set_event_sink(sink)
+    try:
+        reply_text = ctx.chat_responder.respond(role, history, title)
+    except Exception as exc:
+        if sink:
+            sink(EVENT_ERROR, {"message": str(exc)})
+        raise
+    finally:
+        if sink:
+            ctx.chat_responder.set_event_sink(None)
+    if sink:
+        sink(EVENT_FINAL, {"text": reply_text})
     if not reply_text.strip():
         return
-
     _post_agent_message(ctx, work_item_id, role, reply_text)
-
     for target in plan_fanout(reply_text, depth + 1):
         _publish_chat(ctx, work_item_id, msg.owner_id, target, depth + 1)
 

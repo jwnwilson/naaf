@@ -119,6 +119,15 @@ class RunEventRow(_Timestamped, Base):
     payload: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
 
 
+class AgentEventRow(_Timestamped, Base):
+    __tablename__ = "agent_events"
+    __table_args__ = (UniqueConstraint("owner_id", "scope", "seq"),)
+    scope: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    seq: Mapped[int] = mapped_column(Integer, nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+
+
 # system table (not owner-scoped): per-subscriber fan-out cursor
 class SubscriberCursorRow(Base):
     __tablename__ = "subscriber_cursors"

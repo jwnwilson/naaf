@@ -590,6 +590,44 @@ paths:
                     properties:
                       data: { $ref: "#/components/schemas/Budget" }
 
+  /threads/{id}/activity:
+    get:
+      operationId: listThreadActivity
+      summary: List activity events for a thread
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: after, in: query, required: false, schema: { type: integer, default: 0 } }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/AgentActivityEventOut" }
+
+  /runs/{id}/activity:
+    get:
+      operationId: listRunActivity
+      summary: List activity events for a run
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: after, in: query, required: false, schema: { type: integer, default: 0 } }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/AgentActivityEventOut" }
+
 components:
   schemas:
     SecretOut:
@@ -941,3 +979,12 @@ components:
       properties:
         used: { type: integer }
         limit: { type: integer }
+
+    AgentActivityEventOut:
+      type: object
+      required: [seq, kind, payload, createdAt]
+      properties:
+        seq: { type: integer }
+        kind: { type: string }
+        payload: { type: object, additionalProperties: true }
+        createdAt: { type: string, format: date-time }

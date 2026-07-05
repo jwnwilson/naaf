@@ -30,6 +30,7 @@ class StageOutcome(BaseModel):
 
 
 class AgentRuntime(Protocol):
+    def set_event_sink(self, emit) -> None: ...
     def run_stage(self, role: str, stage: Stage, ctx: StageContext) -> StageOutcome: ...
 
 
@@ -45,6 +46,11 @@ class LlmAgentRuntime:
         self._llm = llm
         self._workspace_factory = workspace_factory
         self._max_iterations = max_iterations
+
+    def set_event_sink(self, emit) -> None:
+        setter = getattr(self._llm, "set_event_sink", None)
+        if setter is not None:
+            setter(emit)
 
     def run_stage(self, role: str, stage: Stage, ctx: StageContext) -> StageOutcome:
         # role/stage are accepted for AgentRuntime interface compatibility; the loop

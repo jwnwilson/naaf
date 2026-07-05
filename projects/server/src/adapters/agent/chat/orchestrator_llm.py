@@ -27,6 +27,11 @@ class LlmOrchestrator:
         self._llm = llm
         self._model = model
 
+    def set_event_sink(self, emit) -> None:
+        setter = getattr(self._llm, "set_event_sink", None)
+        if setter is not None:
+            setter(emit)
+
     def respond(self, history: list[ChatTurn], title: str, tools: OrchestrationTools) -> str:
         user = (
             f"Project: {title}\n\nConversation so far:\n{_transcript(history)}\n\n"

@@ -1,4 +1,5 @@
 import { Avatar, PulseDot, StatusBadge } from "../../components/ui";
+import { ActivityFeed } from "../../components/thread/ActivityFeed";
 import { useRun, useResolveGate } from "../../lib/api/hooks";
 import { LogStream } from "./LogStream";
 import { StepTimeline } from "./StepTimeline";
@@ -105,6 +106,7 @@ export function AgentMonitor({ runId }: { runId: string }) {
       )}
 
       <StepTimeline stages={run.stages} />
+      <ActivityFeed scope={{ runId }} />
       <div className="flex-1 overflow-y-auto">
         <LogStream events={events} />
       </div>

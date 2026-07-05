@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Any, Literal
 
 from domain.work_item import Priority, WorkItemKind, WorkItemStatus
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 def iso(dt: datetime | None) -> str:
@@ -332,6 +332,20 @@ class AnswerIn(BaseModel):
         if not v.strip():
             raise ValueError("option must not be empty")
         return v
+
+
+# ---------------------------------------------------------------------------
+# Activity events (agent event stream)
+# ---------------------------------------------------------------------------
+
+
+class AgentActivityEventOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    seq: int
+    kind: str
+    payload: dict = Field(default_factory=dict)
+    createdAt: str
 
 
 # ---------------------------------------------------------------------------

@@ -74,7 +74,7 @@ export function DetailScreen() {
         {activeTab === "Attachments" && <AttachmentsPanel workItemId={itemId ?? ""} />}
         {activeTab === "Activity" && <EmptyBody message="No activity yet" />}
         {activeTab === "Thread" && (
-          <Thread workItemId={itemId ?? ""} showRail showTyping={agentActive ?? false} />
+          <Thread workItemId={itemId ?? ""} showRail />
         )}
       </div>
     </div>
