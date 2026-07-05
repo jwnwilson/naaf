@@ -21,6 +21,9 @@ def build_llm_adapter(settings):
             )
         from adapters.agent.llm.litellm import LiteLLMAdapter
         return LiteLLMAdapter(base_url=settings.litellm_base_url, key=settings.litellm_key)
+    if settings.llm_provider == "scripted":
+        from adapters.agent.scripted.adapter import ScriptedLLMAdapter
+        return ScriptedLLMAdapter()
     raise ValueError(f"unknown llm_provider: {settings.llm_provider}")
 
 

@@ -64,13 +64,14 @@ class ScriptedLLMAdapter:
         if step == 1:
             return tool("create_work_item", {"kind": "epic", "title": EPIC_TITLE})
         if step == 2:
-            return tool("create_work_item",
-                        {"kind": "feature", "title": FEATURE_TITLE, "parent_id": self._last_id(results)})
+            args = {"kind": "feature", "title": FEATURE_TITLE, "parent_id": self._last_id(results)}
+            return tool("create_work_item", args)
         if step == 3:
             if self._emit is not None:
-                self._emit("tool_call", {"name": "create_work_item", "input": {"title": TASK_TITLE}})
-            return tool("create_work_item",
-                        {"kind": "task", "title": TASK_TITLE, "parent_id": self._last_id(results)})
+                emit_payload = {"name": "create_work_item", "input": {"title": TASK_TITLE}}
+                self._emit("tool_call", emit_payload)
+            args = {"kind": "task", "title": TASK_TITLE, "parent_id": self._last_id(results)}
+            return tool("create_work_item", args)
         if step == 4:
             return tool("propose_run", {"work_item_ids": [self._last_id(results)]})
         return LLMResponse(
@@ -86,4 +87,6 @@ class ScriptedLLMAdapter:
     def _plain_chat(self) -> LLMResponse:
         if self._emit is not None:
             self._emit("text_block", {"text": "Acknowledged."})
-        return LLMResponse(content="Acknowledged.", stop_reason="end_turn", usage=Usage(output_tokens=4))
+        return LLMResponse(
+            content="Acknowledged.", stop_reason="end_turn", usage=Usage(output_tokens=4)
+        )
