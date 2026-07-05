@@ -4,14 +4,6 @@ from domain.work_item import AcceptanceCriterion, Priority, WorkItemStatus
 from pydantic import BaseModel
 
 
-class CreateProject(BaseModel):
-    name: str
-    repo_url: str | None = None
-    repo_path: str | None = None
-    team_id: str | None = None
-    autonomy_level: AutonomyLevel = AutonomyLevel.GATED_ALL
-
-
 class UpdateProject(BaseModel):
     name: str | None = None
     repo_url: str | None = None

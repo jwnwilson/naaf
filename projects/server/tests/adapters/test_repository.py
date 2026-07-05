@@ -104,3 +104,37 @@ def test_delete_then_read_raises(session):
     repo.delete(p.id)
     with pytest.raises(RecordNotFound):
         repo.read(p.id)
+
+
+def test_project_create_derives_unique_key(session_factory):
+    from adapters.database.uow import SqlUnitOfWork
+    from domain.project import Project
+
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
+    with uow.transaction():
+        a = uow.projects.create(Project(owner_id="u1", name="Acme"))
+        b = uow.projects.create(Project(owner_id="u1", name="Acme"))
+    assert a.key == "ACME"
+    assert b.key == "ACME2"
+
+
+def test_work_item_seq_is_per_project_monotonic(session_factory):
+    from adapters.database.uow import SqlUnitOfWork
+    from domain.project import Project
+    from domain.work_item import WorkItem, WorkItemKind
+
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
+    with uow.transaction():
+        p1 = uow.projects.create(Project(owner_id="u1", name="One"))
+        p2 = uow.projects.create(Project(owner_id="u1", name="Two"))
+        i1 = uow.work_items.create(
+            WorkItem(owner_id="u1", project_id=p1.id, kind=WorkItemKind.EPIC, title="a")
+        )
+        i2 = uow.work_items.create(
+            WorkItem(owner_id="u1", project_id=p1.id, kind=WorkItemKind.TASK, title="b")
+        )
+        j1 = uow.work_items.create(
+            WorkItem(owner_id="u1", project_id=p2.id, kind=WorkItemKind.EPIC, title="c")
+        )
+    assert (i1.seq, i2.seq) == (1, 2)
+    assert j1.seq == 1  # numbering restarts per project

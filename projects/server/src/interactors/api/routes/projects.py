@@ -2,11 +2,12 @@ from uuid import UUID
 
 from adapters.database.uow import SqlUnitOfWork
 from crud_router import Envelope, ok
+from domain.project import Project
 from fastapi import APIRouter, Depends, Response
 
 from interactors.api.contract import ProjectCreateIn, ProjectOut, ProjectUpdateIn, iso
 from interactors.api.deps import get_uow
-from interactors.api.schemas import CreateProject, UpdateProject
+from interactors.api.schemas import UpdateProject
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -22,7 +23,8 @@ def create_project(
     body: ProjectCreateIn,
     uow: SqlUnitOfWork = Depends(get_uow),  # noqa: B008
 ):
-    p = uow.projects.create(CreateProject(
+    p = uow.projects.create(Project(
+        owner_id="",  # stamped by repo from required_filters; key derived in repo
         name=body.name,
         repo_url=body.repoUrl or None,
         autonomy_level=body.autonomyLevel,
