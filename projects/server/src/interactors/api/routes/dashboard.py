@@ -31,7 +31,7 @@ def token_usage(uow: SqlUnitOfWork = Depends(get_uow)):  # noqa: B008
 @router.get("/activity", response_model=Envelope[list[ActivityEventOut]])
 def activity(uow: SqlUnitOfWork = Depends(get_uow)):  # noqa: B008
     events = uow.run_events.read_multi(
-        order_by="-created_at", page_size=_ACTIVITY_SCAN
+        order_by="-global_seq", page_size=_ACTIVITY_SCAN
     ).results
     items = [it for it in (to_activity_event(e) for e in events) if it is not None]
     items = items[:ACTIVITY_LIMIT]

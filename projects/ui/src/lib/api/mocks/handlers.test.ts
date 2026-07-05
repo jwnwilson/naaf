@@ -43,7 +43,7 @@ describe("handler split", () => {
     expect(live).toMatch(/\/api\/projects/);
     expect(live).toMatch(/\/api\/work-items/);
     expect(live).toMatch(/\/api\/teams/);
-    // dashboard stays mock-only; runs are now live
+    // /dashboard/metrics + /budget stay mock-only; /dashboard/token-usage is live; runs are live
     expect(mock).toMatch(/\/api\/dashboard/);
     expect(live).toMatch(/\/api\/runs/);
     // board endpoint has no backend — always mocked
