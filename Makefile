@@ -122,16 +122,18 @@ e2e-db:
 # Pass E2E_SPEC=e2e/smoke.spec.ts to target a single spec file.
 e2e: e2e-db
 	@echo "▶ e2e — scripted stack (API :8000 · UI :5173) then Playwright"
-	@echo "🔪 killing any leftover celery/uvicorn/vite from previous runs…"
-	@pkill -f "interactors.worker.celery_app" 2>/dev/null || true
-	@fuser -k 8000/tcp 5173/tcp 2>/dev/null || lsof -ti:8000 -ti:5173 2>/dev/null | xargs kill -9 2>/dev/null || true
-	@sleep 1
+	@if [ "$(CI)" != "true" ]; then \
+		echo "🔪 killing any leftover celery/uvicorn/vite from previous runs…"; \
+		pkill -f "interactors.worker.celery_app" 2>/dev/null || true; \
+		fuser -k 8000/tcp 5173/tcp 2>/dev/null || lsof -ti:8000 -ti:5173 2>/dev/null | xargs kill -9 2>/dev/null || true; \
+		sleep 1; \
+	fi
 	@naaf_db_url="$(NAAF_E2E_DB_URL)" naaf_llm_provider=scripted naaf_agent_runtime=claude_code bash -c '\
 		bg_pids=(); \
 		cleanup() { \
 			printf "\n▲ stopping…\n"; \
 			[ $${#bg_pids[@]} -gt 0 ] && kill "$${bg_pids[@]}" 2>/dev/null; \
-			pkill -f "interactors.worker.celery_app" 2>/dev/null || true; \
+			[ "$(CI)" = "true" ] || pkill -f "interactors.worker.celery_app" 2>/dev/null || true; \
 			fuser -k 8000/tcp 5173/tcp 2>/dev/null || lsof -ti:8000 -ti:5173 2>/dev/null | xargs kill 2>/dev/null || true; \
 			wait; \
 		}; \
@@ -159,16 +161,18 @@ e2e: e2e-db
 # naaf_llm_provider=claude_cli selects the real LLM; NAAF_E2E_REAL=1 enables the tests.
 e2e-real: e2e-db
 	@echo "▶ e2e-real — real Claude CLI stack (API :8000 · UI :5173) then Playwright @real tests"
-	@echo "🔪 killing any leftover celery/uvicorn/vite from previous runs…"
-	@pkill -f "interactors.worker.celery_app" 2>/dev/null || true
-	@fuser -k 8000/tcp 5173/tcp 2>/dev/null || lsof -ti:8000 -ti:5173 2>/dev/null | xargs kill -9 2>/dev/null || true
-	@sleep 1
+	@if [ "$(CI)" != "true" ]; then \
+		echo "🔪 killing any leftover celery/uvicorn/vite from previous runs…"; \
+		pkill -f "interactors.worker.celery_app" 2>/dev/null || true; \
+		fuser -k 8000/tcp 5173/tcp 2>/dev/null || lsof -ti:8000 -ti:5173 2>/dev/null | xargs kill -9 2>/dev/null || true; \
+		sleep 1; \
+	fi
 	@NAAF_E2E_REAL=1 naaf_db_url="$(NAAF_E2E_DB_URL)" naaf_llm_provider=claude_cli naaf_agent_runtime=claude_code bash -c '\
 		bg_pids=(); \
 		cleanup() { \
 			printf "\n▲ stopping…\n"; \
 			[ $${#bg_pids[@]} -gt 0 ] && kill "$${bg_pids[@]}" 2>/dev/null; \
-			pkill -f "interactors.worker.celery_app" 2>/dev/null || true; \
+			[ "$(CI)" = "true" ] || pkill -f "interactors.worker.celery_app" 2>/dev/null || true; \
 			fuser -k 8000/tcp 5173/tcp 2>/dev/null || lsof -ti:8000 -ti:5173 2>/dev/null | xargs kill 2>/dev/null || true; \
 			wait; \
 		}; \
