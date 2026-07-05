@@ -42,10 +42,25 @@ today:
   ActivityFeed all backed by real data; the board polls for live refresh.
 - **Work-item file uploads ✓** — `storage` lib (Local default / S3), attachments API, and
   materialization into the agent workspace.
+- **Live agent output streaming ✓** — the worker streams a coarse activity trace (text / tool calls /
+  results) into chat + runs via `agent_events` + poll-based SSE, with a typing indicator.
 
 See the dated log below for the detail on each, and **Outstanding** at the bottom for what's left.
 
 ## Status (2026-07-05)
+
+**Live agent output streaming (`stream-agent-output`) — built.** Agent turns no longer run as one
+opaque blocking call — the worker now **streams a coarse activity trace** (text blocks, tool calls,
+tool results, status/final/error) into the UI as it happens, for **both chat threads and runs**. A
+new **`agent_events`** table (migration `0014`) + `AgentEventRepository` (`append`/`list_after`,
+per-`scope` `seq`) is the cross-process channel; a **streaming runner** (`claude_cli/stream_runner.py`,
+`claude -p --output-format stream-json`) parses NDJSON and forwards events through an adapter event
+sink, while the durable chat `messages` history stays the source of truth. The API adds
+`GET /threads/{id}/activity` (replay) + `/threads/{id}/activity/stream` and `/runs/{id}/activity/stream`
+(poll-based SSE, same pattern as the run-events stream — no new infra). The UI reduces the stream into
+a live trace with the existing `TypingIndicator` for the "working, no output yet" state. Deferred:
+token-by-token deltas via Redis (the event model is designed to add them without breaking changes).
+PR #56.
 
 **Dashboard TokenChart + ActivityFeed — built.** The last two mocked dashboard widgets are now
 live, backed by the existing `RunEvent` stream (read-only aggregation — no new table or migration).
@@ -56,11 +71,11 @@ dropped). A new `routes/dashboard.py` serves owner-scoped **`GET /dashboard/toke
 run_events since a 7-day cutoff, aggregates) and **`GET /activity`** (recent cross-run events ordered
 by `-global_seq`, mapped, capped at 20). On the UI, `useTokenUsage`/`useActivity` **poll every 10s**
 (paused when the tab is hidden) and the two endpoints moved from MSW mock-only to live-backed; the
-**TokenChart/ActivityFeed components are unchanged** (contract shapes match). **Deferred (per spec):**
-re-pointing the ActivityFeed at the richer `agent_events` trace once
-[`stream-agent-output`](superpowers/specs/2026-07-05-stream-agent-output-design.md) ships (the
-`/activity` contract stays identical, so it's a drop-in swap); `/dashboard/metrics` stays mocked; real
-per-model token pricing (A5d). Design:
+**TokenChart/ActivityFeed components are unchanged** (contract shapes match). **Follow-up:** now that
+`stream-agent-output` (PR #56) has landed its `agent_events` trace, the dashboard `/activity` feed
+*could* be re-pointed at that richer source behind its unchanged contract — an available (unbuilt)
+swap, not a dependency. Still mocked: `/dashboard/metrics` other cards + real per-model pricing (A5d).
+Design:
 [superpowers/specs/2026-07-05-dashboard-token-activity-design.md](superpowers/specs/2026-07-05-dashboard-token-activity-design.md);
 plan: [superpowers/plans/2026-07-05-dashboard-token-activity.md](superpowers/plans/2026-07-05-dashboard-token-activity.md).
 
@@ -254,10 +269,10 @@ full team**. In rough priority order:
   cost**; there is **no per-model pricing, no budget enforcement, and no budget UI**. The dashboard's
   `/dashboard/metrics` other cards (spend/tokens/projects) and `/budget` are **still MSW-mocked**
   pending this. The thread-fan-out **per-thread message/token budget** also pairs here.
-- **Live agent output (`stream-agent-output`) — designed only.** Token-by-token / tool-call streaming
-  of the agent trace into the UI (new `agent_events` table + streaming runner + SSE). Spec + plan
-  exist on the `feat/stream-agent-output` branch; when built, the dashboard ActivityFeed re-points at
-  the richer trace behind the unchanged `/activity` contract.
+- **Live agent output — mostly shipped (PR #56); two small follow-ups.** The coarse activity trace
+  streams into chat + runs today. Remaining: (1) token-by-token deltas via a Redis channel (the
+  `agent_events` model is designed to add them without breaking changes); (2) optionally re-point the
+  dashboard `/activity` feed at `agent_events` behind its unchanged contract.
 - **C — rest of the management plane.** Secrets shipped; the **capabilities / MCP-server / model /
   budget** management UIs are not built.
 - **B — full team.** The pipeline dispatches only **lead / engineer / qa**; architect / frontend /

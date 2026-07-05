@@ -130,9 +130,9 @@ VITE_LIVE_API=true pnpm dev
 real agent runs (`PROVISION → … → LEARN`) that clone the repo and open PRs, live run monitor,
 work-item threads with agent↔agent `@mention` dispatch, an LLM-agnostic runtime (Claude SDK /
 LiteLLM / **Claude-CLI subscription**), a containerized worker, secrets management, file uploads,
-and a **fully live dashboard** all ship today. Outstanding: A4 sandbox/egress + GitHub App tokens,
-A5d usage/budget + real pricing, the designed-only `stream-agent-output` streaming trace, the rest
-of the C management plane, and B full-team. See
+a **fully live dashboard**, and **live agent-output streaming** (chat + runs via `agent_events` + SSE)
+all ship today. Outstanding: A4 sandbox/egress + GitHub App tokens, A5d usage/budget + real pricing,
+the rest of the C management plane, and B full-team. See
 [docs/project-history.md](docs/project-history.md) — **Current state** (what ships) and
 **Outstanding** (what's left) — for the full picture.
 
