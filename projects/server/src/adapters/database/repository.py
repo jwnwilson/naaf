@@ -1,8 +1,10 @@
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, cast
 
 from domain.errors import IntegrityConflict, RecordNotFound
 from pydantic import BaseModel
-from sqlalchemy import Select, asc, desc, func, select
+from sqlalchemy import Delete, Select, asc, desc, func, select
+from sqlalchemy import delete as sql_delete
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.exc import IntegrityError as SqlIntegrityError
 from sqlalchemy.orm import Session
 
@@ -133,3 +135,19 @@ class SqlRepository(Generic[DTO]):  # noqa: UP046
         row = self._get_one_row(id)
         self.session.delete(row)
         self.session.flush()
+
+    def delete_where(self, **filters: Any) -> int:
+        """Bulk-delete rows matching required_filters AND the given filters.
+
+        Supports plain equality and the ``<field>__in`` suffix (the only shapes
+        the project cascade needs). Returns the number of rows deleted.
+        """
+        stmt: Delete = sql_delete(self.orm_model)
+        for key, value in {**self.required_filters, **filters}.items():
+            if key.endswith("__in"):
+                stmt = stmt.where(getattr(self.orm_model, key[:-4]).in_(value))
+            else:
+                stmt = stmt.where(getattr(self.orm_model, key) == value)
+        result = cast(CursorResult, self.session.execute(stmt))
+        self.session.flush()
+        return int(result.rowcount or 0)

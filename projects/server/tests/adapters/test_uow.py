@@ -41,3 +41,26 @@ def test_transaction_rolls_back_on_error(session_factory):
             raise RuntimeError("boom")
     uow2 = _uow(session_factory)
     assert uow2.projects.read_multi().total == 0
+
+
+def test_delete_where_respects_owner_and_in_filter(session_factory):
+    from adapters.database.uow import SqlUnitOfWork
+    from interactors.api.schemas import CreateProject
+
+    a = SqlUnitOfWork(session_factory, required_filters={"owner_id": "a"})
+    with a.transaction():
+        p1 = a.projects.create(CreateProject(name="p1"))
+        p2 = a.projects.create(CreateProject(name="p2"))
+
+    other = SqlUnitOfWork(session_factory, required_filters={"owner_id": "b"})
+    with other.transaction():
+        pb = other.projects.create(CreateProject(name="pb"))
+
+    a2 = SqlUnitOfWork(session_factory, required_filters={"owner_id": "a"})
+    with a2.transaction():
+        removed = a2.projects.delete_where(id__in=[p1.id, p2.id, pb.id])
+        assert removed == 2  # pb belongs to owner "b" and is filtered out
+
+    b2 = SqlUnitOfWork(session_factory, required_filters={"owner_id": "b"})
+    with b2.transaction():
+        assert b2.projects.read(pb.id).id == pb.id  # untouched
