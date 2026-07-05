@@ -47,8 +47,14 @@ db-reset:
 	cd projects/server && uv run alembic upgrade head
 	uv run python -m interactors.cli.seed
 
+# Worker command wrapped in watchmedo so code edits auto-restart it, mirroring
+# uvicorn's --reload. Celery has no hot-reload, so without this a long-running
+# worker silently runs stale code until manually restarted. --signal SIGTERM
+# lets Celery shut down gracefully between reloads.
+WORKER_CMD = uv run watchmedo auto-restart --directory=./src --pattern='*.py' --recursive --signal SIGTERM -- celery -A interactors.worker.celery_app:celery_app worker --beat --loglevel=info
+
 worker:
-	cd projects/server && uv run celery -A interactors.worker.celery_app:celery_app worker --beat --loglevel=info
+	cd projects/server && $(WORKER_CMD)
 
 # One command to run + validate the whole stack:
 #   Postgres + Redis (docker) -> migrate + seed -> API (:8000) + worker + UI (:5173, live).
@@ -63,7 +69,7 @@ dev:
 	cd projects/server && naaf_db_url="$(NAAF_DB_URL)" uv run alembic upgrade head
 	-naaf_db_url="$(NAAF_DB_URL)" uv run python -m interactors.cli.seed
 	@naaf_db_url="$(NAAF_DB_URL)" naaf_agent_runtime="$(NAAF_AGENT_RUNTIME)" bash -c 'trap "echo; echo ▲ stopping…; kill 0" EXIT INT TERM; \
-		( cd projects/server && uv run celery -A interactors.worker.celery_app:celery_app worker --beat --loglevel=info ) & \
+		( cd projects/server && $(WORKER_CMD) ) & \
 		( uv run uvicorn interactors.api.app:create_app --factory --reload ) & \
 		( cd projects/ui && VITE_LIVE_API=true pnpm dev ) & \
 		wait'

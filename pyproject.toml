@@ -21,6 +21,7 @@ dev = [
     "httpx>=0.27",
     "ruff>=0.6",
     "mypy>=1.11",
+    "watchdog>=4",
 ]
 
 [tool.pytest.ini_options]
