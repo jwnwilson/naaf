@@ -13,14 +13,16 @@ DEFAULT_ROLES = [AgentRole.LEAD, AgentRole.BACKEND, AgentRole.QA]
 DEMO_PROJECT_NAME = "Demo Project"
 DEMO_PROJECT_REPO = "git@github.com:acme/demo.git"
 
-# (kind, title, status, priority) tuples — fully typed, no dict needed
-_DEMO_ITEMS: list[tuple[WorkItemKind, str, WorkItemStatus, Priority]] = [
-    (WorkItemKind.EPIC, "Core Infrastructure", WorkItemStatus.DONE, Priority.HIGH),
-    (WorkItemKind.TASK, "Set up CI pipeline", WorkItemStatus.IN_REVIEW, Priority.HIGH),
-    (WorkItemKind.TASK, "Implement authentication", WorkItemStatus.IN_PROGRESS, Priority.URGENT),
-    (WorkItemKind.TASK, "Design database schema", WorkItemStatus.TODO, Priority.MEDIUM),
-    (WorkItemKind.TASK, "Write API documentation", WorkItemStatus.BACKLOG, Priority.LOW),
-    (WorkItemKind.TASK, "Add end-to-end tests", WorkItemStatus.BACKLOG, Priority.MEDIUM),
+# epic → feature → tasks, so seeded items carry real lineage (key/epicName/featureName)
+DEMO_EPIC = (WorkItemKind.EPIC, "Core Infrastructure", WorkItemStatus.DONE, Priority.HIGH)
+DEMO_FEATURE = (WorkItemKind.FEATURE, "CI & Auth", WorkItemStatus.IN_PROGRESS, Priority.HIGH)
+# tasks hang under the feature
+_DEMO_TASKS: list[tuple[str, WorkItemStatus, Priority]] = [
+    ("Set up CI pipeline", WorkItemStatus.IN_REVIEW, Priority.HIGH),
+    ("Implement authentication", WorkItemStatus.IN_PROGRESS, Priority.URGENT),
+    ("Design database schema", WorkItemStatus.TODO, Priority.MEDIUM),
+    ("Write API documentation", WorkItemStatus.BACKLOG, Priority.LOW),
+    ("Add end-to-end tests", WorkItemStatus.BACKLOG, Priority.MEDIUM),
 ]
 
 
@@ -47,12 +49,36 @@ def seed_demo(session_factory: sessionmaker, owner_id: str) -> str:
         project = uow.projects.create(
             Project(owner_id=owner_id, name=DEMO_PROJECT_NAME, repo_url=DEMO_PROJECT_REPO)
         )
-        for kind, title, status, priority in _DEMO_ITEMS:
+        kind, title, status, priority = DEMO_EPIC
+        epic = uow.work_items.create(
+            WorkItem(
+                owner_id=owner_id,
+                project_id=project.id,
+                kind=kind,
+                title=title,
+                status=status,
+                priority=priority,
+            )
+        )
+        kind, title, status, priority = DEMO_FEATURE
+        feature = uow.work_items.create(
+            WorkItem(
+                owner_id=owner_id,
+                project_id=project.id,
+                parent_id=epic.id,
+                kind=kind,
+                title=title,
+                status=status,
+                priority=priority,
+            )
+        )
+        for title, status, priority in _DEMO_TASKS:
             uow.work_items.create(
                 WorkItem(
                     owner_id=owner_id,
                     project_id=project.id,
-                    kind=kind,
+                    parent_id=feature.id,
+                    kind=WorkItemKind.TASK,
                     title=title,
                     status=status,
                     priority=priority,
