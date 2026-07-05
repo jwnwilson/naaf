@@ -687,6 +687,7 @@ components:
       properties:
         id: { type: string }
         name: { type: string }
+        description: { type: string }
         repoUrl: { type: string }
         itemCount: { type: integer }
         createdAt: { type: string, format: date-time }
@@ -697,12 +698,14 @@ components:
       required: [name, repoUrl]
       properties:
         name: { type: string }
+        description: { type: string }
         repoUrl: { type: string }
 
     ProjectUpdate:
       type: object
       properties:
         name: { type: string }
+        description: { type: string }
         repoUrl: { type: string }
 
     WorkItem:
