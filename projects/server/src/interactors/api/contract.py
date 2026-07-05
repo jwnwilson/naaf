@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
+from domain.project import AutonomyLevel
 from domain.work_item import Priority, WorkItemKind, WorkItemStatus
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -111,6 +112,7 @@ class ProjectCreateIn(BaseModel):
 
     name: str
     repoUrl: str = ""
+    autonomyLevel: AutonomyLevel = AutonomyLevel.GATED_ALL
 
 
 class ProjectUpdateIn(BaseModel):

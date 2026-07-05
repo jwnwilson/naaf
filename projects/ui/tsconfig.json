@@ -14,6 +14,6 @@
     "noEmit": true,
     "types": ["vitest/globals", "@testing-library/jest-dom", "node", "vite/client"]
   },
-  "include": ["src"],
+  "include": ["src", "e2e", "playwright.config.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
