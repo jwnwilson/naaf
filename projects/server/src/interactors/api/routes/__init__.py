@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from interactors.api.routes.activity import router as activity_router
 from interactors.api.routes.agents import router as agents_router
 from interactors.api.routes.attachments import router as attachments_router
 from interactors.api.routes.notifications import router as notifications_router
@@ -26,3 +27,4 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(threads_router)
     app.include_router(attachments_router)
     app.include_router(secrets_router)
+    app.include_router(activity_router)
