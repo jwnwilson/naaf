@@ -55,6 +55,7 @@ const projects: Project[] = [
   {
     id: "proj-1",
     name: "NAAF Core Platform",
+    description: "Core control-plane service",
     repoUrl: "https://github.com/acme/naaf-core",
     itemCount: 8,
     createdAt: "2026-06-01T09:00:00Z",
@@ -63,6 +64,7 @@ const projects: Project[] = [
   {
     id: "proj-2",
     name: "NAAF Dashboard UI",
+    description: "React board UI",
     repoUrl: "https://github.com/acme/naaf-ui",
     itemCount: 3,
     createdAt: "2026-06-10T11:00:00Z",

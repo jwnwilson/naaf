@@ -141,6 +141,22 @@ export const db = {
     return project;
   },
 
+  updateProject: (id: string, patch: Partial<Project>): Project | null => {
+    let updated: Project | null = null;
+    projects = projects.map((p) => {
+      if (p.id !== id) return p;
+      updated = { ...p, ...patch, updatedAt: new Date().toISOString() };
+      return updated;
+    });
+    return updated;
+  },
+
+  removeProject: (id: string): boolean => {
+    const before = projects.length;
+    projects = projects.filter((p) => p.id !== id);
+    return projects.length < before;
+  },
+
   // Append a new work item and bump its parent project's itemCount
   addWorkItem: (item: WorkItem): WorkItem => {
     workItems = [...workItems, item];

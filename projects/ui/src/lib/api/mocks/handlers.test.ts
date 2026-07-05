@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, test } from "vitest";
 import type { HttpHandler } from "msw";
-import { apiFetch, apiList, apiPost } from "../client";
+import { apiDelete, apiFetch, apiList, apiPatch, apiPost } from "../client";
 import { mockOnlyHandlers, liveHandlers } from "./handlers";
 
-type ProjectRow = { id: string; itemCount: number };
+type ProjectRow = { id: string; itemCount: number; description?: string };
 type WorkItemRow = { id: string };
 
 // MSW node server is started globally in src/test/setup.ts
@@ -106,5 +106,16 @@ describe("create handlers persist to the mock store", () => {
     const after = await apiList<ProjectRow>("/projects");
     expect(after.results.length).toBe(before.results.length + 1);
     expect(after.results.some((p) => p.id === created.id)).toBe(true);
+  });
+
+  test("PATCH then DELETE a project persists in the mock db", async () => {
+    const created = await apiPost<ProjectRow>("/projects", { name: "Temp", repoUrl: "", description: "d0" });
+    await apiPatch<ProjectRow>(`/projects/${created.id}`, { description: "d1" });
+    const afterPatch = await apiList<ProjectRow>("/projects");
+    expect(afterPatch.results.find((p) => p.id === created.id)?.description).toBe("d1");
+
+    await apiDelete(`/projects/${created.id}`);
+    const afterDelete = await apiList<ProjectRow>("/projects");
+    expect(afterDelete.results.some((p) => p.id === created.id)).toBe(false);
   });
 });
