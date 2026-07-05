@@ -51,7 +51,7 @@ class HandlerContext:
     runtime: AgentRuntime | None  # None only in dead-letter cleanup (couple path — no stage runs)
     workspace_root: str = ""
     role_aliases: dict[str, str] | None = field(default=None)
-    model_prices: dict[str, "ModelPrice"] | None = None
+    model_prices: dict[str, ModelPrice] | None = None
     projects: Any = None
     messages: Any = None  # MessageRepository | None — None in dead-letter cleanup
     chat_responder: Any = None  # ChatResponder | None — None in dead-letter cleanup

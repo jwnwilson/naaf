@@ -17,6 +17,10 @@ from interactors.api.deps import get_budget_limit, get_uow
 router = APIRouter(tags=["dashboard"])
 
 TOKEN_WINDOW_DAYS = 7
+# NOTE: _RUN_SCAN caps the run scan at 1000 rows. Beyond that, spend/token sums are silently
+# truncated. Additionally, totalTokens here (Σ run.token_usage) can diverge from the 7-day
+# token-usage chart, which aggregates run_events. Both are acceptable at single-user scale;
+# revisit for multi-user / A5d-2 when a proper time-series aggregate is needed.
 _RUN_SCAN = 1000  # sum runs in Python — bounded at local single-user scale
 ACTIVITY_LIMIT = 20
 _ACTIVITY_SCAN = 40  # read extra so dropping `log`s still fills the list

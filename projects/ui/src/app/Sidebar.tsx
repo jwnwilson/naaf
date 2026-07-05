@@ -160,7 +160,7 @@ export function Sidebar() {
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Settings + token budget footer */}
+      {/* Settings + budget footer */}
       <div className="border-t border-[rgba(255,255,255,0.05)]">
         <div className="px-[6px] pt-[4px]">
           <NavItem
@@ -172,9 +172,9 @@ export function Sidebar() {
         {budget && (
           <div className="px-[9px] pb-[10px] pt-[6px]">
             <div className="mb-[4px] flex items-center justify-between">
-              <span className="font-mono text-[9.5px] text-[#30333c]">TOKEN BUDGET</span>
+              <span className="font-mono text-[9.5px] text-[#30333c]">BUDGET</span>
               <span className="font-mono text-[9.5px] text-[#72757e]">
-                {(budget.used / 1000).toFixed(1)}k / {(budget.limit / 1000).toFixed(0)}k
+                ${budget.used.toFixed(2)} / ${budget.limit.toFixed(0)}
               </span>
             </div>
             <ProgressBar value={budget.limit > 0 ? budget.used / budget.limit : 0} />

@@ -46,4 +46,13 @@ describe("Sidebar", () => {
     await userEvent.click(screen.getByRole("button", { name: /new project/i }));
     expect(await screen.findByRole("dialog")).toHaveTextContent("Create Project");
   });
+
+  it("budget footer shows USD amounts and not token-formatted label", async () => {
+    renderSidebar();
+    // Mock budget: {used: 42.85, limit: 100} — expect dollar formatting
+    await waitFor(() => expect(screen.getByText(/BUDGET/)).toBeInTheDocument());
+    expect(screen.getByText(/\$42\.85 \/ \$100/)).toBeInTheDocument();
+    // Must not render the old token label
+    expect(screen.queryByText(/TOKEN BUDGET/)).toBeNull();
+  });
 });
