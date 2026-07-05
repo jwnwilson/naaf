@@ -13,4 +13,10 @@ describe("threadMessagesPollMs", () => {
   it("active interval is faster than idle", () => {
     expect(THREAD_ACTIVE_POLL_MS).toBeLessThan(THREAD_IDLE_POLL_MS);
   });
+
+  it("idle interval stays snappy so a reply that lands as the agent finishes appears within ~2s", () => {
+    // The agent's reply commits right as isWorking flips false, so the idle
+    // interval is the backstop that surfaces it — keep it tight.
+    expect(THREAD_IDLE_POLL_MS).toBeLessThanOrEqual(2000);
+  });
 });
