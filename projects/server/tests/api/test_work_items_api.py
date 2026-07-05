@@ -2,6 +2,43 @@ def _project(client) -> str:
     return client.post("/projects/", json={"name": "naaf"}).json()["data"]["id"]
 
 
+def test_work_item_out_exposes_key_and_lineage_names(client):
+    # project
+    proj = client.post("/projects", json={"name": "NAAF Test"}).json()["data"]
+    pid = proj["id"]
+
+    def create(kind, title, parent_field=None, parent_id=None):
+        body = {"type": kind, "title": title, "status": "todo", "priority": "medium"}
+        if parent_field:
+            body[parent_field] = parent_id
+        return client.post(f"/projects/{pid}/work-items", json=body).json()["data"]
+
+    epic = create("epic", "Auth")
+    feature = create("feature", "Login flow", "epicId", epic["id"])
+    task = create("task", "Fix login bug", "featureId", feature["id"])
+
+    # key = <project.key>-<seq>; NAAF Test -> NAAF, epic is seq 1
+    assert epic["key"] == "NAAF-1"
+    assert feature["key"] == "NAAF-2"
+    assert task["key"] == "NAAF-3"
+
+    # lineage names
+    assert epic["epicName"] is None and epic["featureName"] is None
+    assert feature["epicName"] == "Auth" and feature["featureName"] is None
+    assert task["epicName"] == "Auth" and task["featureName"] == "Login flow"
+
+
+def test_list_work_items_includes_key(client):
+    proj = client.post("/projects", json={"name": "Acme"}).json()["data"]
+    pid = proj["id"]
+    client.post(
+        f"/projects/{pid}/work-items",
+        json={"type": "epic", "title": "E", "status": "todo", "priority": "medium"},
+    )
+    items = client.get("/work-items", params={"project": pid}).json()["data"]
+    assert items[0]["key"] == "ACME-1"
+
+
 def test_nested_create_epic_then_feature_then_task(client):
     pid = _project(client)
     epic = client.post(f"/projects/{pid}/work-items",
