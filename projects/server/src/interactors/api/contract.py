@@ -111,6 +111,7 @@ class ProjectCreateIn(BaseModel):
 
     name: str
     repoUrl: str = ""
+    autonomyLevel: str = "gated_all"
 
 
 class ProjectUpdateIn(BaseModel):

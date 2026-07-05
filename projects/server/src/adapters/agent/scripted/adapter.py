@@ -3,6 +3,13 @@ the real LlmOrchestrator / LlmChatResponder / LlmAgentRuntime, so the genuine
 tool loop and set_event_sink → agent_events → SSE → UI pipeline run unchanged.
 """
 import re
+import time
+
+# The SSE endpoint polls every 0.3 s.  Sleeping longer than that after emitting
+# text_block events (but BEFORE returning the LLMResponse that triggers the
+# FINAL event) guarantees text_blocks land in the DB in an earlier poll cycle,
+# giving the UI an observable window where isWorking=true with the text visible.
+_STREAM_DELAY = 1.5
 
 from domain.agent.llm import LLMMessage, LLMRequest, LLMResponse, MessageRole, ToolCall, Usage
 
@@ -39,6 +46,12 @@ class ScriptedLLMAdapter:
             self._emit("tool_call", {"name": "edit_file", "input": {}})
             self._emit("tool_result", {"result": "ok"})
             self._emit("text_block", {"text": STAGE_TEXT_DONE})
+            # Hold here so the SSE delivers the text_blocks above in a poll
+            # cycle that precedes the FINAL event (emitted by the handler after
+            # this method returns).  Without this delay all events land in the
+            # DB within one 0.3 s SSE window and arrive as a batch that includes
+            # FINAL, leaving isWorking=false before the UI can render the text.
+            time.sleep(_STREAM_DELAY)
         return LLMResponse(
             content=STAGE_TEXT_DONE,
             tool_calls=[ToolCall(id="report-1", name="report",
@@ -60,6 +73,10 @@ class ScriptedLLMAdapter:
         if step == 0:
             if self._emit is not None:
                 self._emit("text_block", {"text": CHAT_TEXT_PLAN})
+                # Same reasoning as _run_stage: give the SSE a full poll cycle
+                # to deliver this text_block before the tool loop continues and
+                # eventually emits the FINAL event.
+                time.sleep(_STREAM_DELAY)
             return tool("list_board", {})
         if step == 1:
             return tool("create_work_item", {"kind": "epic", "title": EPIC_TITLE})

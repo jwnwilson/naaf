@@ -39,6 +39,7 @@ export function StartRunButton({ item, run }: { item: WorkItem; run: RunOut | nu
   return (
     <>
       <Button
+        data-testid="start-run-button"
         variant="primary"
         disabled={disabled}
         title={reason}
@@ -54,7 +55,7 @@ export function StartRunButton({ item, run }: { item: WorkItem; run: RunOut | nu
           footer={
             <>
               <Button variant="secondary" onClick={() => setConfirming(false)}>Cancel</Button>
-              <Button variant="primary" disabled={mutation.isPending} onClick={() => { void confirmStart(); }}>
+              <Button data-testid="start-run-confirm" variant="primary" disabled={mutation.isPending} onClick={() => { void confirmStart(); }}>
                 {mutation.isPending ? "Starting…" : "Start run"}
               </Button>
             </>

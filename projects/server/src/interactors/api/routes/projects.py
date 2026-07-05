@@ -22,7 +22,11 @@ def create_project(
     body: ProjectCreateIn,
     uow: SqlUnitOfWork = Depends(get_uow),  # noqa: B008
 ):
-    p = uow.projects.create(CreateProject(name=body.name, repo_url=body.repoUrl))
+    p = uow.projects.create(CreateProject(
+        name=body.name,
+        repo_url=body.repoUrl or None,
+        autonomy_level=body.autonomyLevel,
+    ))
     return ok(ProjectOut(
         id=p.id, name=p.name, repoUrl=p.repo_url or "",
         itemCount=_item_count(p.id, uow),

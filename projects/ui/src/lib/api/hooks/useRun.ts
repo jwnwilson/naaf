@@ -27,6 +27,7 @@ export function useRun(runId: string): {
   const runQuery = useQuery({
     queryKey: queryKeys.run(runId),
     queryFn: () => apiFetch<RunOut>(`/runs/${runId}`),
+    refetchInterval: 2_000,
   });
   const historyQuery = useQuery({
     queryKey: queryKeys.runEvents(runId),

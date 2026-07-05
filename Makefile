@@ -84,17 +84,26 @@ e2e-db:
 	@docker compose -p naaf exec -T postgres psql -U naaf -tc "SELECT 1 FROM pg_database WHERE datname='naaf_e2e'" | grep -q 1 \
 		|| docker compose -p naaf exec -T postgres createdb -U naaf naaf_e2e
 	cd projects/server && naaf_db_url="$(NAAF_E2E_DB_URL)" uv run alembic upgrade head
+	@echo "🧹 wiping e2e DB state from previous runs…"
+	@docker compose -p naaf exec -T postgres psql -U naaf -d naaf_e2e -c \
+		"TRUNCATE TABLE agent_definitions, agent_events, attachments, bus_messages, messages, notifications, projects, run_events, runs, secrets, subscriber_cursors, teams, work_items RESTART IDENTITY CASCADE;" \
+		>/dev/null
 	-naaf_db_url="$(NAAF_E2E_DB_URL)" uv run python -m interactors.cli.seed
 
 # Boot the scripted stack against naaf_e2e, run Playwright, then tear everything down.
 # Pass E2E_SPEC=e2e/smoke.spec.ts to target a single spec file.
 e2e: e2e-db
 	@echo "▶ e2e — scripted stack (API :8000 · UI :5173) then Playwright"
+	@echo "🔪 killing any leftover celery/uvicorn/vite from previous runs…"
+	@pkill -f "interactors.worker.celery_app" 2>/dev/null || true
+	@lsof -ti:8000 -ti:5173 2>/dev/null | xargs kill -9 2>/dev/null || true
+	@sleep 1
 	@naaf_db_url="$(NAAF_E2E_DB_URL)" naaf_llm_provider=scripted naaf_agent_runtime=claude_code bash -c '\
 		bg_pids=(); \
 		cleanup() { \
 			printf "\n▲ stopping…\n"; \
 			[ $${#bg_pids[@]} -gt 0 ] && kill "$${bg_pids[@]}" 2>/dev/null; \
+			pkill -f "interactors.worker.celery_app" 2>/dev/null || true; \
 			lsof -ti:8000 -ti:5173 2>/dev/null | xargs kill 2>/dev/null; \
 			wait; \
 		}; \
