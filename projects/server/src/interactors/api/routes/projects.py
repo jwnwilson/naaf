@@ -78,5 +78,5 @@ def update_project(
 
 @router.delete("/{id}", status_code=204, response_class=Response)
 def delete_project(id: UUID, uow: SqlUnitOfWork = Depends(get_uow)):  # noqa: B008
-    uow.projects.delete(id.hex)
+    uow.delete_project_cascade(id.hex)
     return Response(status_code=204)
