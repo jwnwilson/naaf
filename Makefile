@@ -35,8 +35,15 @@ lint:
 	uv run ruff check .
 	uv run mypy projects/server/src libs/crud_router/src
 
+# uvicorn --reload watches the process CWD (the repo root) by default, which
+# includes the git-ignored .worktrees/ trees and every tests/ dir. A .py change
+# anywhere there restarts the API mid-request — fatal to long in-flight agent
+# turns: the chat's SSE stream + polling hit a restarting API and freeze. Scope
+# the watcher to the backend source only so worktree/test churn can't restart it.
+RELOAD_FLAGS = --reload --reload-dir projects/server/src --reload-exclude '*/tests/*'
+
 run:
-	uv run uvicorn interactors.api.app:create_app --factory --reload
+	uv run uvicorn interactors.api.app:create_app --factory $(RELOAD_FLAGS)
 
 db-upgrade:
 	cd projects/server && uv run alembic upgrade head
@@ -70,6 +77,6 @@ dev:
 	-naaf_db_url="$(NAAF_DB_URL)" uv run python -m interactors.cli.seed
 	@naaf_db_url="$(NAAF_DB_URL)" naaf_agent_runtime="$(NAAF_AGENT_RUNTIME)" bash -c 'trap "echo; echo ▲ stopping…; kill 0" EXIT INT TERM; \
 		( cd projects/server && $(WORKER_CMD) ) & \
-		( uv run uvicorn interactors.api.app:create_app --factory --reload ) & \
+		( uv run uvicorn interactors.api.app:create_app --factory $(RELOAD_FLAGS) ) & \
 		( cd projects/ui && VITE_LIVE_API=true pnpm dev ) & \
 		wait'
