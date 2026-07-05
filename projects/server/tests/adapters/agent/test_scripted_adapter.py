@@ -22,7 +22,7 @@ def _req(tools, messages):
 
 def test_run_stage_emits_events_and_reports_passed():
     events = []
-    a = ScriptedLLMAdapter()
+    a = ScriptedLLMAdapter(sleep=lambda _s: None)
     a.set_event_sink(lambda k, p: events.append((k, p)))
     resp = a.complete(_req([REPORT_TOOL], [LLMMessage(role=MessageRole.USER, content="do plan")]))
     kinds = [k for k, _ in events]
@@ -33,7 +33,7 @@ def test_run_stage_emits_events_and_reports_passed():
 
 
 def test_lead_plan_walks_list_epic_feature_task_proposerun_then_text():
-    a = ScriptedLLMAdapter()
+    a = ScriptedLLMAdapter(sleep=lambda _s: None)
     msgs = [LLMMessage(role=MessageRole.USER, content="build notes")]
 
     def next_call():
@@ -104,7 +104,7 @@ def test_lead_plan_walks_list_epic_feature_task_proposerun_then_text():
 
 def test_lead_plan_emits_a_chat_activity_event():
     events = []
-    a = ScriptedLLMAdapter()
+    a = ScriptedLLMAdapter(sleep=lambda _s: None)
     a.set_event_sink(lambda k, p: events.append((k, p)))
     a.complete(_req([CREATE_TOOL], [LLMMessage(role=MessageRole.USER, content="build notes")]))
     assert ("text_block", {"text": CHAT_TEXT_PLAN}) in events

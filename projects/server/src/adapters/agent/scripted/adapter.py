@@ -5,12 +5,6 @@ tool loop and set_event_sink → agent_events → SSE → UI pipeline run unchan
 import re
 import time
 
-# The SSE endpoint polls every 0.3 s.  Sleeping longer than that after emitting
-# text_block events (but BEFORE returning the LLMResponse that triggers the
-# FINAL event) guarantees text_blocks land in the DB in an earlier poll cycle,
-# giving the UI an observable window where isWorking=true with the text visible.
-_STREAM_DELAY = 1.5
-
 from domain.agent.llm import LLMMessage, LLMRequest, LLMResponse, MessageRole, ToolCall, Usage
 
 from adapters.agent.scripted.script import (
@@ -22,12 +16,19 @@ from adapters.agent.scripted.script import (
     TASK_TITLE,
 )
 
+# The SSE endpoint polls every 0.3 s.  Sleeping longer than that after emitting
+# text_block events (but BEFORE returning the LLMResponse that triggers the
+# FINAL event) guarantees text_blocks land in the DB in an earlier poll cycle,
+# giving the UI an observable window where isWorking=true with the text visible.
+_STREAM_DELAY = 1.5
+
 _ID_RE = re.compile(r"id=(\w+)")
 
 
 class ScriptedLLMAdapter:
-    def __init__(self) -> None:
+    def __init__(self, sleep=None) -> None:
         self._emit = None
+        self._sleep = sleep if sleep is not None else time.sleep
 
     def set_event_sink(self, emit) -> None:
         self._emit = emit
@@ -51,7 +52,7 @@ class ScriptedLLMAdapter:
             # this method returns).  Without this delay all events land in the
             # DB within one 0.3 s SSE window and arrive as a batch that includes
             # FINAL, leaving isWorking=false before the UI can render the text.
-            time.sleep(_STREAM_DELAY)
+            self._sleep(_STREAM_DELAY)
         return LLMResponse(
             content=STAGE_TEXT_DONE,
             tool_calls=[ToolCall(id="report-1", name="report",
@@ -76,7 +77,7 @@ class ScriptedLLMAdapter:
                 # Same reasoning as _run_stage: give the SSE a full poll cycle
                 # to deliver this text_block before the tool loop continues and
                 # eventually emits the FINAL event.
-                time.sleep(_STREAM_DELAY)
+                self._sleep(_STREAM_DELAY)
             return tool("list_board", {})
         if step == 1:
             return tool("create_work_item", {"kind": "epic", "title": EPIC_TITLE})
