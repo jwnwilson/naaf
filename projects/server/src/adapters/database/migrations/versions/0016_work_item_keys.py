@@ -15,6 +15,8 @@ depends_on = None
 
 
 def _derive(name: str, taken: set[str]) -> str:
+    # Intentional verbatim copy of domain.project.derive_project_key — migrations
+    # must be self-contained and frozen against future domain-logic changes.
     base = re.sub(r"[^A-Za-z0-9]", "", name or "").upper()[:4] or "PROJ"
     if base not in taken:
         return base
@@ -56,7 +58,8 @@ def upgrade() -> None:
                 {"s": i, "id": wid},
             )
 
-    with op.batch_alter_table("work_items", recreate="always") as batch:
+    recreate = "always" if op.get_bind().dialect.name == "sqlite" else "auto"
+    with op.batch_alter_table("work_items", recreate=recreate) as batch:
         batch.create_unique_constraint("uq_work_item_project_seq", ["project_id", "seq"])
 
     op.create_index("uq_project_owner_key", "projects", ["owner_id", "key"], unique=True)
@@ -65,7 +68,8 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("uq_project_owner_key", table_name="projects")
 
-    with op.batch_alter_table("work_items", recreate="always") as batch:
+    recreate = "always" if op.get_bind().dialect.name == "sqlite" else "auto"
+    with op.batch_alter_table("work_items", recreate=recreate) as batch:
         batch.drop_constraint("uq_work_item_project_seq", type_="unique")
     op.drop_column("work_items", "seq")
     op.drop_column("projects", "key")
