@@ -109,8 +109,9 @@ make worker                # naaf_db_url must point at the same Postgres as the 
 # terminal 3 — UI with live API flag
 cd projects/ui
 VITE_LIVE_API=true pnpm dev
-# Vite proxies /api → http://localhost:8000; /threads is now live
-# (inbox + sidebar chat); MSW still handles runs/agents/dashboard/budget.
+# Vite proxies /api → http://localhost:8000; projects/work-items/teams/agent-definitions,
+# runs, threads, agents, secrets, attachments, and the dashboard token-usage/activity are
+# all live; MSW still handles only /dashboard/metrics + /budget.
 ```
 
 > **A3 run pipeline (backend, live):** `POST /work-items/{id}/runs` starts a run; the
@@ -119,12 +120,21 @@ VITE_LIVE_API=true pnpm dev
 > the SSE stream `GET /runs/{id}/events/stream`, and resolve gates via
 > `POST /runs/{id}/gate {"decision":"approve"|"reject"}`. The UI **run monitor** (Detail
 > screen) and **inbox** are now wired live to this API (`RunOut`/`RunEventOut` + SSE + gate
-> Approve/Reject). Still mocked: the `Agent`-entity **dashboard/board "live agents" panels**
-> and token/cost pricing (A5/A5d).
+> Approve/Reject). The **dashboard is now fully live** (live-agents panel + count, board ribbon,
+> TokenChart, ActivityFeed — all from real `Run`/`RunEvent` data). Still mocked: the other
+> `/dashboard/metrics` cards (spend/tokens/projects) + `/budget`, and real per-model pricing (A5d).
 
 ## Status
 
-**A1 control plane is built.** See [docs/project-history.md](docs/project-history.md) for what shipped, what is designed-only, and what comes next.
+**The single-user local loop is end-to-end functional.** Board planning + conversational lead,
+real agent runs (`PROVISION → … → LEARN`) that clone the repo and open PRs, live run monitor,
+work-item threads with agent↔agent `@mention` dispatch, an LLM-agnostic runtime (Claude SDK /
+LiteLLM / **Claude-CLI subscription**), a containerized worker, secrets management, file uploads,
+and a **fully live dashboard** all ship today. Outstanding: A4 sandbox/egress + GitHub App tokens,
+A5d usage/budget + real pricing, the designed-only `stream-agent-output` streaming trace, the rest
+of the C management plane, and B full-team. See
+[docs/project-history.md](docs/project-history.md) — **Current state** (what ships) and
+**Outstanding** (what's left) — for the full picture.
 
 ## Roadmap (phase A spine → C management plane → B full team)
 
