@@ -39,3 +39,46 @@ def test_project_chat_runs_orchestrator_and_posts_lead_reply(session_factory):
         assert any(w.kind is WorkItemKind.EPIC for w in items)
         msgs = uow.messages.read_multi(filters={"thread_id": tid}).results
         assert any(m.author_role == "lead" and m.author_kind is AuthorKind.AGENT for m in msgs)
+
+
+class _RaisingOrchestrator:
+    """Fake lead orchestrator whose respond() always raises."""
+
+    def set_event_sink(self, emit) -> None:
+        pass
+
+    def respond(self, history, title, tools):
+        raise RuntimeError("boom")
+
+
+def test_project_chat_on_error_posts_lead_reason_and_does_not_raise(session_factory):
+    """When lead_orchestrator.respond() raises, handle_chat must not propagate.
+
+    Instead a single visible lead message containing the failure reason is
+    persisted in the project thread.
+    """
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
+    with uow.transaction():
+        project = uow.projects.create(Project(owner_id="", name="naaf"))
+        ctx = HandlerContext(
+            runs=uow.runs, run_events=uow.run_events, work_items=uow.work_items,
+            notifications=None, bus=FakeBus(), runtime=None,
+            projects=uow.projects, messages=uow.messages,
+            lead_orchestrator=_RaisingOrchestrator(),
+        )
+        tid = project_thread_id(project.id)
+        msg = AgentMessage(
+            owner_id="u1", run_id="", recipient=project_chat_recipient(project.id, "lead"),
+            role="lead", type=MessageType.CHAT,
+            payload={"thread_id": tid, "project_id": project.id, "depth": 0},
+        )
+
+        handle_chat(msg, ctx)  # must not raise
+
+        msgs = uow.messages.read_multi(filters={"thread_id": tid}).results
+        lead_msgs = [
+            m for m in msgs
+            if m.author_role == "lead" and m.author_kind is AuthorKind.AGENT
+        ]
+        assert len(lead_msgs) == 1, f"expected 1 lead message, got {len(lead_msgs)}"
+        assert "boom" in lead_msgs[0].content

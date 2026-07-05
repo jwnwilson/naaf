@@ -4,7 +4,6 @@ Design contract: build_event_sink opens its OWN SqlUnitOfWork per event and
 commits immediately, so events are visible to a separate UoW (the polling SSE)
 before the surrounding chat-turn transaction finishes.
 """
-import pytest
 from adapters.database.uow import SqlUnitOfWork
 from domain.agent.events import EVENT_ERROR, EVENT_FINAL, EVENT_STATUS, stream_scope
 from domain.runs.messages import AgentMessage, MessageType
@@ -130,8 +129,12 @@ def test_handle_chat_persists_status_then_final(session_factory, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_handle_chat_emits_error_when_respond_raises(session_factory, monkeypatch):
-    """When chat_responder.respond() raises, an EVENT_ERROR row is committed."""
+def test_handle_chat_on_respond_error_posts_reason_and_does_not_raise(session_factory, monkeypatch):
+    """When chat_responder.respond() raises, handle_chat must not propagate.
+
+    Instead it commits an EVENT_ERROR row AND persists a visible agent message
+    whose content contains the failure reason.
+    """
     owner_id = "u3"
     work_item_id = "wi-err"
     scope = stream_scope(thread_id=work_item_id)
@@ -161,10 +164,9 @@ def test_handle_chat_emits_error_when_respond_raises(session_factory, monkeypatc
         payload={"work_item_id": work_item_id, "depth": 0},
     )
 
-    with pytest.raises(RuntimeError, match="boom"):
-        handle_chat(msg, ctx)
+    handle_chat(msg, ctx)  # must not raise
 
-    # Error event must have been committed independently (survives the re-raise)
+    # Error event must have been committed independently
     reader = SqlUnitOfWork(session_factory, required_filters={"owner_id": owner_id})
     with reader.transaction():
         events = reader.agent_events.list_after(scope, 0)
@@ -173,3 +175,7 @@ def test_handle_chat_emits_error_when_respond_raises(session_factory, monkeypatc
     assert EVENT_ERROR in kinds, f"error event missing; got {kinds}"
     error_event = next(e for e in events if e.kind == EVENT_ERROR)
     assert "boom" in error_event.payload.get("message", "")
+
+    # A single visible agent message with the reason must have been posted
+    assert len(msgs.created) == 1, f"expected 1 posted message, got {len(msgs.created)}"
+    assert "boom" in msgs.created[0].content

@@ -32,6 +32,13 @@ _STUB_STAGES = {Stage.PROVISION, Stage.PR, Stage.LEARN}
 
 _PR_URL_RE = re.compile(r"https://github\.com/\S+?/pull/\d+")
 
+_EMPTY_REPLY_PLACEHOLDER = "_(the agent finished without a reply)_"
+
+
+def _error_reply(exc: Exception) -> str:
+    """Render a visible, user-facing chat message for a chat-turn exception."""
+    return f"⚠️ The agent hit an error: {exc}"
+
 
 @dataclass
 class HandlerContext:
@@ -576,14 +583,14 @@ def _handle_project_chat(ctx, msg, thread_id: str, history: list) -> None:
     except Exception as exc:
         if sink:
             sink(EVENT_ERROR, {"message": str(exc)})
-        raise
+        _post_agent_message(ctx, thread_id, "lead", _error_reply(exc))
+        return
     finally:
         if sink:
             ctx.lead_orchestrator.set_event_sink(None)
     if sink:
         sink(EVENT_FINAL, {"text": reply_text})
-    if reply_text.strip():
-        _post_agent_message(ctx, thread_id, "lead", reply_text)
+    _post_agent_message(ctx, thread_id, "lead", reply_text.strip() or _EMPTY_REPLY_PLACEHOLDER)
 
 
 def handle_chat(msg: AgentMessage, ctx: HandlerContext) -> None:
@@ -628,13 +635,16 @@ def handle_chat(msg: AgentMessage, ctx: HandlerContext) -> None:
     except Exception as exc:
         if sink:
             sink(EVENT_ERROR, {"message": str(exc)})
-        raise
+        _post_agent_message(ctx, work_item_id, role, _error_reply(exc))
+        return
     finally:
         if sink:
             ctx.chat_responder.set_event_sink(None)
     if sink:
         sink(EVENT_FINAL, {"text": reply_text})
-    if not reply_text.strip():
+    text = reply_text.strip()
+    if not text:
+        _post_agent_message(ctx, work_item_id, role, _EMPTY_REPLY_PLACEHOLDER)
         return
     _post_agent_message(ctx, work_item_id, role, reply_text)
     for target in plan_fanout(reply_text, depth + 1):
