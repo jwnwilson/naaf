@@ -145,8 +145,8 @@ def test_chat_dispatch_posts_agent_reply():
     assert agent_msgs[0].content == "[backend] ack"
 
 
-def test_chat_empty_reply_is_not_posted_or_dispatched():
-    """An empty LLM reply must not produce an agent bubble or trigger fan-out."""
+def test_chat_empty_reply_posts_placeholder_and_does_not_fan_out():
+    """An empty LLM reply now leaves a visible placeholder, but must not fan out."""
     wid = "wi-chat-empty"
     wi = WorkItem(id=wid, owner_id=OWNER, project_id="p1", kind=WorkItemKind.TASK,
                   title="Empty reply task", status=WorkItemStatus.IN_PROGRESS)
@@ -161,12 +161,13 @@ def test_chat_empty_reply_is_not_posted_or_dispatched():
     msg = _make_chat_msg(wid, "lead", depth=0)
     handlers.dispatch(msg, ctx)
 
-    # (a) No agent message posted
+    # (a) Exactly one placeholder agent message posted
     agent_msgs = [
         m for m in messages.saved.values()
         if m.thread_id == wid and m.author_kind == AuthorKind.AGENT
     ]
-    assert len(agent_msgs) == 0, f"Expected 0 agent messages, got {len(agent_msgs)}"
+    assert len(agent_msgs) == 1, f"Expected 1 agent message, got {len(agent_msgs)}"
+    assert agent_msgs[0].content, "placeholder message content must be non-empty"
 
     # (b) No bus fan-out published
     assert len(bus.published) == 0, f"Expected 0 bus messages, got {len(bus.published)}"
