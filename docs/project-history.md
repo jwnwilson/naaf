@@ -15,6 +15,25 @@ produce reviewable PRs; and update persistent memory as they work.
 - Architecture & patterns: [architecture.md](architecture.md)
 - ADRs: [adr/](adr/)
 
+## Status (2026-07-05)
+
+**Dashboard TokenChart + ActivityFeed — built.** The last two mocked dashboard widgets are now
+live, backed by the existing `RunEvent` stream (read-only aggregation — no new table or migration).
+Two pure domain aggregators (`domain/dashboard.py`): `build_token_series` buckets per-stage token
+deltas (`RunEvent.payload["tokens"]` on `stage_passed`/`stage_failed`) into a **7-day zero-filled
+series**; `to_activity_event` maps a `RunEvent` to an activity row (`log` and null-timestamp events
+dropped). A new `routes/dashboard.py` serves owner-scoped **`GET /dashboard/token-usage`** (reads
+run_events since a 7-day cutoff, aggregates) and **`GET /activity`** (recent cross-run events ordered
+by `-global_seq`, mapped, capped at 20). On the UI, `useTokenUsage`/`useActivity` **poll every 10s**
+(paused when the tab is hidden) and the two endpoints moved from MSW mock-only to live-backed; the
+**TokenChart/ActivityFeed components are unchanged** (contract shapes match). **Deferred (per spec):**
+re-pointing the ActivityFeed at the richer `agent_events` trace once
+[`stream-agent-output`](superpowers/specs/2026-07-05-stream-agent-output-design.md) ships (the
+`/activity` contract stays identical, so it's a drop-in swap); `/dashboard/metrics` stays mocked; real
+per-model token pricing (A5d). Design:
+[superpowers/specs/2026-07-05-dashboard-token-activity-design.md](superpowers/specs/2026-07-05-dashboard-token-activity-design.md);
+plan: [superpowers/plans/2026-07-05-dashboard-token-activity.md](superpowers/plans/2026-07-05-dashboard-token-activity.md).
+
 ## Status (2026-07-04)
 
 **Live agents on the dashboard — built.** The dashboard's "running agents" panel and the
