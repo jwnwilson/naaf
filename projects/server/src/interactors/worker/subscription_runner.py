@@ -41,6 +41,7 @@ def run_subscription(
     from adapters.agent.secrets_resolver import SecretResolver
     from adapters.bus.factory import build_message_bus
     from adapters.database.repositories import (
+        AgentEventRepository,
         MessageRepository,
         NotificationRepository,
         ProjectRepository,
@@ -119,6 +120,7 @@ def run_subscription(
             storage=_storage,
             chat_responder=_chat,
             lead_orchestrator=_orch,
+            agent_events=AgentEventRepository(uow.session, required_filters=scope),
         )
 
     return process_subscription(bound, uow_factory, ctx_factory, max_items=max_items)
