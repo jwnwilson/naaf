@@ -13,8 +13,9 @@ import os
 import subprocess
 from collections.abc import Callable
 
-from adapters.agent.claude_cli.stream_runner import EventSink, streaming_runner
 from domain.agent.llm import LLMMessage, LLMRequest, LLMResponse, ToolCall, Usage
+
+from adapters.agent.claude_cli.stream_runner import EventSink, streaming_runner
 
 _VERDICT_SUFFIX = (
     "\n\nWhen you have finished, end your reply with a single line: "
@@ -111,9 +112,12 @@ class ClaudeCliLLMAdapter:
         if self._mcp:
             argv += ["--mcp-config", self._mcp, "--allowed-tools", "mcp__naaf__*"]
 
+        runner: Runner
         if streaming:
             runner = self._runner or streaming_runner
-            data = runner(argv, cwd=self._cwd, env=self._env(), timeout=self._timeout, emit=self._emit)
+            data = runner(
+                argv, cwd=self._cwd, env=self._env(), timeout=self._timeout, emit=self._emit
+            )
         else:
             runner = self._runner or _default_runner
             data = runner(argv, cwd=self._cwd, env=self._env(), timeout=self._timeout)

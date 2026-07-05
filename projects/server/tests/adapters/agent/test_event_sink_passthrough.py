@@ -13,7 +13,8 @@ class _SinkAdapter:
 def test_llm_responder_forwards_sink_to_adapter():
     adapter = _SinkAdapter()
     responder = LlmChatResponder(adapter)
-    sentinel = lambda k, p: None
+    def sentinel(k, p):
+        pass
     responder.set_event_sink(sentinel)
     assert adapter.sink is sentinel
 

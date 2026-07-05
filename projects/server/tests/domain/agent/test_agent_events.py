@@ -1,5 +1,4 @@
 import pytest
-
 from domain.agent.events import (
     EVENT_STATUS,
     AgentEvent,

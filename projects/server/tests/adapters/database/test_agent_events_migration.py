@@ -1,6 +1,5 @@
-from sqlalchemy import inspect
-
 from adapters.database.orm import AgentEventRow
+from sqlalchemy import inspect
 
 
 def test_agent_event_row_table_shape():

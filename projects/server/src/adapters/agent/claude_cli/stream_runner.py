@@ -26,18 +26,25 @@ def parse_stream_line(line: str) -> list[tuple[str, dict]]:
             if btype == "text" and block.get("text"):
                 events.append(("text_block", {"text": block["text"]}))
             elif btype == "tool_use":
-                events.append(("tool_call", {"name": block.get("name", ""), "input": block.get("input", {})}))
+                events.append((
+                    "tool_call",
+                    {"name": block.get("name", ""), "input": block.get("input", {})},
+                ))
             elif btype == "tool_result":
                 events.append(("tool_result", {"result": block.get("content", "")}))
     return events
 
 
-def streaming_runner(argv, *, cwd=None, env=None, timeout=None, emit=None, _popen=subprocess.Popen) -> dict:
+def streaming_runner(
+    argv, *, cwd=None, env=None, timeout=None, emit=None, _popen=subprocess.Popen
+) -> dict:
     result_text = ""
     is_error = False
     usage: dict = {}
     try:
-        proc = _popen(argv, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        proc = _popen(
+            argv, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
     except FileNotFoundError:
         return {"is_error": True, "result": f"claude CLI not found ({argv[0]})", "usage": {}}
     try:

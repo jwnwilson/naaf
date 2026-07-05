@@ -7,10 +7,8 @@ before the surrounding chat-turn transaction finishes.
 import pytest
 from adapters.database.uow import SqlUnitOfWork
 from domain.agent.events import EVENT_ERROR, EVENT_FINAL, EVENT_STATUS, stream_scope
-from domain.messaging.chat import ChatTurn
 from domain.runs.messages import AgentMessage, MessageType
 from interactors.worker.handlers import HandlerContext, build_event_sink, handle_chat
-
 
 # ---------------------------------------------------------------------------
 # Fake collaborators

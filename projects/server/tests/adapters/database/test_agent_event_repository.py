@@ -11,7 +11,9 @@ def test_create_assigns_monotonic_seq_per_scope(session_factory):
     with uow.transaction():
         a = uow.agent_events.create(AgentEvent(owner_id="", scope="thread:t", kind=EVENT_STATUS))
         b = uow.agent_events.create(AgentEvent(owner_id="", scope="thread:t", kind=EVENT_TEXT))
-        c = uow.agent_events.create(AgentEvent(owner_id="", scope="thread:OTHER", kind=EVENT_STATUS))
+        c = uow.agent_events.create(
+            AgentEvent(owner_id="", scope="thread:OTHER", kind=EVENT_STATUS)
+        )
         assert (a.seq, b.seq) == (1, 2)
         assert c.seq == 1  # per-scope counter, independent of thread:t
 
