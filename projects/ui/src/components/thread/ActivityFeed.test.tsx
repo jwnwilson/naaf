@@ -26,7 +26,7 @@ describe("ActivityFeed", () => {
     vi.spyOn(hook, "useAgentActivity").mockReturnValue({
       events: [], isWorking: false, textBlocks: [], toolCalls: [], done: true,
     } as never);
-    const { container } = render(<ActivityFeed threadId="w1" />);
+    const { container } = render(<ActivityFeed scope={{ threadId: "w1" }} />);
     expect(container).toBeEmptyDOMElement();
   });
 });
