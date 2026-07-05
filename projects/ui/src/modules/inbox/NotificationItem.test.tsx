@@ -7,6 +7,7 @@ import type { Thread } from "../../lib/api/hooks";
 const thread: Thread = {
   id: "t1",
   workItemId: "w1",
+  projectId: "proj-1",
   title: "My Task",
   status: "open",
   lastMessage: "Agent is working on it.",

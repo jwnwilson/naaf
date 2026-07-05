@@ -273,6 +273,7 @@ class ThreadOut(BaseModel):
 
     id: str  # == workItemId
     workItemId: str
+    projectId: str
     title: str
     status: str
     lastMessage: str | None = None

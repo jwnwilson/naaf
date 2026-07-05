@@ -417,6 +417,7 @@ const threads: Thread[] = [
   {
     id: "wi-task-3",
     workItemId: "wi-task-3",
+    projectId: "proj-1",
     title: "Implement Docker sandbox container",
     status: "in_progress",
     lastMessage: "I've analysed the codebase. Plan: 1) Create a Docker image...",
@@ -427,6 +428,7 @@ const threads: Thread[] = [
   {
     id: "wi-task-4",
     workItemId: "wi-task-4",
+    projectId: "proj-1",
     title: "Implement network egress proxy",
     status: "in_progress",
     lastMessage: "Please make sure the allowlist is loaded from config.",

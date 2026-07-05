@@ -1,7 +1,8 @@
 from datetime import datetime
 
 from domain.messaging.message import AuthorKind, Message
-from domain.messaging.thread import thread_from_work_item
+from domain.messaging.thread import thread_from_project, thread_from_work_item
+from domain.project import Project
 from domain.work_item import WorkItem, WorkItemKind, WorkItemStatus
 
 
@@ -96,3 +97,17 @@ def test_agent_status_is_running_when_role_is_active_else_idle():
     by_role = {p.role: p for p in details}
     assert by_role["backend"].status == "running"
     assert by_role["lead"].status == "idle"
+
+
+def test_thread_from_work_item_carries_project_id():
+    view = thread_from_work_item(_item(), [])
+    assert view.project_id == "p1"
+
+
+def test_thread_from_project_carries_project_id_and_blank_work_item_id():
+    project = Project(id="p1", owner_id="o", name="naaf")
+
+    view = thread_from_project(project, [])
+
+    assert view.project_id == project.id
+    assert view.work_item_id == ""

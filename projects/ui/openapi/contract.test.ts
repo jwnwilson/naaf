@@ -32,4 +32,10 @@ describe("OpenAPI contract", () => {
       ["backlog", "todo", "in_progress", "in_review", "done"],
     );
   });
+
+  it("Thread carries a required projectId string", () => {
+    const thread = doc.components.schemas.Thread;
+    expect(thread.required).toContain("projectId");
+    expect(thread.properties.projectId).toEqual({ type: "string" });
+  });
 });

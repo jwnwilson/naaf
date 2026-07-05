@@ -33,6 +33,12 @@ describe("mock handlers", () => {
     const threads = await apiFetch<unknown[]>("/threads");
     expect(Array.isArray(threads)).toBe(true);
   });
+
+  it("thread detail includes the work item's projectId", async () => {
+    const res = await fetch("/api/threads/wi-task-3");
+    const body = await res.json();
+    expect(body.data.projectId).toBe("proj-1");
+  });
 });
 
 describe("handler split", () => {
