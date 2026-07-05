@@ -5,6 +5,7 @@ import {
   DashboardIcon,
   GitRepoIcon,
   InboxIcon,
+  PencilIcon,
   ProjectsIcon,
   SearchIcon,
   SettingsIcon,
@@ -49,30 +50,45 @@ function NavItem({ to, icon, label, badge }: NavItemProps) {
 // ── ProjectRow ─────────────────────────────────────────────────────────────────
 
 function ProjectRow({ project }: { project: Project }) {
+  const { openEditProject } = useCreateModal();
   return (
-    <NavLink
-      to={`/projects?project=${project.id}`}
-      className={({ isActive }) =>
-        [
-          "flex items-center gap-[6px] rounded-[5px] px-[7px] py-[5px] text-[11.5px] transition-colors",
-          isActive
-            ? "bg-[rgba(124,108,240,0.08)] text-accent-text"
-            : "text-[#42454e] hover:text-[#8a8d96]",
-        ].join(" ")
-      }
-    >
-      {({ isActive }) => (
-        <>
-          <GitRepoIcon size={11} className="shrink-0" />
-          <span className="flex-1 truncate">{project.name}</span>
-          <span
-            className={`font-mono text-[9px] ${isActive ? "text-accent" : "text-[#4a4d56]"}`}
-          >
-            {project.itemCount}
-          </span>
-        </>
-      )}
-    </NavLink>
+    <div className="group relative">
+      <NavLink
+        to={`/projects?project=${project.id}`}
+        className={({ isActive }) =>
+          [
+            "flex items-center gap-[6px] rounded-[5px] px-[7px] py-[5px] text-[11.5px] transition-colors",
+            isActive
+              ? "bg-[rgba(124,108,240,0.08)] text-accent-text"
+              : "text-[#42454e] hover:text-[#8a8d96]",
+          ].join(" ")
+        }
+      >
+        {({ isActive }) => (
+          <>
+            <GitRepoIcon size={11} className="shrink-0" />
+            <span className="flex-1 truncate">{project.name}</span>
+            <span
+              className={`font-mono text-[9px] transition-opacity group-hover:opacity-0 ${isActive ? "text-accent" : "text-[#4a4d56]"}`}
+            >
+              {project.itemCount}
+            </span>
+          </>
+        )}
+      </NavLink>
+      <button
+        type="button"
+        aria-label="Edit project"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          openEditProject(project);
+        }}
+        className="absolute right-[7px] top-1/2 -translate-y-1/2 text-[#4a4d56] opacity-0 transition-opacity hover:text-[#8a8d96] group-hover:opacity-100"
+      >
+        <PencilIcon size={11} />
+      </button>
+    </div>
   );
 }
 
