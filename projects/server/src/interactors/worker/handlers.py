@@ -5,10 +5,12 @@ from typing import Any
 
 from adapters.agent.orchestration_tools import CtxOrchestrationTools
 from adapters.agent.provision import provision_workspace
+from adapters.database.uow import SqlUnitOfWork
 from adapters.storage.keys import attachment_prefix
 from domain.agent.context import StageContext, WorkItemBrief
 from domain.agent.events import EVENT_ERROR, EVENT_FINAL, EVENT_STATUS, AgentEvent, stream_scope
-from domain.agent.runtime import AgentEvent as RuntimeEvent, AgentRuntime, StageOutcome, StageResult
+from domain.agent.runtime import AgentEvent as RuntimeEvent
+from domain.agent.runtime import AgentRuntime, StageOutcome, StageResult
 from domain.base import utcnow
 from domain.errors import RecordNotFound
 from domain.messaging.chat import ChatTurn
@@ -46,7 +48,7 @@ class HandlerContext:
     chat_responder: Any = None  # ChatResponder | None — None in dead-letter cleanup
     lead_orchestrator: Any = None  # LeadOrchestrator | None — project-thread lead
     storage: Storage | None = None  # blob store for work-item attachments
-    agent_events: Any = None  # AgentEventRepository | None
+    session_factory: Any = None  # for independent-commit event sink
 
 
 def materialize_attachments(storage: Storage, work_item_id: str, workspace_path: str) -> list[str]:
@@ -478,13 +480,24 @@ def _work_item_title_by_id(ctx: HandlerContext, work_item_id: str) -> str:
         return work_item_id
 
 
-def build_event_sink(ctx: "HandlerContext", scope: str):
-    """Return an emit(kind, payload) that persists activity events, or None."""
-    if ctx.agent_events is None:
+def build_event_sink(session_factory: Any, owner_id: str, scope: str):
+    """Return emit(kind, payload) that commits EACH event in its own transaction.
+
+    The worker processes a whole turn inside one uow.transaction() that commits
+    only at the end; writing activity events on that shared session would hide
+    them from the polling SSE until the turn finished. An independent per-event
+    transaction makes each event visible live (and survives a later rollback of
+    the main turn, so the trace + an error event persist even on failure).
+    """
+    if session_factory is None:
         return None
 
     def emit(kind: str, payload: dict) -> None:
-        ctx.agent_events.create(AgentEvent(owner_id="", scope=scope, kind=kind, payload=payload))
+        uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": owner_id})
+        with uow.transaction():
+            uow.agent_events.create(
+                AgentEvent(owner_id="", scope=scope, kind=kind, payload=payload)
+            )
 
     return emit
 
@@ -539,12 +552,16 @@ def _handle_project_chat(ctx, msg, thread_id: str, history: list) -> None:
         project_id=project_id,
     )
     scope = stream_scope(thread_id=thread_id)
-    sink = build_event_sink(ctx, scope)
+    sink = build_event_sink(ctx.session_factory, msg.owner_id, scope)
     if sink:
         sink(EVENT_STATUS, {"state": "working"})
         ctx.lead_orchestrator.set_event_sink(sink)
     try:
         reply_text = ctx.lead_orchestrator.respond(history, project.name, tools)
+    except Exception as exc:
+        if sink:
+            sink(EVENT_ERROR, {"message": str(exc)})
+        raise
     finally:
         if sink:
             ctx.lead_orchestrator.set_event_sink(None)
@@ -587,12 +604,16 @@ def handle_chat(msg: AgentMessage, ctx: HandlerContext) -> None:
     work_item_id = thread_id
     title = _work_item_title_by_id(ctx, work_item_id)
     scope = stream_scope(thread_id=thread_id)
-    sink = build_event_sink(ctx, scope)
+    sink = build_event_sink(ctx.session_factory, msg.owner_id, scope)
     if sink:
         sink(EVENT_STATUS, {"state": "working"})
         ctx.chat_responder.set_event_sink(sink)
     try:
         reply_text = ctx.chat_responder.respond(role, history, title)
+    except Exception as exc:
+        if sink:
+            sink(EVENT_ERROR, {"message": str(exc)})
+        raise
     finally:
         if sink:
             ctx.chat_responder.set_event_sink(None)
