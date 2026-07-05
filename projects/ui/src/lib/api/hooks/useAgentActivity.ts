@@ -5,7 +5,7 @@ import { queryKeys } from "../queryKeys";
 import { useEventSource } from "../../hooks/useEventSource";
 import type { components } from "../schema";
 
-export type ActivityEvent = components["schemas"]["ActivityEventOut"];
+export type ActivityEvent = components["schemas"]["AgentActivityEventOut"];
 
 export interface ActivityState {
   isWorking: boolean;

@@ -814,7 +814,7 @@ export interface components {
             used: number;
             limit: number;
         };
-        ActivityEventOut: {
+        AgentActivityEventOut: {
             seq: number;
             kind: string;
             payload: {
@@ -1651,7 +1651,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: components["schemas"]["ActivityEventOut"][];
+                        data?: components["schemas"]["AgentActivityEventOut"][];
                     };
                 };
             };
@@ -1677,7 +1677,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: components["schemas"]["ActivityEventOut"][];
+                        data?: components["schemas"]["AgentActivityEventOut"][];
                     };
                 };
             };

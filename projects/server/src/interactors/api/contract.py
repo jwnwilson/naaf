@@ -339,12 +339,35 @@ class AnswerIn(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class ActivityEventOut(BaseModel):
+class AgentActivityEventOut(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     seq: int
     kind: str
     payload: dict = Field(default_factory=dict)
+    createdAt: str
+
+
+# ---------------------------------------------------------------------------
+# Dashboard
+# ---------------------------------------------------------------------------
+
+
+class TokenPointOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    day: str
+    tokens: int
+
+
+class ActivityEventOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str
+    type: str
+    description: str
+    agentId: str | None = None
+    workItemId: str | None = None
     createdAt: str
 
 

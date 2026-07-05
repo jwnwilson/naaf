@@ -607,7 +607,7 @@ paths:
                 properties:
                   data:
                     type: array
-                    items: { $ref: "#/components/schemas/ActivityEventOut" }
+                    items: { $ref: "#/components/schemas/AgentActivityEventOut" }
 
   /runs/{id}/activity:
     get:
@@ -626,7 +626,7 @@ paths:
                 properties:
                   data:
                     type: array
-                    items: { $ref: "#/components/schemas/ActivityEventOut" }
+                    items: { $ref: "#/components/schemas/AgentActivityEventOut" }
 
 components:
   schemas:
@@ -980,7 +980,7 @@ components:
         used: { type: integer }
         limit: { type: integer }
 
-    ActivityEventOut:
+    AgentActivityEventOut:
       type: object
       required: [seq, kind, payload, createdAt]
       properties:

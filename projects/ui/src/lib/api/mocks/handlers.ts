@@ -258,6 +258,14 @@ export const liveHandlers = [
 
   http.get(`${BASE}/agents`, () => ok(seed.agents)),
 
+  // ── Dashboard (live-backed) ───────────────────────────────────────────────────
+
+  http.get(`${BASE}/dashboard/token-usage`, () => ok(seed.tokenUsagePoints)),
+
+  // ── Activity ──────────────────────────────────────────────────────────────────
+
+  http.get(`${BASE}/activity`, () => ok(seed.activityEvents)),
+
   // ── Threads ───────────────────────────────────────────────────────────────────
   // Backed by the real backend (A3+). In live mode these pass through to /api.
   // More-specific paths (/messages) must be listed before the bare /:id catch-all.
@@ -379,12 +387,6 @@ export const mockOnlyHandlers = [
   // ── Dashboard ─────────────────────────────────────────────────────────────────
 
   http.get(`${BASE}/dashboard/metrics`, () => ok(seed.metrics)),
-
-  http.get(`${BASE}/dashboard/token-usage`, () => ok(seed.tokenUsagePoints)),
-
-  // ── Activity ──────────────────────────────────────────────────────────────────
-
-  http.get(`${BASE}/activity`, () => ok(seed.activityEvents)),
 
   // ── Budget ────────────────────────────────────────────────────────────────────
 

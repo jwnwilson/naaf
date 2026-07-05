@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Request
 from sse_starlette.sse import EventSourceResponse
 
 from interactors.api.auth import get_owner_id
-from interactors.api.contract import ActivityEventOut, iso
+from interactors.api.contract import AgentActivityEventOut, iso
 from interactors.api.deps import get_uow
 
 router = APIRouter(tags=["activity"])
@@ -18,8 +18,8 @@ _POLL_SECONDS = 0.3
 _MAX_SECONDS = 60 * 30
 
 
-def _out(ev) -> ActivityEventOut:
-    return ActivityEventOut(
+def _out(ev) -> AgentActivityEventOut:
+    return AgentActivityEventOut(
         seq=ev.seq,
         kind=ev.kind,
         payload=ev.payload,
@@ -32,7 +32,7 @@ def _replay(uow: SqlUnitOfWork, scope: str, after: int):
     return ok([_out(e) for e in uow.agent_events.list_after(scope, after, limit=0)])
 
 
-@router.get("/threads/{id}/activity", response_model=Envelope[list[ActivityEventOut]])
+@router.get("/threads/{id}/activity", response_model=Envelope[list[AgentActivityEventOut]])
 def thread_activity(
     id: str,
     after: int = 0,
@@ -41,7 +41,7 @@ def thread_activity(
     return _replay(uow, stream_scope(thread_id=id), after)
 
 
-@router.get("/runs/{id}/activity", response_model=Envelope[list[ActivityEventOut]])
+@router.get("/runs/{id}/activity", response_model=Envelope[list[AgentActivityEventOut]])
 def run_activity(
     id: str,
     after: int = 0,
