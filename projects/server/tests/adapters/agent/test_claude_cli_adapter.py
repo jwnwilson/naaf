@@ -90,3 +90,13 @@ def test_default_path_uses_streaming_runner_when_sink_set(monkeypatch):
     assert called["emit"] is not None
     assert events == [("text_block", {"text": "x"})]
     assert resp.content == "ok"
+
+
+def test_chat_path_raises_on_cli_error():
+    """A no-report (chat) request whose runner reports is_error must raise,
+    so the worker surfaces the reason instead of returning silent content."""
+    import pytest
+    adapter = _adapter({"result": "You've hit your session limit · resets 11:30pm",
+                        "is_error": True, "usage": {}})
+    with pytest.raises(RuntimeError, match="session limit"):
+        adapter.complete(_req())  # A request WITHOUT the report tool

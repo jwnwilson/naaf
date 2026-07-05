@@ -131,6 +131,8 @@ class ClaudeCliLLMAdapter:
         )
 
         if not has_report:
+            if is_error:
+                raise RuntimeError(text or "the Claude CLI reported an error")
             return LLMResponse(content=text, stop_reason="end_turn", usage=usage)
 
         # Run stage: map Claude's verdict into the report tool-call the runtime expects.
