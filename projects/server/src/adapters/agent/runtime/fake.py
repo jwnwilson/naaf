@@ -35,5 +35,10 @@ class FakeAgentRuntime:
             passed = False
         summary = "ok" if passed else "verification failed"
         tokens = TOKENS_PER_STEP * len(events)
-        result = StageResult(passed=passed, summary=summary, tokens=tokens)
+        in_tok = tokens * 7 // 10
+        result = StageResult(
+            passed=passed, summary=summary, tokens=tokens,
+            input_tokens=in_tok, output_tokens=tokens - in_tok,
+            model=ctx.agent.model_alias or "sonnet",
+        )
         return StageOutcome(events=events, result=result)

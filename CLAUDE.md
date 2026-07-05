@@ -110,8 +110,8 @@ make worker                # naaf_db_url must point at the same Postgres as the 
 cd projects/ui
 VITE_LIVE_API=true pnpm dev
 # Vite proxies /api → http://localhost:8000; projects/work-items/teams/agent-definitions,
-# runs, threads, agents, secrets, attachments, and the dashboard token-usage/activity are
-# all live; MSW still handles only /dashboard/metrics + /budget.
+# runs, threads, agents, secrets, attachments, and the whole dashboard (token-usage/activity/
+# metrics/budget) are all live; MSW still handles only /projects/:id/board.
 ```
 
 > **A3 run pipeline (backend, live):** `POST /work-items/{id}/runs` starts a run; the
@@ -121,8 +121,8 @@ VITE_LIVE_API=true pnpm dev
 > `POST /runs/{id}/gate {"decision":"approve"|"reject"}`. The UI **run monitor** (Detail
 > screen) and **inbox** are now wired live to this API (`RunOut`/`RunEventOut` + SSE + gate
 > Approve/Reject). The **dashboard is now fully live** (live-agents panel + count, board ribbon,
-> TokenChart, ActivityFeed — all from real `Run`/`RunEvent` data). Still mocked: the other
-> `/dashboard/metrics` cards (spend/tokens/projects) + `/budget`, and real per-model pricing (A5d).
+> TokenChart, ActivityFeed, metric cards + budget — all from real `Run`/`RunEvent` data with real
+> **per-model pricing**). Budget **enforcement** (halting runs at a cap) is the deferred A5d-2 slice.
 
 ## Status
 
@@ -130,9 +130,10 @@ VITE_LIVE_API=true pnpm dev
 real agent runs (`PROVISION → … → LEARN`) that clone the repo and open PRs, live run monitor,
 work-item threads with agent↔agent `@mention` dispatch, an LLM-agnostic runtime (Claude SDK /
 LiteLLM / **Claude-CLI subscription**), a containerized worker, secrets management, file uploads,
-a **fully live dashboard**, and **live agent-output streaming** (chat + runs via `agent_events` + SSE)
-all ship today. Outstanding: A4 sandbox/egress + GitHub App tokens, A5d usage/budget + real pricing,
-the rest of the C management plane, and B full-team. See
+a **fully live dashboard** (real per-model pricing + spend/budget), and **live agent-output streaming**
+(chat + runs via `agent_events` + SSE) all ship today. Outstanding: A4 sandbox/egress + GitHub App
+tokens, **A5d-2 budget enforcement** (settable Budget entity + halting runs at a cap), the rest of the
+C management plane, and B full-team. See
 [docs/project-history.md](docs/project-history.md) — **Current state** (what ships) and
 **Outstanding** (what's left) — for the full picture.
 

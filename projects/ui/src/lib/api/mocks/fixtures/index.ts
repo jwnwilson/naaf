@@ -586,10 +586,10 @@ const activityEvents: ActivityEvent[] = [
   },
 ];
 
-// Budget near the threshold (87.5% utilisation)
+// Budget in USD (42.85% utilisation)
 const budget: Budget = {
-  used: 87500,
-  limit: 100000,
+  used: 42.85,
+  limit: 100,
 };
 
 // ─── Seed export ──────────────────────────────────────────────────────────────

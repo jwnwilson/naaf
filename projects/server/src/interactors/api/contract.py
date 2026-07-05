@@ -372,6 +372,23 @@ class ActivityEventOut(BaseModel):
     createdAt: str
 
 
+class DashboardMetricsOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    activeAgents: int
+    totalSpend: float
+    totalTokens: int
+    projectCount: int
+    workItemCount: int
+
+
+class BudgetOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    used: float
+    limit: float
+
+
 # ---------------------------------------------------------------------------
 # Secrets (owner-scoped, write-only)
 # ---------------------------------------------------------------------------

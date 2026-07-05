@@ -34,3 +34,7 @@ def get_storage(request: Request) -> Storage:
 
 def get_max_attachment_bytes(request: Request) -> int:
     return request.app.state.settings.max_attachment_bytes
+
+
+def get_budget_limit(request: Request) -> float:
+    return request.app.state.settings.budget_limit_usd

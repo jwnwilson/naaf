@@ -5,12 +5,23 @@ from crud_router import Envelope, ok
 from domain.dashboard import build_token_series, to_activity_event
 from fastapi import APIRouter, Depends
 
-from interactors.api.contract import ActivityEventOut, TokenPointOut, iso
-from interactors.api.deps import get_uow
+from interactors.api.contract import (
+    ActivityEventOut,
+    BudgetOut,
+    DashboardMetricsOut,
+    TokenPointOut,
+    iso,
+)
+from interactors.api.deps import get_budget_limit, get_uow
 
 router = APIRouter(tags=["dashboard"])
 
 TOKEN_WINDOW_DAYS = 7
+# NOTE: _RUN_SCAN caps the run scan at 1000 rows. Beyond that, spend/token sums are silently
+# truncated. Additionally, totalTokens here (Σ run.token_usage) can diverge from the 7-day
+# token-usage chart, which aggregates run_events. Both are acceptable at single-user scale;
+# revisit for multi-user / A5d-2 when a proper time-series aggregate is needed.
+_RUN_SCAN = 1000  # sum runs in Python — bounded at local single-user scale
 ACTIVITY_LIMIT = 20
 _ACTIVITY_SCAN = 40  # read extra so dropping `log`s still fills the list
 
@@ -43,3 +54,29 @@ def activity(uow: SqlUnitOfWork = Depends(get_uow)):  # noqa: B008
         )
         for it in items
     ])
+
+
+@router.get("/dashboard/metrics", response_model=Envelope[DashboardMetricsOut])
+def dashboard_metrics(uow: SqlUnitOfWork = Depends(get_uow)):  # noqa: B008
+    runs = uow.runs.read_multi(page_size=_RUN_SCAN).results
+    active = uow.runs.read_multi(
+        filters={"status__in": ["running", "awaiting_gate"]}, page_size=1
+    ).total
+    projects = uow.projects.read_multi(page_size=1).total
+    work_items = uow.work_items.read_multi(page_size=1).total
+    return ok(DashboardMetricsOut(
+        activeAgents=active,
+        totalSpend=round(sum(r.cost for r in runs), 4),
+        totalTokens=sum(r.token_usage for r in runs),
+        projectCount=projects,
+        workItemCount=work_items,
+    ))
+
+
+@router.get("/budget", response_model=Envelope[BudgetOut])
+def budget(
+    uow: SqlUnitOfWork = Depends(get_uow),  # noqa: B008
+    limit: float = Depends(get_budget_limit),  # noqa: B008
+):
+    runs = uow.runs.read_multi(page_size=_RUN_SCAN).results
+    return ok(BudgetOut(used=round(sum(r.cost for r in runs), 4), limit=limit))

@@ -38,8 +38,9 @@ today:
   parity (agent identity/model/status).
 - **Secrets management (C slice) ✓** — Settings → Secrets, Fernet-encrypted at rest, per-owner run
   injection.
-- **Dashboard ✓** — live-agents panel + ACTIVE-AGENTS count, board live-agents ribbon, TokenChart, and
-  ActivityFeed all backed by real data; the board polls for live refresh.
+- **Dashboard ✓ (fully live)** — live-agents panel + ACTIVE-AGENTS count, board ribbon, TokenChart,
+  ActivityFeed, and now the metric cards + budget (real per-model spend) all backed by real data;
+  only `/projects/:id/board` is still mocked. The board polls for live refresh.
 - **Work-item file uploads ✓** — `storage` lib (Local default / S3), attachments API, and
   materialization into the agent workspace.
 - **Live agent output streaming ✓** — the worker streams a coarse activity trace (text / tool calls /
@@ -48,6 +49,24 @@ today:
 See the dated log below for the detail on each, and **Outstanding** at the bottom for what's left.
 
 ## Status (2026-07-05)
+
+**A5d — real per-model pricing + live spend/budget (display slice) — built.** The flat placeholder
+cost is gone: a `naaf_model_prices` settings dict (keyed by model alias, `{input, output}` USD-per-1k,
+defaults for opus/sonnet/haiku) + a pure `domain/pricing.py` `price_stage(model, in, out, prices)`
+(output priced ~5× input) give real cost. The runtime stops collapsing tokens — each `StageResult`
+carries `input_tokens`/`output_tokens`/`model` — and `_finish_stage` prices the stage and accumulates
+a **persisted `Run.cost`** (float column, migration `0015`) alongside `token_usage`, so `RunOut.cost`
+is real (captured at run-time) and the flat `COST_PER_1K_TOKENS` is deleted. Two new owner-scoped
+routes light up the **last mock-only dashboard endpoints**: `GET /dashboard/metrics` (Σ cost / Σ
+tokens / project+work-item counts / active-run count) and `GET /budget` (used = Σ cost, limit =
+`naaf_budget_limit_usd`, default $100). On the UI, `useDashboard`/`useBudget` poll every 10s, both
+handlers moved MSW mock-only → live, and the MetricCards **and the Sidebar budget footer** render USD
+— **only `/projects/:id/board` remains mocked now**. Note: Claude-CLI **subscription** cost is
+*notional* (flat-rate sub), shown as an estimate. **Deferred to A5d-2 (enforcement):** a settable
+per-owner `Budget` entity + set-budget UI, the worker halting runs at the cap, monthly reset/periods,
+and a per-model spend breakdown. Design:
+[superpowers/specs/2026-07-05-a5d-pricing-usage-design.md](superpowers/specs/2026-07-05-a5d-pricing-usage-design.md);
+plan: [superpowers/plans/2026-07-05-a5d-pricing-usage.md](superpowers/plans/2026-07-05-a5d-pricing-usage.md).
 
 **Live agent output streaming (`stream-agent-output`) — built.** Agent turns no longer run as one
 opaque blocking call — the worker now **streams a coarse activity trace** (text blocks, tool calls,
@@ -265,10 +284,12 @@ full team**. In rough priority order:
 - **A4 — sandbox / egress / network hardening.** The worker runs in Docker, but there is **no egress
   proxy or network isolation** (A4 slice 3), and agents get a single shared **`GH_TOKEN`** rather than
   **GitHub App per-run tokens**. This is the main gap before running untrusted/remote work.
-- **A5d — usage/budget + real pricing.** Runs track `token_usage` and expose a **flat placeholder
-  cost**; there is **no per-model pricing, no budget enforcement, and no budget UI**. The dashboard's
-  `/dashboard/metrics` other cards (spend/tokens/projects) and `/budget` are **still MSW-mocked**
-  pending this. The thread-fan-out **per-thread message/token budget** also pairs here.
+- **A5d-2 — budget enforcement.** The display slice shipped (real per-model pricing, persisted
+  `Run.cost`, live `/dashboard/metrics` + `/budget`). Remaining: a **settable per-owner `Budget`
+  entity** + set-budget UI (today the limit is the `naaf_budget_limit_usd` config), the **worker
+  halting/failing a run** when spend exceeds the cap, **monthly reset/periods** (today `used` is
+  all-time), a **per-model spend breakdown**, and LiteLLM per-run budget-key minting. The
+  thread-fan-out **per-thread message/token budget** also pairs here.
 - **Live agent output — mostly shipped (PR #56); two small follow-ups.** The coarse activity trace
   streams into chat + runs today. Remaining: (1) token-by-token deltas via a Redis channel (the
   `agent_events` model is designed to add them without breaking changes); (2) optionally re-point the
