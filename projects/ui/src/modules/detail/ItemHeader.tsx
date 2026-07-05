@@ -26,14 +26,14 @@ export function ItemHeader({ item, onEdit, actions }: { item: WorkItem; onEdit?:
 
       {/* Metadata row */}
       <div className="flex flex-wrap items-center gap-[6px]">
+        <span className={CHIP_CLASS}>{item.key}</span>
         <span className={CHIP_CLASS}>{item.status}</span>
         <span className={CHIP_CLASS}>{item.priority}</span>
         {item.assignedAgent && (
           <span className={CHIP_CLASS}>{item.assignedAgent.id}</span>
         )}
-        {item.epicId && (
-          <Tag tone="accent">{item.epicId}</Tag>
-        )}
+        {item.epicName && <Tag tone="accent">{item.epicName}</Tag>}
+        {item.featureName && <Tag>{item.featureName}</Tag>}
       </div>
     </div>
   );
