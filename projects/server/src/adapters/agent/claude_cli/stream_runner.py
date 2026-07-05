@@ -66,10 +66,17 @@ def streaming_runner(
 
     threading.Thread(target=_drain, daemon=True).start()
 
+    # In production the adapter always passes a real timeout (claude_timeout_s); the
+    # timeout=None branch (unbounded lines.get()) is only reached by callers that opt
+    # out, and still terminates for any finite stream (the drain thread queues _EOF).
     deadline = None if timeout is None else time.monotonic() + timeout
 
     def _timed_out() -> dict:
         proc.kill()
+        try:  # reap the killed child so it doesn't linger as a zombie
+            proc.wait(timeout=1)
+        except Exception:
+            pass
         return {"is_error": True, "result": f"claude timed out after {timeout}s", "usage": {}}
 
     while True:
