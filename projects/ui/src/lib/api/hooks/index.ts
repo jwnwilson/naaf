@@ -39,3 +39,6 @@ export type { WorkItemCreate } from "./useCreateWorkItem";
 export { useUpdateWorkItem } from "./useUpdateWorkItem";
 export type { WorkItemUpdate } from "./useUpdateWorkItem";
 export { useAnswerQuestion } from "./useAnswerQuestion";
+
+export { useAgentActivity, reduceActivity } from "./useAgentActivity";
+export type { ActivityEvent as AgentActivityEvent, ActivityState } from "./useAgentActivity";

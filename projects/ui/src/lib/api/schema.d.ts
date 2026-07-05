@@ -496,6 +496,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/threads/{id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List activity events for a thread */
+        get: operations["listThreadActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List activity events for a run */
+        get: operations["listRunActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -779,6 +813,15 @@ export interface components {
         Budget: {
             used: number;
             limit: number;
+        };
+        ActivityEventOut: {
+            seq: number;
+            kind: string;
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            createdAt: string;
         };
     };
     responses: never;
@@ -1583,6 +1626,58 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Envelope"] & {
                         data?: components["schemas"]["Budget"];
+                    };
+                };
+            };
+        };
+    };
+    listThreadActivity: {
+        parameters: {
+            query?: {
+                after?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["ActivityEventOut"][];
+                    };
+                };
+            };
+        };
+    };
+    listRunActivity: {
+        parameters: {
+            query?: {
+                after?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ok */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["ActivityEventOut"][];
                     };
                 };
             };
