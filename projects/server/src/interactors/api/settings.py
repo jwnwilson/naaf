@@ -1,5 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from domain.pricing import ModelPrice
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="naaf_")
@@ -24,6 +26,12 @@ class Settings(BaseSettings):
         "sonnet": "claude-sonnet-4-6",
         "haiku": "claude-haiku-4-5",
     }
+    model_prices: dict[str, ModelPrice] = {
+        "opus": ModelPrice(input=0.015, output=0.075),
+        "sonnet": ModelPrice(input=0.003, output=0.015),
+        "haiku": ModelPrice(input=0.001, output=0.005),
+    }
+    budget_limit_usd: float = 100.0
     agent_max_iterations: int = 25
     agent_bash_timeout_s: int = 120
     agent_runtime: str = "claude_code"
