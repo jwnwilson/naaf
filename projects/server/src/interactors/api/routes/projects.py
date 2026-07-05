@@ -2,6 +2,7 @@ from uuid import UUID
 
 from adapters.database.uow import SqlUnitOfWork
 from crud_router import Envelope, ok
+from domain.project import AutonomyLevel
 from fastapi import APIRouter, Depends, Response
 
 from interactors.api.contract import ProjectCreateIn, ProjectOut, ProjectUpdateIn, iso
@@ -25,7 +26,7 @@ def create_project(
     p = uow.projects.create(CreateProject(
         name=body.name,
         repo_url=body.repoUrl or None,
-        autonomy_level=body.autonomyLevel,
+        autonomy_level=AutonomyLevel(body.autonomyLevel),
     ))
     return ok(ProjectOut(
         id=p.id, name=p.name, repoUrl=p.repo_url or "",
