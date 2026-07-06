@@ -1,10 +1,18 @@
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { ChevronRightIcon } from "../components/ui";
 import { PulseDot } from "../components/ui/PulseDot";
 import { Thread } from "../components/thread";
 import { useThreads } from "../lib/api/hooks";
 import { useLocalStorage } from "../lib/hooks/useLocalStorage";
+import { useResizableWidth } from "../lib/hooks/useResizableWidth";
 import { projectThreadId } from "../lib/threadScope";
+
+// Panel width bounds (px). Default keeps the original compact panel; the max
+// leaves room for the board, the min keeps the thread readable.
+const DEFAULT_WIDTH = 292;
+const MIN_WIDTH = 240;
+const MAX_WIDTH = 720;
 
 // ── Collapsed strip ────────────────────────────────────────────────────────────
 
@@ -26,10 +34,38 @@ function CollapsedStrip({ onExpand }: { onExpand: () => void }) {
   );
 }
 
+// ── Resize handle ────────────────────────────────────────────────────────────
+
+function ResizeHandle({
+  onResizeStart,
+  isResizing,
+}: {
+  onResizeStart: (event: ReactPointerEvent) => void;
+  isResizing: boolean;
+}) {
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize chat panel"
+      onPointerDown={onResizeStart}
+      className={`absolute inset-y-0 -left-1 z-10 w-2 cursor-col-resize touch-none transition-colors hover:bg-[rgba(186,183,246,0.35)] ${
+        isResizing ? "bg-[rgba(186,183,246,0.55)]" : ""
+      }`}
+    />
+  );
+}
+
 // ── ChatPanel ──────────────────────────────────────────────────────────────────
 
 export function ChatPanel() {
   const [open, setOpen] = useLocalStorage("naaf.chat.open", true);
+  const { width, isResizing, onResizeStart } = useResizableWidth(
+    "naaf.chat.width",
+    DEFAULT_WIDTH,
+    MIN_WIDTH,
+    MAX_WIDTH,
+  );
   const { data: threads = [] } = useThreads();
   const params = useParams<{ itemId?: string }>();
   const [searchParams] = useSearchParams();
@@ -45,7 +81,11 @@ export function ChatPanel() {
   }
 
   return (
-    <aside className="flex h-full w-[292px] shrink-0 flex-col border-l border-[rgba(255,255,255,0.055)] bg-[#09090c]">
+    <aside
+      style={{ width }}
+      className="relative flex h-full shrink-0 flex-col border-l border-[rgba(255,255,255,0.055)] bg-[#09090c]"
+    >
+      <ResizeHandle onResizeStart={onResizeStart} isResizing={isResizing} />
       {/* Header */}
       <div className="flex h-[44px] shrink-0 items-stretch border-b border-[rgba(255,255,255,0.055)]">
         <div className="flex h-full flex-1 items-center gap-1.5 px-3">

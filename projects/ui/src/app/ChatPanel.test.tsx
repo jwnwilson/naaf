@@ -47,6 +47,14 @@ describe("ChatPanel", () => {
     expect(JSON.parse(localStorage.getItem("naaf.chat.open")!)).toBe(false);
   });
 
+  it("exposes a resize handle and renders at the persisted width", async () => {
+    localStorage.setItem("naaf.chat.width", "480");
+    renderPanel();
+    const panel = await screen.findByRole("complementary");
+    expect(panel).toHaveStyle({ width: "480px" });
+    expect(screen.getByRole("separator", { name: /resize chat panel/i })).toBeInTheDocument();
+  });
+
   it("sends a message from the sidebar", async () => {
     const stored: Message[] = [];
     server.use(
