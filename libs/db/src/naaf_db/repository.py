@@ -105,6 +105,9 @@ class SqlRepository(Generic[DTO]):  # noqa: UP046
         self.session.flush()
 
     def delete_where(self, **filters: Any) -> int:
+        """Bulk-delete rows matching required_filters AND the given filters (equality
+        + `__in` suffix). required_filters (owner scope) are applied unconditionally.
+        Returns rows deleted."""
         stmt: Delete = sql_delete(self.orm_model)
         for key, value in filters.items():
             if key.endswith("__in"):
