@@ -29,7 +29,32 @@ def test_delete_project(client):
     assert client.get(f"/projects/{pid}").status_code == 404
 
 
+def test_delete_project_with_work_item_cascades(client):
+    pid = client.post("/projects/", json={"name": "p"}).json()["data"]["id"]
+    created = client.post(f"/projects/{pid}/work-items", json={"type": "epic", "title": "t"})
+    assert created.status_code == 201  # guard against a silently-failed setup
+
+    assert client.delete(f"/projects/{pid}").status_code == 204
+    assert client.get(f"/projects/{pid}").status_code == 404
+    assert client.get(f"/work-items?project={pid}").json()["data"] == []
+
+
 def test_get_missing_project_is_enveloped_404(client):
     resp = client.get("/projects/" + "0" * 32)
     assert resp.status_code == 404
     assert resp.json()["success"] is False
+
+
+def test_project_description_defaults_empty_and_round_trips(client):
+    created = client.post("/projects/", json={"name": "p"}).json()["data"]
+    assert created["description"] == ""
+    pid = created["id"]
+
+    patched = client.patch(f"/projects/{pid}", json={"description": "ship the PR"}).json()["data"]
+    assert patched["description"] == "ship the PR"
+
+    got = client.get(f"/projects/{pid}").json()["data"]
+    assert got["description"] == "ship the PR"
+
+    listed = client.get("/projects/").json()["data"]
+    assert any(p["id"] == pid and p["description"] == "ship the PR" for p in listed)

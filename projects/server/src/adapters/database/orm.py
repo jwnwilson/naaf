@@ -35,6 +35,7 @@ class ProjectRow(_Timestamped, Base):
         Index("uq_project_owner_key", "owner_id", "key", unique=True),
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str] = mapped_column(String, default="", server_default="", nullable=False)
     key: Mapped[str | None] = mapped_column(String(8), nullable=True)
     repo_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     repo_path: Mapped[str | None] = mapped_column(String(1024), nullable=True)

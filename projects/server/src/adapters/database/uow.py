@@ -106,3 +106,43 @@ class SqlUnitOfWork:
     @property
     def bus_messages(self) -> BusMessageRepository:
         return self._repo("bus_messages", BusMessageRepository)
+
+    def delete_project_cascade(self, project_id: str) -> None:
+        """Delete a project and every descendant, in dependency order, within
+        this transaction. Un-FK'd tables (runs/events/notifications/bus_messages/
+        messages/agent_events) are cleaned up explicitly because a DB-level
+        ON DELETE CASCADE cannot reach them."""
+        wi_ids = [
+            w.id
+            for w in self.work_items.read_multi(
+                filters={"project_id": project_id}, page_size=0
+            ).results
+        ]
+        run_ids = [
+            r.id
+            for r in self.runs.read_multi(
+                filters={"project_id": project_id}, page_size=0
+            ).results
+        ]
+
+        if run_ids:
+            self.run_events.delete_where(run_id__in=run_ids)
+            self.notifications.delete_where(run_id__in=run_ids)
+            self.bus_messages.delete_by_run_ids(run_ids)
+
+        scopes = (
+            [f"run:{rid}" for rid in run_ids]
+            + [f"thread:{wid}" for wid in wi_ids]
+            + [f"thread:project:{project_id}"]
+        )
+        self.agent_events.delete_where(scope__in=scopes)
+
+        thread_ids = [*wi_ids, f"project:{project_id}"]
+        self.messages.delete_where(thread_id__in=thread_ids)
+
+        if wi_ids:
+            self.attachments.delete_where(work_item_id__in=wi_ids)
+
+        self.runs.delete_where(project_id=project_id)
+        self.work_items.delete_where(project_id=project_id)
+        self.projects.delete(project_id)

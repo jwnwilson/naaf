@@ -38,6 +38,9 @@ export { useCreateWorkItem } from "./useCreateWorkItem";
 export type { WorkItemCreate } from "./useCreateWorkItem";
 export { useUpdateWorkItem } from "./useUpdateWorkItem";
 export type { WorkItemUpdate } from "./useUpdateWorkItem";
+export { useUpdateProject } from "./useUpdateProject";
+export type { ProjectUpdate } from "./useUpdateProject";
+export { useDeleteProject } from "./useDeleteProject";
 export { useAnswerQuestion } from "./useAnswerQuestion";
 
 export { useAgentActivity, reduceActivity } from "./useAgentActivity";

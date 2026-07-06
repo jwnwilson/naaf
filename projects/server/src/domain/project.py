@@ -25,6 +25,7 @@ def derive_project_key(name: str, taken: Collection[str] = frozenset()) -> str:
 class Project(Entity):
     owner_id: str
     name: str
+    description: str = ""
     key: str | None = None
     repo_url: str | None = None
     repo_path: str | None = None

@@ -575,6 +575,7 @@ export interface components {
         Project: {
             id: string;
             name: string;
+            description?: string;
             repoUrl: string;
             itemCount: number;
             /** Format: date-time */
@@ -584,10 +585,12 @@ export interface components {
         };
         ProjectCreate: {
             name: string;
+            description?: string;
             repoUrl: string;
         };
         ProjectUpdate: {
             name?: string;
+            description?: string;
             repoUrl?: string;
         };
         WorkItem: {

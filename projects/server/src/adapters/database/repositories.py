@@ -11,6 +11,7 @@ from domain.runs.run import Run
 from domain.secrets.secret import Secret
 from domain.team import AgentDefinition, Team
 from domain.work_item import WorkItem
+from sqlalchemy import delete as sql_delete
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -226,6 +227,12 @@ class BusMessageRepository:
         if row is None:
             raise RuntimeError(f"ack: message {msg.id} not found")
         row.status = MessageStatus.DONE.value
+        self.session.flush()
+
+    def delete_by_run_ids(self, run_ids: list[str]) -> None:
+        if not run_ids:
+            return
+        self.session.execute(sql_delete(BusMessageRow).where(BusMessageRow.run_id.in_(run_ids)))
         self.session.flush()
 
     def _to_msg(self, row: BusMessageRow) -> AgentMessage:

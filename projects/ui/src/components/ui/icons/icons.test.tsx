@@ -6,7 +6,7 @@ describe("icon set", () => {
   const names = [
     "DashboardIcon", "InboxIcon", "ProjectsIcon", "AgentsIcon", "SettingsIcon",
     "SearchIcon", "GitRepoIcon", "ListIcon", "GridIcon", "PlusIcon",
-    "ChevronDownIcon", "ChevronRightIcon", "CheckIcon", "DocumentIcon",
+    "ChevronDownIcon", "ChevronRightIcon", "CheckIcon", "DocumentIcon", "PencilIcon",
   ] as const;
 
   it("exports every named icon", () => {

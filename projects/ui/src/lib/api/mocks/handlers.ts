@@ -42,10 +42,11 @@ export const liveHandlers = [
   ),
 
   http.post(`${BASE}/projects`, async ({ request }) => {
-    const body = (await request.json()) as { name: string; repoUrl: string };
+    const body = (await request.json()) as { name: string; repoUrl: string; description?: string };
     const created = {
       id: `proj-${Date.now()}`,
       name: body.name,
+      description: body.description ?? "",
       repoUrl: body.repoUrl,
       itemCount: 0,
       createdAt: new Date().toISOString(),
@@ -82,15 +83,13 @@ export const liveHandlers = [
   }),
 
   http.patch(`${BASE}/projects/:id`, async ({ params, request }) => {
-    const p = db.findProject(params.id as string);
-    if (!p) return notFound();
-    const body = (await request.json()) as Partial<{ name: string; repoUrl: string }>;
-    return ok({ ...p, ...body, updatedAt: new Date().toISOString() });
+    const body = (await request.json()) as Partial<{ name: string; repoUrl: string; description: string }>;
+    const updated = db.updateProject(params.id as string, body);
+    return updated ? ok(updated) : notFound();
   }),
 
   http.delete(`${BASE}/projects/:id`, ({ params }) => {
-    const p = db.findProject(params.id as string);
-    return p ? ok(null) : notFound();
+    return db.removeProject(params.id as string) ? ok(null) : notFound();
   }),
 
   // ── Work items (global) ──────────────────────────────────────────────────────

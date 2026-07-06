@@ -47,6 +47,13 @@ describe("Sidebar", () => {
     expect(await screen.findByRole("dialog")).toHaveTextContent("Create Project");
   });
 
+  it("a project's edit pencil opens the Edit Project modal", async () => {
+    renderSidebar();
+    const editButtons = await screen.findAllByRole("button", { name: /edit project/i });
+    await userEvent.click(editButtons[0]);
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Edit Project");
+  });
+
   it("budget footer shows USD amounts and not token-formatted label", async () => {
     renderSidebar();
     // Mock budget: {used: 42.85, limit: 100} — expect dollar formatting

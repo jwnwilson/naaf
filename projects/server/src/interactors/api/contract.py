@@ -104,6 +104,7 @@ class ProjectOut(BaseModel):
 
     id: str
     name: str
+    description: str
     repoUrl: str
     itemCount: int
     createdAt: str
@@ -114,6 +115,7 @@ class ProjectCreateIn(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     name: str
+    description: str = ""
     repoUrl: str = ""
     autonomyLevel: AutonomyLevel = AutonomyLevel.GATED_ALL
 
@@ -122,6 +124,7 @@ class ProjectUpdateIn(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     name: str | None = None
+    description: str | None = None
     repoUrl: str | None = None
 
 
