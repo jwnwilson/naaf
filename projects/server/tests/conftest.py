@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 from adapters.database.engine import build_engine
 from adapters.database.orm import Base
@@ -10,9 +12,23 @@ from sqlalchemy.pool import StaticPool
 
 
 @pytest.fixture
-def session_factory():
+def _shared_sqlite_uri():
+    """A per-test unique shared-cache sqlite URI.
+
+    Sync and async engines each get their own connection/pool, but must point at
+    the SAME underlying database so routes that mix a sync UoW (e.g. an upfront
+    owner-check) with an AsyncUnitOfWork (e.g. SSE hot loops) see the same data.
+    Plain `sqlite://`/`sqlite+aiosqlite://` in-memory URLs each create an
+    independent, isolated database per engine, which silently starves the async
+    side of any tables.
+    """
+    return f"file:memdb_{uuid.uuid4().hex}?mode=memory&cache=shared&uri=true"
+
+
+@pytest.fixture
+def session_factory(_shared_sqlite_uri):
     engine = build_engine(
-        "sqlite://",
+        f"sqlite:///{_shared_sqlite_uri}",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
@@ -21,9 +37,12 @@ def session_factory():
 
 
 @pytest.fixture
-def async_session_factory():
+def async_session_factory(_shared_sqlite_uri, session_factory):
+    # depends on session_factory so tables exist before the async engine connects
     engine = build_async_engine(
-        "sqlite+aiosqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+        f"sqlite+aiosqlite:///{_shared_sqlite_uri}",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
     return build_async_session_factory(engine)
 
