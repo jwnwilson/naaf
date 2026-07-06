@@ -1,8 +1,8 @@
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
 
 from adapters.bus.factory import build_message_bus
 from adapters.bus.ports import MessageBus
-from adapters.database.uow import SqlUnitOfWork
+from adapters.database.uow import AsyncUnitOfWork, SqlUnitOfWork
 from fastapi import Depends, Request
 from storage import Storage
 
@@ -15,6 +15,17 @@ def get_uow(request: Request, owner_id: str = Depends(get_owner_id)) -> Iterator
         required_filters={"owner_id": owner_id},
     )
     with uow.transaction():
+        yield uow
+
+
+async def get_async_uow(
+    request: Request, owner_id: str = Depends(get_owner_id)
+) -> AsyncIterator[AsyncUnitOfWork]:
+    uow = AsyncUnitOfWork(
+        request.app.state.async_session_factory,
+        required_filters={"owner_id": owner_id},
+    )
+    async with uow.transaction():
         yield uow
 
 
