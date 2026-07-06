@@ -35,7 +35,7 @@ markers = ["integration: hits a real LLM; opt-in"]
 asyncio_mode = "auto"
 
 [tool.coverage.run]
-source = ["domain", "adapters", "interactors", "crud_router", "storage"]
+source = ["domain", "adapters", "interactors", "crud_router", "storage", "naaf_db"]
 omit = ["*/migrations/*", "*/tests/*"]
 
 [tool.ruff]
