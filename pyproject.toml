@@ -4,12 +4,13 @@ version = "0.1.0"
 requires-python = ">=3.12"
 
 [tool.uv.workspace]
-members = ["projects/server", "libs/crud_router", "libs/storage"]
+members = ["projects/server", "libs/crud_router", "libs/storage", "libs/db"]
 
 [tool.uv.sources]
 naaf-server = { workspace = true }
 naaf-crud-router = { workspace = true }
 storage = { workspace = true }
+naaf-db = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -22,6 +23,8 @@ dev = [
     "ruff>=0.6",
     "mypy>=1.11",
     "watchdog>=4",
+    "aiosqlite>=0.20",
+    "pytest-asyncio>=0.24",
 ]
 
 [tool.pytest.ini_options]
@@ -29,6 +32,7 @@ testpaths = ["projects/server/tests", "libs/crud_router/tests", "libs/storage/te
 addopts = "-q --import-mode=importlib"
 filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
 markers = ["integration: hits a real LLM; opt-in"]
+asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["domain", "adapters", "interactors", "crud_router", "storage"]
