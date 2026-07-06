@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, apiFetch, apiList } from "./client";
+import { ApiError, apiDelete, apiFetch, apiList } from "./client";
 
 function mockFetch(body: unknown, ok = true, status = 200) {
   return vi.fn().mockResolvedValue({
@@ -35,6 +35,24 @@ describe("apiFetch", () => {
       status: 502,
     });
     await expect(apiFetch("/projects/x")).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it("resolves with null on a 204 No Content (empty body) response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      status: 204,
+      text: () => Promise.resolve(""),
+    } as unknown as Response));
+    await expect(apiDelete("/work-items/w1")).resolves.toBeNull();
+  });
+
+  it("throws ApiError on an empty body with a failing status", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: () => Promise.resolve(""),
+    } as unknown as Response));
+    await expect(apiDelete("/work-items/w1")).rejects.toMatchObject({ status: 500 });
   });
 
   it("apiList returns results + meta", async () => {
