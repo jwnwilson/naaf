@@ -1,8 +1,11 @@
+from naaf_db.async_uow import AsyncUnitOfWorkBase
 from naaf_db.uow import SqlUnitOfWorkBase
 
 from adapters.database.repositories import (
     AgentDefinitionRepository,
     AgentEventRepository,
+    AsyncAgentEventRepository,
+    AsyncRunEventRepository,
     AttachmentRepository,
     BusMessageRepository,
     MessageRepository,
@@ -107,3 +110,16 @@ class SqlUnitOfWork(SqlUnitOfWorkBase):
         self.runs.delete_where(project_id=project_id)
         self.work_items.delete_where(project_id=project_id)
         self.projects.delete(project_id)
+
+
+class AsyncUnitOfWork(AsyncUnitOfWorkBase):
+    """Async sibling of SqlUnitOfWork. Read-mostly repos for streaming reads
+    off the event loop; writes stay on the sync path via SqlUnitOfWork."""
+
+    @property
+    def agent_events(self) -> AsyncAgentEventRepository:
+        return self._repo("agent_events", AsyncAgentEventRepository)
+
+    @property
+    def run_events(self) -> AsyncRunEventRepository:
+        return self._repo("run_events", AsyncRunEventRepository)
