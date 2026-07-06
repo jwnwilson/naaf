@@ -22,10 +22,10 @@ NAAF_E2E_PG_PORT     ?= 5432
 NAAF_E2E_PG_USER     ?= naaf
 NAAF_E2E_PG_PASSWORD ?= naaf
 
-# Agent runtime for `make dev`. Defaults to the no-LLM FakeAgentRuntime so the stack
-# runs end-to-end with zero config. For the real LLM runtime:
-#   make dev NAAF_AGENT_RUNTIME=claude_code naaf_anthropic_api_key=sk-... (exported)
-NAAF_AGENT_RUNTIME ?= fake
+# Agent runtime for `make dev`. Defaults to `claude_code` (real agents; needs a Claude
+# subscription or `naaf_anthropic_api_key=sk-...` exported). For a no-LLM, zero-config run
+# (CI / no key): make dev NAAF_AGENT_RUNTIME=fake
+NAAF_AGENT_RUNTIME ?= claude_code
 
 install:
 	uv sync
