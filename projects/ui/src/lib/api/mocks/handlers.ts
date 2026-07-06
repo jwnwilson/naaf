@@ -178,6 +178,10 @@ export const liveHandlers = [
     return updated ? ok(updated) : notFound();
   }),
 
+  http.delete(`${BASE}/work-items/:id`, ({ params }) => {
+    return db.removeWorkItem(params.id as string) ? ok(null) : notFound();
+  }),
+
   // ── Teams ─────────────────────────────────────────────────────────────────────
 
   http.get(`${BASE}/teams`, () => ok(seed.teams)),

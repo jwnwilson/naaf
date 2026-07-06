@@ -23,6 +23,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<Envelope<T>
     throw new ApiError((e as Error).message || "network error", 0);
   }
   const rawText = await res.text().catch(() => "");
+  // 204 No Content (e.g. DELETE) returns an empty body with no envelope.
+  if (rawText === "" && res.ok) {
+    return { success: true, data: null as T, error: null };
+  }
   let body: Envelope<T>;
   try {
     body = JSON.parse(rawText) as Envelope<T>;

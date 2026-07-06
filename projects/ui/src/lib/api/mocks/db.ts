@@ -176,6 +176,17 @@ export const db = {
     return workItems.find((w) => w.id === id) ?? null;
   },
 
+  // Remove a work item and decrement its parent project's itemCount
+  removeWorkItem: (id: string): boolean => {
+    const target = workItems.find((w) => w.id === id);
+    if (!target) return false;
+    workItems = workItems.filter((w) => w.id !== id);
+    projects = projects.map((p) =>
+      p.id === target.projectId ? { ...p, itemCount: Math.max(0, p.itemCount - 1) } : p,
+    );
+    return true;
+  },
+
   updateRun: (id: string, patch: Partial<RunOut>): RunOut | null => {
     runs = runs.map((r) =>
       r.id === id ? { ...r, ...patch, updatedAt: new Date().toISOString() } : r,
