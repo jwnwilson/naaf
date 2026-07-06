@@ -50,13 +50,16 @@ class WorkItemOut(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     id: str
+    key: str
     type: str  # WorkItemKind value
     title: str
     status: str  # WorkItemStatus value
     priority: str  # Priority value
     assignedAgent: Any | None = None
     epicId: str | None = None
+    epicName: str | None = None
     featureId: str | None = None
+    featureName: str | None = None
     projectId: str
     tokenUsageThisRun: int | None = None
     tokenUsageAllRuns: int | None = None

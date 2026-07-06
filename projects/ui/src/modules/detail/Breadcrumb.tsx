@@ -11,19 +11,15 @@ function Chevron() {
 }
 
 export function Breadcrumb({ item }: { item: WorkItem }) {
-  const segments: { label: string; emphasized?: boolean }[] = [
-    { label: item.projectId },
-  ];
+  const segments: { label: string; emphasized?: boolean }[] = [];
 
-  if (item.epicId) {
-    segments.push({ label: item.epicId });
+  if (item.epicName) {
+    segments.push({ label: item.epicName });
   }
-
-  if (item.featureId) {
-    segments.push({ label: item.featureId });
+  if (item.featureName) {
+    segments.push({ label: item.featureName });
   }
-
-  segments.push({ label: item.id, emphasized: true });
+  segments.push({ label: item.key, emphasized: true });
 
   return (
     <div className="flex h-[34px] items-center gap-[6px] px-[16px] text-[11px] text-text-5">

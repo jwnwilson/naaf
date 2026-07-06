@@ -42,3 +42,29 @@ def test_seed_demo_is_idempotent(session_factory):
     uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
     with uow.transaction():
         assert uow.projects.read_multi(filters={"name": "Demo Project"}).total == 1
+
+
+def test_seed_demo_creates_hierarchy_with_keys(session_factory):
+    from adapters.database.uow import SqlUnitOfWork
+    from interactors.cli.seed import seed_demo
+
+    seed_demo(session_factory, owner_id="u1")
+    uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
+    with uow.transaction():
+        project = uow.projects.read_multi(filters={"name": "Demo Project"}).results[0]
+        items = uow.work_items.read_multi(
+            filters={"project_id": project.id}, page_size=0, order_by="seq"
+        ).results
+
+    assert project.key == "DEMO"
+    assert {i.seq for i in items} == set(range(1, len(items) + 1))
+    # at least one task hangs under a feature under an epic
+    by_id = {i.id: i for i in items}
+    tasks = [i for i in items if i.kind.value == "task"]
+    assert any(
+        (feat := by_id.get(t.parent_id)) is not None
+        and feat.kind.value == "feature"
+        and by_id.get(feat.parent_id) is not None
+        and by_id[feat.parent_id].kind.value == "epic"
+        for t in tasks
+    )

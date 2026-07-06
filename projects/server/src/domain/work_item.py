@@ -41,3 +41,4 @@ class WorkItem(Entity):
     acceptance_criteria: list[AcceptanceCriterion] = Field(default_factory=list)
     status: WorkItemStatus = WorkItemStatus.TODO
     priority: Priority = Priority.MEDIUM
+    seq: int | None = None

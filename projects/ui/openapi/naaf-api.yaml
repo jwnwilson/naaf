@@ -707,9 +707,10 @@ components:
 
     WorkItem:
       type: object
-      required: [id, type, title, status, priority, projectId, createdAt, updatedAt]
+      required: [id, key, type, title, status, priority, projectId, createdAt, updatedAt]
       properties:
         id: { type: string }
+        key: { type: string }
         type: { type: string, enum: [epic, feature, task] }
         title: { type: string }
         status:
@@ -718,7 +719,9 @@ components:
         priority: { type: string, enum: [low, medium, high, urgent] }
         assignedAgent: { $ref: "#/components/schemas/Agent", nullable: true }
         epicId: { type: string, nullable: true }
+        epicName: { type: string, nullable: true }
         featureId: { type: string, nullable: true }
+        featureName: { type: string, nullable: true }
         projectId: { type: string }
         tokenUsageThisRun: { type: integer, nullable: true }
         tokenUsageAllRuns: { type: integer, nullable: true }
