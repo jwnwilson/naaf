@@ -595,6 +595,7 @@ export interface components {
         };
         WorkItem: {
             id: string;
+            key: string;
             /** @enum {string} */
             type: "epic" | "feature" | "task";
             title: string;
@@ -604,7 +605,9 @@ export interface components {
             priority: "low" | "medium" | "high" | "urgent";
             assignedAgent?: components["schemas"]["Agent"];
             epicId?: string | null;
+            epicName?: string | null;
             featureId?: string | null;
+            featureName?: string | null;
             projectId: string;
             tokenUsageThisRun?: number | null;
             tokenUsageAllRuns?: number | null;

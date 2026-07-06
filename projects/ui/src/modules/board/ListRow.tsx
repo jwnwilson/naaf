@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { Avatar, PriorityBars, StatusCircle, Tag } from "../../components/ui";
+import { Avatar, PriorityBars, StatusCircle } from "../../components/ui";
+import { LineageBreadcrumb } from "./LineageBreadcrumb";
 import type { WorkItem } from "./groupByStatus";
 
 function formatAge(createdAt: string): string {
@@ -25,9 +26,9 @@ export function ListRow({ item }: { item: WorkItem }) {
     >
       <PriorityBars priority={item.priority} />
       <StatusCircle status={item.status} />
-      <span className="w-[62px] shrink-0 font-mono text-[10.5px] text-text-6">{item.id}</span>
+      <span className="w-[62px] shrink-0 font-mono text-[10.5px] text-text-6">{item.key}</span>
       <span className="min-w-0 flex-1 truncate text-[12.5px] text-[#b0b2b8]">{item.title}</span>
-      {item.epicId != null && <Tag>{item.epicId}</Tag>}
+      <LineageBreadcrumb item={item} />
       {item.tokenUsageThisRun != null && (
         <span className="w-[44px] shrink-0 text-right font-mono text-[10px] text-text-6">
           {(item.tokenUsageThisRun / 1000).toFixed(1)}k

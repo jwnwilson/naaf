@@ -45,16 +45,15 @@ def test_transaction_rolls_back_on_error(session_factory):
 
 def test_delete_where_respects_owner_and_in_filter(session_factory):
     from adapters.database.uow import SqlUnitOfWork
-    from interactors.api.schemas import CreateProject
 
     a = SqlUnitOfWork(session_factory, required_filters={"owner_id": "a"})
     with a.transaction():
-        p1 = a.projects.create(CreateProject(name="p1"))
-        p2 = a.projects.create(CreateProject(name="p2"))
+        p1 = a.projects.create(Project(owner_id="a", name="p1"))
+        p2 = a.projects.create(Project(owner_id="a", name="p2"))
 
     other = SqlUnitOfWork(session_factory, required_filters={"owner_id": "b"})
     with other.transaction():
-        pb = other.projects.create(CreateProject(name="pb"))
+        pb = other.projects.create(Project(owner_id="b", name="pb"))
 
     a2 = SqlUnitOfWork(session_factory, required_filters={"owner_id": "a"})
     with a2.transaction():
@@ -78,12 +77,11 @@ def test_delete_project_cascade_removes_all_descendants(session_factory):
     from domain.runs.messages import AgentMessage, MessageType
     from domain.runs.run import Run
     from domain.work_item import WorkItem, WorkItemKind
-    from interactors.api.schemas import CreateProject
     from sqlalchemy import func, select
 
     uow = SqlUnitOfWork(session_factory, required_filters={"owner_id": "u1"})
     with uow.transaction():
-        p = uow.projects.create(CreateProject(name="p"))
+        p = uow.projects.create(Project(owner_id="u1", name="p"))
         wi = uow.work_items.create(
             WorkItem(owner_id="u1", project_id=p.id, kind=WorkItemKind.TASK, title="t")
         )
@@ -134,11 +132,10 @@ def test_delete_project_cascade_removes_all_descendants(session_factory):
 
 def test_delete_where_cannot_bypass_owner_scope(session_factory):
     from adapters.database.uow import SqlUnitOfWork
-    from interactors.api.schemas import CreateProject
 
     owner_b = SqlUnitOfWork(session_factory, required_filters={"owner_id": "b"})
     with owner_b.transaction():
-        pb = owner_b.projects.create(CreateProject(name="pb"))
+        pb = owner_b.projects.create(Project(owner_id="b", name="pb"))
 
     # Owner "a" tries to delete owner "b"'s row by passing owner_id explicitly.
     owner_a = SqlUnitOfWork(session_factory, required_filters={"owner_id": "a"})

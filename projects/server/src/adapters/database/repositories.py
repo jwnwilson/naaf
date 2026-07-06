@@ -4,7 +4,7 @@ from domain.base import utcnow
 from domain.messaging.message import Message
 from domain.messaging.subscriber import CursorState
 from domain.notifications.notification import Notification
-from domain.project import Project
+from domain.project import Project, derive_project_key
 from domain.runs.events import RunEvent
 from domain.runs.messages import AgentMessage, MessageStatus, MessageType
 from domain.runs.run import Run
@@ -42,6 +42,15 @@ class ProjectRepository(SqlRepository[Project]):
     orm_model = ProjectRow
     dto = Project
 
+    def create(self, dto: Project) -> Project:  # type: ignore[override]
+        if not dto.key:
+            q = select(ProjectRow.key).where(ProjectRow.key.isnot(None))
+            for key, value in self.required_filters.items():
+                q = q.where(getattr(ProjectRow, key) == value)
+            taken = {row[0] for row in self.session.execute(q).all()}
+            dto = dto.model_copy(update={"key": derive_project_key(dto.name, taken)})
+        return super().create(dto)
+
 
 class SecretRepository(SqlRepository[Secret]):
     orm_model = SecretRow
@@ -51,6 +60,15 @@ class SecretRepository(SqlRepository[Secret]):
 class WorkItemRepository(SqlRepository[WorkItem]):
     orm_model = WorkItemRow
     dto = WorkItem
+
+    def create(self, dto: WorkItem) -> WorkItem:  # type: ignore[override]
+        q = select(func.coalesce(func.max(WorkItemRow.seq), 0) + 1).where(
+            WorkItemRow.project_id == dto.project_id
+        )
+        for key, value in self.required_filters.items():
+            q = q.where(getattr(WorkItemRow, key) == value)
+        next_seq = self.session.execute(q).scalar_one()
+        return super().create(dto.model_copy(update={"seq": next_seq}))
 
 
 class TeamRepository(SqlRepository[Team]):

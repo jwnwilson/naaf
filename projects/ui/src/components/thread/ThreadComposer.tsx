@@ -44,13 +44,14 @@ export function ThreadComposer({
       >
         <div className="flex items-center justify-between gap-2">
           <input
+            data-testid="thread-composer-input"
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder={placeholder}
             className="bg-transparent text-[12px] flex-1 outline-none"
             style={{ color: "#c4c5cb" }}
           />
-          <Button type="submit" variant="primary" disabled={disabled}>
+          <Button data-testid="thread-composer-send" type="submit" variant="primary" disabled={disabled}>
             Send ↑
           </Button>
         </div>

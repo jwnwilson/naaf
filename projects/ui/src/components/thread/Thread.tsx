@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useAnswerQuestion, useThreadMessages } from "../../lib/api/hooks";
 import { useAgentActivity } from "../../lib/api/hooks/useAgentActivity";
 import { MessageItem } from "./MessageItem";
@@ -6,6 +6,7 @@ import { ThreadComposer } from "./ThreadComposer";
 import { ThreadRail } from "./ThreadRail";
 import { groupMessagesByDay } from "./groupByDay";
 import { ActivityFeedView } from "./ActivityFeed";
+import { isNearBottom } from "./autoscroll";
 
 interface ThreadProps {
   workItemId: string;
@@ -38,12 +39,44 @@ export function Thread({
   const handleAnswer = (msgId: string, option: string) => { answer.mutate({ msgId, option }); };
   const groups = groupMessagesByDay(messages);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const atBottomRef = useRef(true);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (el) atBottomRef.current = isNearBottom(el);
+  };
+
+  // Switching threads always lands at the bottom. Declared BEFORE the follow
+  // effect so atBottomRef is true when it runs on the same workItemId change.
+  useEffect(() => {
+    atBottomRef.current = true;
+  }, [workItemId]);
+
+  // Follow new messages / streaming activity while pinned near the bottom.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el && atBottomRef.current) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [
+    workItemId,
+    messages.length,
+    activity.textBlocks.length,
+    activity.toolCalls.length,
+    activity.isWorking,
+  ]);
+
   return (
     <div className="flex flex-col h-full flex-1 overflow-hidden">
       {banner}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <div className="flex flex-col flex-1 overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-4 py-4">
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="flex-1 overflow-y-auto px-4 py-4"
+          >
             {isLoading && (
               <p className="text-[11px] text-[#30333c]">Loading…</p>
             )}

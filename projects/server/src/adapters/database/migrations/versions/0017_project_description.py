@@ -1,13 +1,13 @@
 """project description column
 
-Revision ID: 0016_project_description
-Revises: 0015_run_cost
+Revision ID: 0017_project_description
+Revises: 0016_work_item_keys
 """
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0016_project_description"
-down_revision = "0015_run_cost"
+revision = "0017_project_description"
+down_revision = "0016_work_item_keys"
 branch_labels = None
 depends_on = None
 

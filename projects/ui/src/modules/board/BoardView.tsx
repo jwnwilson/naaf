@@ -42,7 +42,7 @@ function ColumnHeader({ status, count, onAdd }: ColumnHeaderProps) {
 }
 
 export function BoardView({ projectId }: { projectId: string }) {
-  const { data, isLoading } = useProjectWorkItems(projectId);
+  const { data, isLoading } = useProjectWorkItems(projectId, 5_000);
   const results = data?.results ?? [];
   const grouped = groupByStatus(results);
   const { openCreateWorkItem } = useCreateModal();

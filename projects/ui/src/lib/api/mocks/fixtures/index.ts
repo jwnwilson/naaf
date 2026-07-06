@@ -76,7 +76,7 @@ const projects: Project[] = [
 // proj-1: epics → features → tasks spanning all 5 statuses
 // proj-2: simpler tree, all done
 
-const workItems: WorkItem[] = [
+const baseWorkItems = [
   // proj-1 — epic (backlog)
   {
     id: "wi-epic-1",
@@ -276,6 +276,14 @@ const workItems: WorkItem[] = [
     updatedAt: "2026-06-24T15:00:00Z",
   },
 ];
+
+const byId = new Map(baseWorkItems.map((w) => [w.id, w] as const));
+const workItems: WorkItem[] = baseWorkItems.map((w, i) => ({
+  ...w,
+  key: `DEMO-${i + 1}`,
+  epicName: w.epicId ? (byId.get(w.epicId)?.title ?? null) : null,
+  featureName: w.featureId ? (byId.get(w.featureId)?.title ?? null) : null,
+})) as WorkItem[];
 
 // ─── Teams ───────────────────────────────────────────────────────────────────
 

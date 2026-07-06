@@ -31,7 +31,7 @@ export function AgentMonitor({ runId }: { runId: string }) {
     : "—";
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" data-testid="agent-monitor">
       {/* Header */}
       <div
         className="flex items-center gap-3 px-5 py-3 flex-shrink-0"
@@ -40,7 +40,7 @@ export function AgentMonitor({ runId }: { runId: string }) {
         <Avatar initials={roleInitials(role)} variant="agent" size={22} />
         <div className="flex flex-col" style={{ gap: 2 }}>
           <span className="text-[11px] font-semibold text-text-1">{role}</span>
-          <span className="font-mono text-[9.5px]" style={{ color: "#42454e" }}>
+          <span data-testid="run-status" className="font-mono text-[9.5px]" style={{ color: "#42454e" }}>
             {run.status}
             {run.currentStage ? ` · ${run.currentStage}` : ""} · {startedAt}
           </span>

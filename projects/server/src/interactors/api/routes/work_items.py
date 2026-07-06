@@ -1,3 +1,4 @@
+from typing import NamedTuple
 from uuid import UUID
 
 from adapters.database.uow import SqlUnitOfWork
@@ -25,43 +26,64 @@ router = APIRouter(prefix="/work-items", tags=["work-items"])
 project_router = APIRouter(tags=["work-items"])
 
 
-def _resolve_lineage(item: WorkItem, uow: SqlUnitOfWork) -> tuple[str | None, str | None]:
-    """Return (epic_id, feature_id) by walking the parent chain (≤2 reads)."""
+class Lineage(NamedTuple):
+    epic_id: str | None = None
+    epic_name: str | None = None
+    feature_id: str | None = None
+    feature_name: str | None = None
+
+
+def _resolve_lineage(item: WorkItem, uow: SqlUnitOfWork) -> Lineage:
+    """Return the epic/feature ids + names by walking the parent chain (≤2 reads)."""
     if item.parent_id is None:
-        return None, None
+        return Lineage()
     parent = uow.work_items.read(item.parent_id)
     if parent.kind == WorkItemKind.EPIC:
-        return parent.id, None
+        return Lineage(epic_id=parent.id, epic_name=parent.title)
     if parent.kind == WorkItemKind.FEATURE:
         epic_id: str | None = None
+        epic_name: str | None = None
         if parent.parent_id:
-            epic_id = uow.work_items.read(parent.parent_id).id
-        return epic_id, parent.id
-    return None, None
+            epic = uow.work_items.read(parent.parent_id)
+            epic_id, epic_name = epic.id, epic.title
+        return Lineage(epic_id, epic_name, parent.id, parent.title)
+    return Lineage()
+
+
+def _compose_key(item: WorkItem, project_key: str | None) -> str:
+    """Human-readable key, e.g. 'NAAF-42'. Falls back to the raw id if unset."""
+    if project_key and item.seq is not None:
+        return f"{project_key}-{item.seq}"
+    return item.id
 
 
 def _work_item_out(
     item: WorkItem,
-    epic_id: str | None,
-    feature_id: str | None,
+    lineage: Lineage,
+    project_key: str | None,
     attachments: list | None = None,
 ) -> WorkItemOut:
     """Build the camelCase contract response for a work item.
 
-    epicId/featureId aren't stored on the item — the route resolves them from
-    the parent chain (see _resolve_lineage). Agent-run fields (assignedAgent,
-    token usage) have no backend source yet and emit null. Attachments are
-    populated only for single-item reads to avoid N+1 on list/board endpoints.
+    epicId/epicName/featureId/featureName aren't stored on the item — the
+    route resolves them from the parent chain (see _resolve_lineage). key is
+    composed from the owning project's key + this item's per-project seq.
+    Agent-run fields (assignedAgent, token usage) have no backend source yet
+    and emit null. Attachments are populated only for single-item reads to
+    avoid N+1 on list/board endpoints.
     """
     return WorkItemOut(
         id=item.id,
+        key=_compose_key(item, project_key),
         type=item.kind.value,
         title=item.title,
         status=item.status.value,
         priority=item.priority.value,
         assignedAgent=None,
-        epicId=epic_id,
-        featureId=feature_id,
+        epicId=lineage.epic_id,
+        epicName=lineage.epic_name,
+        featureId=lineage.feature_id,
+        featureName=lineage.feature_name,
         projectId=item.project_id,
         tokenUsageThisRun=None,
         tokenUsageAllRuns=None,
@@ -76,6 +98,7 @@ def _work_item_out(
 @router.get("/{id}", response_model=Envelope[WorkItemOut])
 def read_work_item(id: UUID, uow: SqlUnitOfWork = Depends(get_uow)):  # noqa: B008
     item = uow.work_items.read(id.hex)
+    project = uow.projects.read(item.project_id)
     atts = uow.attachments.read_multi(
         filters={"work_item_id": item.id}, order_by="created_at"
     ).results
@@ -90,7 +113,7 @@ def read_work_item(id: UUID, uow: SqlUnitOfWork = Depends(get_uow)):  # noqa: B0
         ).model_dump()
         for a in atts
     ]
-    return ok(_work_item_out(item, *_resolve_lineage(item, uow), attachments=att_out))
+    return ok(_work_item_out(item, _resolve_lineage(item, uow), project.key, attachments=att_out))
 
 
 @router.patch("/{id}", response_model=Envelope[WorkItemOut])
@@ -110,7 +133,8 @@ def update_work_item(
     if "spec" in sent:
         data["body"] = body.spec
     updated = uow.work_items.update(id.hex, UpdateWorkItem(**data))  # type: ignore[arg-type]
-    return ok(_work_item_out(updated, *_resolve_lineage(updated, uow)))
+    project = uow.projects.read(updated.project_id)
+    return ok(_work_item_out(updated, _resolve_lineage(updated, uow), project.key))
 
 
 @router.get("", response_model=Envelope[list[WorkItemOut]])
@@ -131,11 +155,14 @@ def list_work_items(
         filters=filters, page_size=page_size, page_number=page_number
     )
     results = []
+    project_keys: dict[str, str | None] = {}
     for item in page.results:
-        epic_id, feature_id = _resolve_lineage(item, uow)
-        if epic and epic_id != epic:
+        lineage = _resolve_lineage(item, uow)
+        if epic and lineage.epic_id != epic:
             continue
-        results.append(_work_item_out(item, epic_id, feature_id))
+        if item.project_id not in project_keys:
+            project_keys[item.project_id] = uow.projects.read(item.project_id).key
+        results.append(_work_item_out(item, lineage, project_keys[item.project_id]))
     # epicId is computed (not a DB column), so ?epic= filters in Python after
     # the query; report the filtered length as the single-page total.
     total = len(results) if epic else page.total
@@ -161,7 +188,8 @@ def transition_work_item(
     current = uow.work_items.read(id.hex)
     new_status = validate_transition(current.status, body.status)
     saved = uow.work_items.update(id.hex, current.model_copy(update={"status": new_status}))
-    return ok(_work_item_out(saved, *_resolve_lineage(saved, uow)))
+    project = uow.projects.read(saved.project_id)
+    return ok(_work_item_out(saved, _resolve_lineage(saved, uow), project.key))
 
 
 @project_router.post(
@@ -173,7 +201,7 @@ def create_work_item(
     body: WorkItemCreateIn,
     uow: SqlUnitOfWork = Depends(get_uow),  # noqa: B008
 ):
-    uow.projects.read(project_id)  # owner-scoped: missing or foreign project → 404
+    project = uow.projects.read(project_id)  # owner-scoped: missing or foreign project → 404
     parent_id = body.featureId or body.epicId or None
     parent = uow.work_items.read(parent_id) if parent_id else None
     validate_hierarchy(body.type, parent)
@@ -190,7 +218,7 @@ def create_work_item(
         status=body.status,
     )
     saved = uow.work_items.create(item)
-    return ok(_work_item_out(saved, *_resolve_lineage(saved, uow)))
+    return ok(_work_item_out(saved, _resolve_lineage(saved, uow), project.key))
 
 
 @project_router.get(
