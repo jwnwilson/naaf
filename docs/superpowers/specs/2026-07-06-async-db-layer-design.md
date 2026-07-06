@@ -30,7 +30,9 @@ sync and an async implementation (modeled on `hexrepo_db`).
 
 - Converting sync `def` endpoints to async.
 - Migrating the worker's message-drain loop to async (a background process; blocking is fine).
-- Mirroring all 12 concrete repositories in async — only `AgentEventRepository` is needed now.
+- Mirroring all 12 concrete repositories in async — only the two the SSE streams read are
+  needed now (`AgentEventRepository` for the activity streams, `RunEventRepository` for the
+  run-events stream).
 - Adding `asyncpg`. psycopg3 is both sync and async on the same `postgresql+psycopg://` URL.
 
 ## Decisions (from brainstorming)
@@ -40,7 +42,9 @@ sync and an async implementation (modeled on `hexrepo_db`).
 2. **Lib boundary:** the new lib holds **generic machinery only**; the app keeps `orm.py`,
    the concrete repositories, and the concrete UoWs.
 3. **Async depth:** a **complete** generic `AsyncSqlRepository` (full CRUD parity), but only
-   **one** concrete async repo wired now (`AgentEventRepository.list_after`).
+   the **two** concrete async repos the streams read wired now
+   (`AgentEventRepository.list_after` for activity, `RunEventRepository.read_multi` for run
+   events).
 4. **Testing:** mirror the sync tests with in-memory `sqlite+aiosqlite://` + `StaticPool`,
    plus one Postgres-backed async smoke test.
 5. **Driver:** reuse the existing `postgresql+psycopg://` URL via `create_async_engine`
@@ -64,10 +68,11 @@ projects/server/src/adapters/database  ── naaf-specific ──────�
   orm.py          (unchanged)
   repository.py   thin: re-exports / binds lib bases to naaf's ORM Base + domain errors
   repositories.py 12 sync repos subclass the lib SqlRepository (behavior unchanged)
-                  + AsyncAgentEventRepository (new — async list_after only)
+                  + AsyncAgentEventRepository (async list_after) + AsyncRunEventRepository
+                    (trivial — read_multi from the base)
   uow.py          SqlUnitOfWork    (subclasses SqlUnitOfWorkBase; named repo properties
                                     + delete_project_cascade unchanged)
-                  + AsyncUnitOfWork (new; exposes .agent_events only)
+                  + AsyncUnitOfWork (new; exposes .agent_events + .run_events)
   engine.py       thin re-export of the lib builders, keeping import paths stable
                   (e.g. `from adapters.database.engine import build_engine`)
 ```
@@ -119,9 +124,12 @@ The app's concrete repository base (in `adapters/database/repository.py`) overri
 ### App changes
 
 - `adapters/database/repositories.py`: add `AsyncAgentEventRepository(AsyncSqlRepository)`
-  with an async `list_after(scope, after, limit)` mirroring the sync one.
-- `adapters/database/uow.py`: add `AsyncUnitOfWork(AsyncUnitOfWorkBase)` exposing only
-  `.agent_events`. `SqlUnitOfWork` keeps all named properties and `delete_project_cascade`.
+  with an async `list_after(scope, after, limit)` mirroring the sync one, and
+  `AsyncRunEventRepository(AsyncSqlRepository)` (just `orm_model`/`dto`; the stream uses the
+  base `read_multi`).
+- `adapters/database/uow.py`: add `AsyncUnitOfWork(AsyncUnitOfWorkBase)` exposing
+  `.agent_events` and `.run_events`. `SqlUnitOfWork` keeps all named properties and
+  `delete_project_cascade`.
 - `interactors/api/app.py`: build the async engine + `async_session_factory` at startup;
   store on `app.state`; add a FastAPI `lifespan` that `dispose()`s both engines on shutdown.
 - `interactors/api/deps.py`: add `get_async_uow` (async dependency) mirroring `get_uow`.
