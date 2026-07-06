@@ -124,6 +124,7 @@ Move `ports`, errors, `engine`, `SqlRepository`, and a new `SqlUnitOfWorkBase` i
 - Create: `libs/db/src/naaf_db/errors.py`
 - Create: `libs/db/src/naaf_db/ports.py`
 - Create: `libs/db/src/naaf_db/engine.py`
+- Create: `libs/db/src/naaf_db/_query.py` (shared pure query-builders used by BOTH repos)
 - Create: `libs/db/src/naaf_db/repository.py`
 - Create: `libs/db/src/naaf_db/uow.py`
 - Create: `libs/db/tests/test_sync_repository.py`
@@ -285,19 +286,80 @@ def build_session_factory(engine: Engine) -> sessionmaker:
     return sessionmaker(bind=engine, expire_on_commit=False)
 ```
 
-- [ ] **Step 5: Create the lib `SqlRepository`**
+- [ ] **Step 5a: Create the shared query-builder module**
 
-`libs/db/src/naaf_db/repository.py` — move the class from `adapters/database/repository.py` verbatim, with two changes: (a) drop `from adapters.database.orm import Base` — type `orm_model` as `type[Any]`; (b) replace the `domain.errors` import with overridable class attributes bound to the lib errors:
+`libs/db/src/naaf_db/_query.py` — the pure, I/O-free query helpers, extracted so the sync and async repositories share ONE implementation (no duplication):
+```python
+from typing import Any
+
+from pydantic import BaseModel
+from sqlalchemy import Select, asc, desc, func, select
+
+
+def to_dto(dto: type[BaseModel], row: Any) -> BaseModel:
+    data = {c.name: getattr(row, c.name) for c in row.__table__.columns}
+    return dto(**data)
+
+
+def base_select(orm_model: type[Any], required_filters: dict[str, Any]) -> Select:
+    query = select(orm_model)
+    for key, value in required_filters.items():
+        query = query.where(getattr(orm_model, key) == value)
+    return query
+
+
+def apply_filters(orm_model: type[Any], query: Select, filters: dict[str, Any]) -> Select:
+    for key, value in filters.items():
+        if key.endswith("__in"):
+            query = query.where(getattr(orm_model, key[:-4]).in_(value))
+        elif key.endswith("__like"):
+            query = query.where(getattr(orm_model, key[:-6]).ilike(f"%{value}%"))
+        elif key.endswith("__isnull"):
+            attr = getattr(orm_model, key[:-8])
+            query = query.where(attr.is_(None) if value else attr.isnot(None))
+        elif key.endswith("__gte"):
+            query = query.where(getattr(orm_model, key[:-5]) >= value)
+        elif key.endswith("__lte"):
+            query = query.where(getattr(orm_model, key[:-5]) <= value)
+        elif key.endswith("__gt"):
+            query = query.where(getattr(orm_model, key[:-4]) > value)
+        elif key.endswith("__lt"):
+            query = query.where(getattr(orm_model, key[:-4]) < value)
+        elif key.endswith("__ne"):
+            query = query.where(getattr(orm_model, key[:-4]) != value)
+        else:
+            query = query.where(getattr(orm_model, key) == value)
+    return query
+
+
+def order(query: Select, order_by: str | None) -> Select:
+    if not order_by:
+        return query
+    direction = desc if order_by.startswith("-") else asc
+    return query.order_by(direction(order_by.lstrip("-")))
+
+
+def count_select(orm_model: type[Any], required_filters: dict[str, Any], filters: dict[str, Any]) -> Select:
+    query = apply_filters(orm_model, select(func.count()).select_from(orm_model), filters)
+    for key, value in required_filters.items():
+        query = query.where(getattr(orm_model, key) == value)
+    return query
+```
+
+- [ ] **Step 5b: Create the lib `SqlRepository`**
+
+`libs/db/src/naaf_db/repository.py` — the current `adapters/database/repository.py` logic, but (a) no `adapters.database.orm` import (type `orm_model` as `type[Any]`); (b) errors via overridable class attributes; (c) the pure helpers delegate to `naaf_db._query`:
 ```python
 from typing import Any, Generic, TypeVar, cast
 
 from pydantic import BaseModel
-from sqlalchemy import Delete, Select, asc, desc, func, select
+from sqlalchemy import Delete, Select
 from sqlalchemy import delete as sql_delete
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.exc import IntegrityError as SqlIntegrityError
 from sqlalchemy.orm import Session
 
+from naaf_db import _query
 from naaf_db.errors import IntegrityConflict, RecordNotFound
 from naaf_db.ports import PaginatedResult
 
@@ -320,9 +382,90 @@ class SqlRepository(Generic[DTO]):  # noqa: UP046
         self.session = session
         self.required_filters = required_filters or {}
 
-    # ... (copy _to_dto, _base_select, _apply_filters, _order verbatim) ...
+    def _to_dto(self, row: Any) -> DTO:
+        return cast(DTO, _query.to_dto(self.dto, row))
+
+    def _get_one_row(self, id: str) -> Any:
+        query = _query.base_select(self.orm_model, self.required_filters).where(self.orm_model.id == id)
+        row = self.session.execute(query).scalar_one_or_none()
+        if row is None:
+            raise self.not_found_error(f"{self.orm_model.__name__} {id} not found")
+        return row
+
+    def create(self, dto: BaseModel) -> DTO:
+        data = {k: v for k, v in dto.model_dump().items() if v is not None}
+        data.update(self.required_filters)
+        row = self.orm_model(**data)
+        self.session.add(row)
+        try:
+            self.session.flush()
+        except SqlIntegrityError as err:
+            self.session.rollback()
+            raise self.conflict_error(str(err.orig)) from err
+        self.session.refresh(row)
+        return self._to_dto(row)
+
+    def read(self, id: str) -> DTO:
+        return self._to_dto(self._get_one_row(id))
+
+    def read_multi(
+        self,
+        filters: dict[str, Any] | None = None,
+        page_size: int = 50,
+        page_number: int = 1,
+        order_by: str = "-created_at",
+    ) -> PaginatedResult[DTO]:
+        filters = filters or {}
+        query = _query.order(
+            _query.apply_filters(_query.base_select(self.orm_model, self.required_filters), filters),
+            order_by,
+        )
+        total = int(self.session.execute(
+            _query.count_select(self.orm_model, self.required_filters, filters)
+        ).scalar_one())
+        if page_size > 0 and page_number >= 1:
+            query = query.offset((page_number - 1) * page_size).limit(page_size)
+        rows = self.session.execute(query).scalars().all()
+        return PaginatedResult[self.dto](  # type: ignore[name-defined]
+            results=[self._to_dto(r) for r in rows],
+            total=total,
+            page_size=page_size,
+            page_number=page_number,
+        )
+
+    def update(self, id: str, dto: BaseModel) -> DTO:
+        row = self._get_one_row(id)
+        for key, value in dto.model_dump(exclude_unset=True).items():
+            if key in ("id", "owner_id", "created_at"):
+                continue
+            setattr(row, key, value)
+        try:
+            self.session.flush()
+        except SqlIntegrityError as err:
+            self.session.rollback()
+            raise self.conflict_error(str(err.orig)) from err
+        self.session.refresh(row)
+        return self._to_dto(row)
+
+    def delete(self, id: str) -> None:
+        row = self._get_one_row(id)
+        self.session.delete(row)
+        self.session.flush()
+
+    def delete_where(self, **filters: Any) -> int:
+        stmt: Delete = sql_delete(self.orm_model)
+        for key, value in filters.items():
+            if key.endswith("__in"):
+                stmt = stmt.where(getattr(self.orm_model, key[:-4]).in_(value))
+            else:
+                stmt = stmt.where(getattr(self.orm_model, key) == value)
+        for key, value in self.required_filters.items():
+            stmt = stmt.where(getattr(self.orm_model, key) == value)
+        result = cast(CursorResult, self.session.execute(stmt))
+        self.session.flush()
+        return int(result.rowcount or 0)
 ```
-Then in `_get_one_row`, `create`, `update` replace `RecordNotFound(...)` → `self.not_found_error(...)` and `IntegrityConflict(...)` → `self.conflict_error(...)`. Copy `read`, `read_multi`, `delete`, `delete_where` verbatim. (The full body is the current `adapters/database/repository.py` with those three symbol substitutions.)
+This preserves the exact behavior of the current sync repository while routing all query-building through `naaf_db._query`.
 
 - [ ] **Step 6: Create the lib `SqlUnitOfWorkBase`**
 
@@ -618,17 +761,18 @@ Expected: FAIL — `ModuleNotFoundError: No module named 'naaf_db.async_reposito
 
 - [ ] **Step 3: Implement `AsyncSqlRepository`**
 
-`libs/db/src/naaf_db/async_repository.py` — mirror the sync base. The query-building helpers (`_base_select`, `_apply_filters`, `_order`) are **identical** (they build `Select` objects, no I/O); only the execute/flush/refresh calls are awaited:
+`libs/db/src/naaf_db/async_repository.py` — mirror the sync base, sharing the **same** `naaf_db._query` helpers (no duplicated query-building); only the execute/flush/refresh calls are awaited:
 ```python
 from typing import Any, Generic, TypeVar, cast
 
 from pydantic import BaseModel
-from sqlalchemy import Delete, Select, asc, desc, func, select
+from sqlalchemy import Delete
 from sqlalchemy import delete as sql_delete
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.exc import IntegrityError as SqlIntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from naaf_db import _query
 from naaf_db.errors import IntegrityConflict, RecordNotFound
 from naaf_db.ports import PaginatedResult
 
@@ -646,28 +790,10 @@ class AsyncSqlRepository(Generic[DTO]):  # noqa: UP046
         self.required_filters = required_filters or {}
 
     def _to_dto(self, row: Any) -> DTO:
-        data = {c.name: getattr(row, c.name) for c in row.__table__.columns}
-        return self.dto(**data)  # type: ignore[return-value]
-
-    def _base_select(self) -> Select:
-        query = select(self.orm_model)
-        for key, value in self.required_filters.items():
-            query = query.where(getattr(self.orm_model, key) == value)
-        return query
-
-    def _apply_filters(self, query: Select, filters: dict[str, Any]) -> Select:
-        # IDENTICAL to naaf_db.repository.SqlRepository._apply_filters
-        # (copy the __in/__like/__isnull/__gte/__lte/__gt/__lt/__ne/else block verbatim)
-        ...
-
-    def _order(self, query: Select, order_by: str | None) -> Select:
-        if not order_by:
-            return query
-        direction = desc if order_by.startswith("-") else asc
-        return query.order_by(direction(order_by.lstrip("-")))
+        return cast(DTO, _query.to_dto(self.dto, row))
 
     async def _get_one_row(self, id: str) -> Any:
-        query = self._base_select().where(self.orm_model.id == id)
+        query = _query.base_select(self.orm_model, self.required_filters).where(self.orm_model.id == id)
         row = (await self.session.execute(query)).scalar_one_or_none()
         if row is None:
             raise self.not_found_error(f"{self.orm_model.__name__} {id} not found")
@@ -697,13 +823,13 @@ class AsyncSqlRepository(Generic[DTO]):  # noqa: UP046
         order_by: str = "-created_at",
     ) -> PaginatedResult[DTO]:
         filters = filters or {}
-        query = self._order(self._apply_filters(self._base_select(), filters), order_by)
-        count_query = self._apply_filters(
-            select(func.count()).select_from(self.orm_model), filters
+        query = _query.order(
+            _query.apply_filters(_query.base_select(self.orm_model, self.required_filters), filters),
+            order_by,
         )
-        for key, value in self.required_filters.items():
-            count_query = count_query.where(getattr(self.orm_model, key) == value)
-        total = int((await self.session.execute(count_query)).scalar_one())
+        total = int((await self.session.execute(
+            _query.count_select(self.orm_model, self.required_filters, filters)
+        )).scalar_one())
         if page_size > 0 and page_number >= 1:
             query = query.offset((page_number - 1) * page_size).limit(page_size)
         rows = (await self.session.execute(query)).scalars().all()
@@ -746,7 +872,7 @@ class AsyncSqlRepository(Generic[DTO]):  # noqa: UP046
         await self.session.flush()
         return int(result.rowcount or 0)
 ```
-(Copy the `_apply_filters` body verbatim from `naaf_db/repository.py`.)
+(All query-building goes through `naaf_db._query`, shared with the sync repo — no duplicated filter/order logic.)
 
 - [ ] **Step 4: Implement `AsyncUnitOfWorkBase`**
 
@@ -1328,7 +1454,7 @@ gh pr create --base main --head feat/async-db-layer \
 - Testing: aiosqlite mirror + Postgres smoke → Tasks 2,4,5,7. ✔
 - Deps (sqlalchemy[asyncio], greenlet, aiosqlite, pytest-asyncio) + workspace → Task 1. ✔
 
-**Placeholder scan:** The `_apply_filters` bodies in Tasks 2 & 4 say "copy verbatim" rather than re-pasting the 20-line block — this is a deliberate DRY pointer to a single source (`adapters/database/repository.py:39-60`), not a TBD. All other steps carry full code.
+**Placeholder scan:** None. The pure query-builders live once in `naaf_db/_query.py` (Task 2 Step 5a) and both repos call them — no "copy verbatim" pointers remain. All steps carry full code.
 
 **Type consistency:** `AsyncUnitOfWork.agent_events` → `AsyncAgentEventRepository` (Task 5) matches its use in Task 7; `.run_events` → `AsyncRunEventRepository` matches Task 8. `get_async_uow` signature (Task 6) matches its consumers. `build_async_engine`/`build_async_session_factory` names consistent across Tasks 3,5,6,7.
 
