@@ -1,12 +1,11 @@
-from collections.abc import Iterator
-from contextlib import contextmanager
-from typing import Any
-
-from sqlalchemy.orm import Session, sessionmaker
+from naaf_db.async_uow import AsyncUnitOfWorkBase
+from naaf_db.uow import SqlUnitOfWorkBase
 
 from adapters.database.repositories import (
     AgentDefinitionRepository,
     AgentEventRepository,
+    AsyncAgentEventRepository,
+    AsyncRunEventRepository,
     AttachmentRepository,
     BusMessageRepository,
     MessageRepository,
@@ -20,44 +19,9 @@ from adapters.database.repositories import (
 )
 
 
-class SqlUnitOfWork:
+class SqlUnitOfWork(SqlUnitOfWorkBase):
     """Owns one session + transaction boundary. Repositories share that session
     and apply required_filters for owner-scoping."""
-
-    def __init__(
-        self,
-        session_factory: sessionmaker,
-        required_filters: dict[str, Any] | None = None,
-    ):
-        self._session_factory = session_factory
-        self._required_filters = required_filters or {}
-        self._session: Session | None = None
-        self._repos: dict[str, Any] = {}
-
-    @property
-    def session(self) -> Session:
-        if self._session is None:
-            self._session = self._session_factory()
-        return self._session
-
-    @contextmanager
-    def transaction(self) -> Iterator["SqlUnitOfWork"]:
-        session = self.session
-        try:
-            yield self
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
-            self._session = None
-            self._repos = {}
-
-    def _repo(self, name: str, cls: type) -> Any:
-        if name not in self._repos:
-            self._repos[name] = cls(self.session, required_filters=self._required_filters)
-        return self._repos[name]
 
     @property
     def attachments(self) -> AttachmentRepository:
@@ -146,3 +110,16 @@ class SqlUnitOfWork:
         self.runs.delete_where(project_id=project_id)
         self.work_items.delete_where(project_id=project_id)
         self.projects.delete(project_id)
+
+
+class AsyncUnitOfWork(AsyncUnitOfWorkBase):
+    """Async sibling of SqlUnitOfWork. Read-mostly repos for streaming reads
+    off the event loop; writes stay on the sync path via SqlUnitOfWork."""
+
+    @property
+    def agent_events(self) -> AsyncAgentEventRepository:
+        return self._repo("agent_events", AsyncAgentEventRepository)
+
+    @property
+    def run_events(self) -> AsyncRunEventRepository:
+        return self._repo("run_events", AsyncRunEventRepository)

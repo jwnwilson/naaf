@@ -48,6 +48,22 @@ today:
 
 See the dated log below for the detail on each, and **Outstanding** at the bottom for what's left.
 
+## Status (2026-07-07)
+
+**Async DB layer (`libs/db`) + SSE event-loop-freeze fix — built.** The activity and run-events SSE
+streams were blocking the API's single event loop under load (each poll iteration ran a **sync**
+SQLAlchemy query inside an `async def` endpoint with no `run_in_executor`, so a long-poll starved
+every other request). `naaf_db` gained an **async sibling** of its sync engine/repository/UnitOfWork
+(`build_async_engine`, `AsyncSqlRepository`, `AsyncUnitOfWorkBase`, minimal `AsyncAgentEventRepository`
++ `AsyncRunEventRepository`) sharing the same pure query-builders (`_query.py`) as the sync path — no
+duplicated filter/order/paginate logic. The FastAPI app now carries an async engine on `app.state`
+(disposed in the lifespan shutdown) via `get_async_uow`, and **both SSE endpoints** (activity +
+run-events) were converted to await the async UoW, unblocking the event loop while streams are open.
+Sync endpoints and the worker are unchanged (still the sync `SqlUnitOfWork`). Tested with an
+`aiosqlite` in-memory mirror of the sync repository test suite (create/read/read_multi/update/delete/
+delete_where) plus the existing Postgres integration coverage; `naaf_db` is now included in the
+coverage gate (`[tool.coverage.run].source`).
+
 ## Status (2026-07-05)
 
 **A5d — real per-model pricing + live spend/budget (display slice) — built.** The flat placeholder
