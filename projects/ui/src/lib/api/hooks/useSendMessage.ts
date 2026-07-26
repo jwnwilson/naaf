@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiPost } from "../client";
 import { queryKeys } from "../queryKeys";
 import { invalidateBoardForThread } from "./invalidateBoard";
+import { makeOptimisticId } from "./optimisticId";
 import type { Message } from "./useThreadMessages";
 
 type SendVars = { content: string };
@@ -16,7 +17,7 @@ export function useSendMessage(workItemId: string) {
       await qc.cancelQueries({ queryKey: key });
       const previous = qc.getQueryData<{ results: Message[] }>(key);
       const optimistic: Message = {
-        id: `optimistic-${vars.content}`,
+        id: makeOptimisticId(),
         threadId: workItemId,
         authorKind: "user",
         authorRole: null,
