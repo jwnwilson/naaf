@@ -1,4 +1,4 @@
-.PHONY: install test coverage lint run db-upgrade db-reset worker dev secret-key e2e-db e2e e2e-real
+.PHONY: install test coverage lint run db-upgrade db-reset worker dev dev-stop secret-key e2e-db e2e e2e-real
 
 # Load .env (if present) and export it so every child process — the worker,
 # API, alembic, seed launched by `make dev`/`run`/`worker` — inherits it,
@@ -73,10 +73,28 @@ WORKER_CMD = uv run watchmedo auto-restart --directory=./src --pattern='*.py' --
 worker:
 	cd projects/server && $(WORKER_CMD)
 
+# Reap a leftover dev stack before starting a new one. A clean Ctrl-C fires the
+# `dev` trap (`kill 0`) and tears everything down, but a shell that dies without
+# it — a closed terminal, a crash, a SIGKILL — orphans the uvicorn/vite/worker.
+# An orphaned uvicorn keeps holding :8000 yet no longer answers, so the next
+# `make dev` can't bind the port and the API "listens but never responds".
+# Runs automatically before `make dev`; also usable on its own: `make dev-stop`.
+# Best-effort and idempotent — safe when nothing is running.
+dev-stop:
+	@echo "🔪 stopping any leftover dev stack (celery/uvicorn/vite) from previous runs…"
+	@# SIGKILL, not SIGTERM: the worker runs under `watchmedo auto-restart --signal
+	@# SIGTERM`, which would just respawn celery on a graceful term. -9 reaps the
+	@# watchmedo supervisor and the celery worker together so neither restarts.
+	@pkill -9 -f "interactors.worker.celery_app" 2>/dev/null || true
+	@# Free the API/UI ports by PID (lsof works on macOS; guarded so an empty match
+	@# doesn't invoke kill with no args).
+	@pids=$$(lsof -ti:8000 -ti:5173 2>/dev/null); [ -n "$$pids" ] && kill -9 $$pids 2>/dev/null || true
+
 # One command to run + validate the whole stack:
 #   Postgres + Redis (docker) -> migrate + seed -> API (:8000) + worker + UI (:5173, live).
 # All processes share Postgres via naaf_db_url. Ctrl-C stops everything.
-dev:
+# Depends on dev-stop so a previous run's orphans can't squat on :8000/:5173.
+dev: dev-stop
 	@echo "▶ NAAF full stack — API http://localhost:8000 · UI http://localhost:5173 (live) · runtime=$(NAAF_AGENT_RUNTIME). Ctrl-C stops everything."
 	docker compose up -d postgres redis
 	@echo "⏳ waiting for Postgres…"
