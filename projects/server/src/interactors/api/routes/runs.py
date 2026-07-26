@@ -4,7 +4,7 @@ import time
 from uuid import UUID
 
 from adapters.bus.ports import MessageBus
-from adapters.database.uow import SqlUnitOfWork
+from adapters.database.uow import AsyncUnitOfWork, SqlUnitOfWork
 from crud_router import Envelope, ok
 from domain.errors import InvalidTransition
 from domain.runs.events import EventType, RunEvent
@@ -162,7 +162,8 @@ def stream_run_events(
     Polls run_events with seq > after on a short interval, yielding each row as
     a data: JSON line (RunEventOut shape). Closes after emitting a run_finished
     event or after _SSE_MAX_SECONDS. Does NOT hold a long-lived DB transaction —
-    a fresh SqlUnitOfWork is opened and closed on every poll iteration.
+    a fresh AsyncUnitOfWork is opened and closed on every poll iteration, so the
+    hot loop never blocks the event loop with sync DB I/O.
     """
 
     # Upfront owner-scoped lookup: raises RecordNotFound -> 404 if missing/foreign
@@ -176,16 +177,18 @@ def stream_run_events(
     async def gen():
         cursor = after
         deadline = time.monotonic() + _SSE_MAX_SECONDS
+        factory = request.app.state.async_session_factory
         while time.monotonic() < deadline:
-            uow = SqlUnitOfWork(
-                request.app.state.session_factory,
-                required_filters={"owner_id": owner_id},
-            )
-            with uow.transaction():
-                rows = uow.run_events.read_multi(
-                    filters={"run_id": id.hex, "seq__gt": cursor},
-                    order_by="seq",
-                    page_size=0,
+            if await request.is_disconnected():
+                return
+            auow = AsyncUnitOfWork(factory, required_filters={"owner_id": owner_id})
+            async with auow.transaction():
+                rows = (
+                    await auow.run_events.read_multi(
+                        filters={"run_id": id.hex, "seq__gt": cursor},
+                        order_by="seq",
+                        page_size=0,
+                    )
                 ).results
 
             for ev in rows:

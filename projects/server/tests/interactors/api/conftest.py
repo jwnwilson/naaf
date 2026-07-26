@@ -12,10 +12,11 @@ from interactors.api.settings import Settings
 
 
 @pytest.fixture
-def client(session_factory, tmp_path):
+def client(session_factory, async_session_factory, tmp_path):
     app = create_app(
         settings=Settings(attachments_root=str(tmp_path / "attachments")),
         session_factory=session_factory,
+        async_session_factory=async_session_factory,
     )
     return TestClient(app)
 
@@ -55,7 +56,7 @@ def second_work_item_id(client) -> str:
 
 
 @pytest.fixture
-def client_other_owner(session_factory, tmp_path):
+def client_other_owner(session_factory, async_session_factory, tmp_path):
     """A TestClient owned by 'other-user' — cannot access dev-user's work items."""
     app = create_app(
         settings=Settings(
@@ -63,6 +64,7 @@ def client_other_owner(session_factory, tmp_path):
             attachments_root=str(tmp_path / "attachments-other"),
         ),
         session_factory=session_factory,
+        async_session_factory=async_session_factory,
     )
     return TestClient(app)
 

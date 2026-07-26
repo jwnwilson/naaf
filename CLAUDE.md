@@ -44,6 +44,7 @@ Hexagonal, three layers — domain logic never touches I/O:
 ```
 libs/
   crud_router/       # envelope-aware CrudRouter (workspace lib)
+  db/                # naaf_db — generic sync+async SQLAlchemy engine/repository/UoW (workspace lib)
 projects/
   server/            # Backend API service
     src/
@@ -59,6 +60,9 @@ projects/
     components/ui/   # design-system primitives (Button, Dialog, Card, …) + shared composed components
     lib/api/         # typed envelope API client + per-domain modules + React Query key factories
 ```
+
+> SSE stream endpoints (activity + run events) use the async UoW (`get_async_uow`) so they never
+> block the event loop; every sync endpoint and the worker use the sync UoW.
 
 
 > Placement rules: persistence ports (Repository/UnitOfWork protocols) live with their impl in `adapters/database/ports.py`; business logic in `domain/` (no argparse, no I/O, no adapter imports), with each entity model co-located in the domain module that owns it (no central `models.py`); port implementations in `adapters/`; reusable app-agnostic modules in `lib/`; wiring/startup in `interactors/`. No `scripts/` folder.

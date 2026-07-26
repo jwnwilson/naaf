@@ -2,7 +2,7 @@
 import asyncio
 import time
 
-from adapters.database.uow import SqlUnitOfWork
+from adapters.database.uow import AsyncUnitOfWork, SqlUnitOfWork
 from crud_router import Envelope, ok
 from domain.agent.events import EVENT_ERROR, EVENT_FINAL, stream_scope
 from fastapi import APIRouter, Depends, Request
@@ -54,13 +54,13 @@ def _stream(request: Request, owner_id: str, scope: str, after: int) -> EventSou
     async def gen():
         cursor = after
         deadline = time.monotonic() + _MAX_SECONDS
+        factory = request.app.state.async_session_factory
         while time.monotonic() < deadline:
-            uow = SqlUnitOfWork(
-                request.app.state.session_factory,
-                required_filters={"owner_id": owner_id},
-            )
-            with uow.transaction():
-                rows = uow.agent_events.list_after(scope, cursor, limit=200)
+            if await request.is_disconnected():
+                return
+            uow = AsyncUnitOfWork(factory, required_filters={"owner_id": owner_id})
+            async with uow.transaction():
+                rows = await uow.agent_events.list_after(scope, cursor, limit=200)
             for ev in rows:
                 cursor = ev.seq
                 yield {"data": _out(ev).model_dump_json()}

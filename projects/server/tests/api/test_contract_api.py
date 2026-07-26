@@ -1,10 +1,16 @@
-def test_collection_get_projects_returns_200_without_redirect(session_factory):
+def test_collection_get_projects_returns_200_without_redirect(
+    session_factory, async_session_factory
+):
     from fastapi.testclient import TestClient
     from interactors.api.app import create_app
     from interactors.api.settings import Settings
 
     # Arrange
-    app = create_app(settings=Settings(), session_factory=session_factory)
+    app = create_app(
+        settings=Settings(),
+        session_factory=session_factory,
+        async_session_factory=async_session_factory,
+    )
     no_redirect_client = TestClient(app, follow_redirects=False)
 
     # Act
@@ -14,7 +20,9 @@ def test_collection_get_projects_returns_200_without_redirect(session_factory):
     assert response.status_code == 200
 
 
-def test_collection_get_work_items_returns_200_without_redirect(session_factory):
+def test_collection_get_work_items_returns_200_without_redirect(
+    session_factory, async_session_factory
+):
     import uuid
 
     from fastapi.testclient import TestClient
@@ -22,7 +30,11 @@ def test_collection_get_work_items_returns_200_without_redirect(session_factory)
     from interactors.api.settings import Settings
 
     # Arrange
-    app = create_app(settings=Settings(), session_factory=session_factory)
+    app = create_app(
+        settings=Settings(),
+        session_factory=session_factory,
+        async_session_factory=async_session_factory,
+    )
     no_redirect_client = TestClient(app, follow_redirects=False)
 
     # Act

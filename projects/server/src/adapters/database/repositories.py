@@ -30,7 +30,7 @@ from adapters.database.orm import (
     TeamRow,
     WorkItemRow,
 )
-from adapters.database.repository import SqlRepository
+from adapters.database.repository import AsyncSqlRepository, SqlRepository
 
 
 class AttachmentRepository(SqlRepository[Attachment]):
@@ -143,6 +143,35 @@ class AgentEventRepository(SqlRepository[AgentEvent]):
             page_size=limit,
         )
         return page.results
+
+
+class AsyncAgentEventRepository(AsyncSqlRepository[AgentEvent]):
+    orm_model = AgentEventRow
+    dto = AgentEvent
+
+    async def create(self, dto: AgentEvent) -> AgentEvent:  # type: ignore[override]
+        # Mirror AgentEventRepository.create: the (owner_id, scope, seq) unique
+        # constraint requires a per-scope monotonic seq computed at write time.
+        q = select(func.coalesce(func.max(AgentEventRow.seq), 0) + 1).where(
+            AgentEventRow.scope == dto.scope
+        )
+        for key, value in self.required_filters.items():
+            q = q.where(getattr(AgentEventRow, key) == value)
+        next_seq = (await self.session.execute(q)).scalar_one()
+        return await super().create(dto.model_copy(update={"seq": next_seq}))
+
+    async def list_after(self, scope: str, after: int, limit: int = 200) -> list[AgentEvent]:
+        page = await self.read_multi(
+            filters={"scope": scope, "seq__gt": after},
+            order_by="seq",
+            page_size=limit,
+        )
+        return page.results
+
+
+class AsyncRunEventRepository(AsyncSqlRepository[RunEvent]):
+    orm_model = RunEventRow
+    dto = RunEvent
 
 
 class SubscriberCursorRepository:

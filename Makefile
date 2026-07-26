@@ -43,7 +43,7 @@ coverage:
 
 lint:
 	uv run ruff check .
-	uv run mypy projects/server/src libs/crud_router/src
+	uv run mypy projects/server/src libs/crud_router/src libs/db/src
 
 # uvicorn --reload watches the process CWD (the repo root) by default, which
 # includes the git-ignored .worktrees/ trees and every tests/ dir. A .py change
