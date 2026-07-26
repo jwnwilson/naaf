@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Message } from "../../lib/api/hooks";
+import { useReplyRefetch } from "../../lib/api/hooks/useReplyRefetch";
 import { MessageItem } from "./MessageItem";
 import { Thread } from "./Thread";
 
@@ -52,6 +53,7 @@ describe("Thread empty-state gate", () => {
     vi.mocked(activityHook.useAgentActivity).mockReturnValue(IDLE as never);
     render(<Thread workItemId="wi-1" />);
     expect(screen.getByText("No messages yet")).toBeInTheDocument();
+    expect(vi.mocked(useReplyRefetch)).toHaveBeenCalledWith("wi-1", IDLE.done);
   });
 
   it("does NOT show 'No messages yet' when agent is working and no messages yet", () => {
