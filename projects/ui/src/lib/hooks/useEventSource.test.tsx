@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { reconnectDelay, ssePath, useEventSource } from "./useEventSource";
+import { __clearRegistry } from "./eventSourceRegistry";
 
 class FakeEventSource {
   static instances: FakeEventSource[] = [];
@@ -41,10 +42,14 @@ describe("reconnectDelay", () => {
 describe("useEventSource", () => {
   beforeEach(() => {
     FakeEventSource.instances = [];
+    // useEventSource now shares one socket per path via a module-level registry;
+    // reset it between tests so reused paths start from a clean connection.
+    __clearRegistry();
     vi.stubGlobal("EventSource", FakeEventSource);
     vi.useFakeTimers();
   });
   afterEach(() => {
+    __clearRegistry();
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });
