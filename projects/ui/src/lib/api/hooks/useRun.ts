@@ -49,7 +49,9 @@ export function useRun(runId: string): {
     setStreamed([]);
   }, [runId]);
 
-  const lastSeq = history.length ? history[history.length - 1].seq : 0;
+  // Highest seq across history + streamed, so a reconnect resumes from where we
+  // left off (useEventSource keys on the url path, so advancing ?after= is safe).
+  const lastSeq = [...history, ...streamed].reduce((max, e) => Math.max(max, e.seq), 0);
 
   useEventSource<RunEventOut>(
     runQuery.data ? `/api/runs/${runId}/events/stream?after=${lastSeq}` : null,

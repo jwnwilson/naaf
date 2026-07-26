@@ -57,7 +57,11 @@ export function useAgentActivity(scope: { threadId?: string; runId?: string } | 
   useEffect(() => { setStreamed([]); }, [base]);
 
   const hist = history.data ?? [];
-  const lastSeq = hist.length ? hist[hist.length - 1].seq : 0;
+  // Resume cursor = highest seq seen across history AND streamed events, so a
+  // reconnect (deadline / network blip) picks up where we left off instead of
+  // replaying the backlog. Safe to advance as events stream in: useEventSource
+  // keys the connection on the url path, so a changing ?after= does not drop it.
+  const lastSeq = [...hist, ...streamed].reduce((max, e) => Math.max(max, e.seq), 0);
   useEventSource<ActivityEvent>(
     base ? `/api${base}/activity/stream?after=${lastSeq}` : null,
     (ev) => setStreamed((prev) => [...prev, ev]),
