@@ -21,6 +21,10 @@ vi.mock("../../lib/api/hooks/useAgentActivity", async (importOriginal) => {
   };
 });
 
+vi.mock("../../lib/api/hooks/useReplyRefetch", () => ({
+  useReplyRefetch: vi.fn(),
+}));
+
 vi.mock("./ThreadComposer", () => ({
   ThreadComposer: () => <div data-testid="thread-composer" />,
 }));

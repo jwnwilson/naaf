@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { useAnswerQuestion, useThreadMessages } from "../../lib/api/hooks";
 import { useAgentActivity } from "../../lib/api/hooks/useAgentActivity";
+import { useReplyRefetch } from "../../lib/api/hooks/useReplyRefetch";
 import { MessageItem } from "./MessageItem";
 import { ThreadComposer } from "./ThreadComposer";
 import { ThreadRail } from "./ThreadRail";
@@ -34,6 +35,7 @@ export function Thread({
   composerPlaceholder,
 }: ThreadProps) {
   const activity = useAgentActivity({ threadId: workItemId });
+  useReplyRefetch(workItemId, activity.done);
   const { data: messages = [], isLoading } = useThreadMessages(workItemId, activity.isWorking);
   const answer = useAnswerQuestion(workItemId);
   const handleAnswer = (msgId: string, option: string) => { answer.mutate({ msgId, option }); };
