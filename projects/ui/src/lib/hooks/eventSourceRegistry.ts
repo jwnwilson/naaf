@@ -57,6 +57,7 @@ function resolveUrl(entry: Entry): string | null {
 function connect(path: string): void {
   const entry = registry.get(path);
   if (!entry || entry.stopped) return;
+  entry.timer = undefined; // the reconnect timer that scheduled this run has now fired
   const url = resolveUrl(entry);
   if (!url) return;
   const es = new EventSource(url);
