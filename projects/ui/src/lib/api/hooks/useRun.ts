@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, apiList } from "../client";
 import { queryKeys } from "../queryKeys";
 import { useEventSource } from "../../hooks/useEventSource";
 import type { components } from "../schema";
+import { hasRunFinished } from "./runFinished";
 
 export type RunOut = components["schemas"]["RunOut"];
 export type RunEventOut = components["schemas"]["RunEventOut"];
@@ -59,6 +60,17 @@ export function useRun(runId: string): {
   );
 
   const events = mergeEventsBySeq(history, streamed);
+
+  const qc = useQueryClient();
+  const finished = hasRunFinished(events);
+  const prevFinished = useRef(false);
+  useEffect(() => {
+    if (finished && !prevFinished.current) {
+      void qc.invalidateQueries({ queryKey: queryKeys.run(runId) });
+    }
+    prevFinished.current = finished;
+  }, [finished, runId, qc]);
+
   return {
     run: runQuery.data,
     events,
